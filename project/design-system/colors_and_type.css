@@ -1,0 +1,235 @@
+/* =====================================================================
+   Onboard Business — Colors & Type tokens
+   Sourced from tailwind.config.js + src/styles/index.css of onboard-cex-portal
+   ===================================================================== */
+
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("./fonts/EuclidCircularA-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("./fonts/EuclidCircularA-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("./fonts/EuclidCircularA-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("./fonts/EuclidCircularA-SemiBold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Euclid Circular A";
+  src: url("./fonts/EuclidCircularA-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ---------- Brand purple (primary) ---------- */
+  /* Logo files use #5E1FEC and #5720F5; tailwind uses #5433FF as DEFAULT.
+     We expose them as a 50→900 ramp matching tailwind.config.js. */
+  --primary-50:  #FDFAFF;
+  --primary-100: #DDD6FF;
+  --primary-200: #8770FF;
+  --primary-300: #765CFF;
+  --primary-400: #6547FF;
+  --primary-500: #5433FF;   /* tailwind primary.DEFAULT */
+  --primary-600: #4C2EE6;
+  --primary-700: #4329CC;
+  --primary-800: #3B24B3;
+  --primary-900: #321F99;
+  --primary-logo: #5E1FEC;  /* exact logo SVG fill */
+  --primary-main: #4F34F5;
+
+  /* ---------- Cool gray neutrals (cool, very low chroma) ---------- */
+  --gray-50:  #FAFAFA;
+  --gray-100: #F4F8FB;       /* canvas background under cards */
+  --gray-200: #EDF2F7;
+  --gray-300: #E2E8F0;
+  --gray-400: #CBD5E0;
+  --gray-500: #A0AEC0;
+  --gray-600: #718096;       /* subdued body / labels */
+  --gray-700: #2A313C;
+  --gray-800: #232B38;
+  --gray-900: #1A202C;       /* primary text */
+  --ink-wallet: #000D20;     /* dark wallet card body */
+
+  /* ---------- Semantic feedback (tailwind blue/green/red/yellow) ---------- */
+  --info-100: #DBEAFE;
+  --info-500: #3B82F6;
+  --info-700: #1D4ED8;       /* "blue-700" used for active sidebar, default button */
+  --success-100: #D1FAE5;
+  --success-500: #22C55E;
+  --success-600: #16A34A;
+  --success-700: #15803D;
+  --warning-100: #FEF3C7;
+  --warning-500: #EAB308;
+  --warning-600: #CA8A04;
+  --danger-100:  #FEE2E2;
+  --danger-500:  #EF4444;
+  --danger-600:  #DC2626;
+  --danger-700:  #B91C1C;
+
+  /* ---------- Surface / page tokens ---------- */
+  --bg-canvas:    var(--gray-100);
+  --bg-surface:   #FFFFFF;
+  --bg-elevated:  #FFFFFF;
+  --bg-inverse:   var(--ink-wallet);
+  --fg-default:   var(--gray-900);
+  --fg-muted:     var(--gray-600);
+  --fg-subtle:    var(--gray-500);
+  --fg-on-primary:#FFFFFF;
+  --fg-on-inverse:#FFFFFF;
+  --border-subtle:var(--gray-300);
+  --border-strong:var(--gray-400);
+  --border-active:var(--info-700);
+  --row-hover:    #EFF6FF;     /* table row hover (blue-50) */
+  --pill-active:  var(--info-100); /* dropdown hover #DBEAFE */
+
+  /* ---------- Type ---------- */
+  --font-sans: "Euclid Circular A", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+
+  --fw-light: 300;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --fs-xs:   12px;   /* metadata, table cell secondary, tiny labels */
+  --fs-sm:   14px;   /* default body in the app */
+  --fs-base: 16px;
+  --fs-md:   15px;   /* card heading uppercase ("text-[15px] uppercase") */
+  --fs-lg:   18px;   /* table title (text-lg font-bold) */
+  --fs-xl:   20px;   /* stat value (text-xl font-medium) */
+  --fs-2xl:  24px;   /* AuthCard title */
+  --fs-3xl:  30px;   /* wallet balance (text-[1.875rem]) */
+  --fs-4xl:  36px;
+  --fs-5xl:  48px;
+
+  --lh-tight: 1.1;
+  --lh-snug:  1.25;
+  --lh-base:  1.5;
+  --lh-loose: 1.7;
+
+  --tracking-tight: -0.02em;
+  --tracking-button: 0.02rem;     /* button 'tracking-[0.02rem]' */
+  --tracking-uppercase: 0.06em;   /* card heading uppercase + label uppercase */
+
+  /* ---------- Radius / shadow / spacing ---------- */
+  --radius-xs: 4px;     /* card heading, dropdown, small chrome */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;    /* primary buttons, inputs, wallet card, primary surfaces */
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  --shadow-card:  0px 1px 2px rgba(0, 0, 0, 0.07);                   /* my-shadow / card-shadow */
+  --shadow-drop:  0px 2px 5px rgba(0, 0, 0, 0.06),
+                  0px 4px 6px -1px rgba(0, 0, 0, 0.10);              /* dropdown/tooltip elevation */
+  --shadow-nav:   0px 1px 2px rgba(0, 0, 0, 0.07);
+  --shadow-focus: 0 0 0 3px rgba(84, 51, 255, 0.18);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* sidebar fixed width (the app uses w-[260px]) */
+  --layout-sidebar: 260px;
+  --layout-nav-h:   60px;
+}
+
+/* =================================================================
+   Semantic role mappings — drop-in classes used in preview cards
+   ================================================================= */
+
+html, body {
+  background: var(--bg-canvas);
+  color: var(--fg-default);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.h1 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-default);
+}
+.h2 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+  color: var(--fg-default);
+}
+.h3 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-snug);
+  color: var(--fg-default);
+}
+.eyebrow,
+.card-heading {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-md);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-uppercase);
+  text-transform: uppercase;
+  color: var(--fg-default);
+}
+.label-uppercase {
+  /* matches the input label style: uppercase, xs, bold, gray-700 */
+  font-family: var(--font-sans);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-uppercase);
+  text-transform: uppercase;
+  color: var(--gray-700);
+}
+.body  { font-size: var(--fs-sm); color: var(--fg-default); }
+.body-muted { font-size: var(--fs-sm); color: var(--fg-muted); }
+.metric-value {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+  color: var(--gray-800);
+  line-height: 1.25;
+}
+.metric-label {
+  font-size: var(--fs-xs);
+  color: var(--gray-700);
+}
+.code, .mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--gray-700);
+}
