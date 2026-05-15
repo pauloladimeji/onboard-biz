@@ -71,6 +71,7 @@ const ACCOUNTS_A = [
 // Sample transactions (recent — dashboard preview shows 5–8)
 const TXNS = [
   { id: "PAY-2026-04812", date: "May 6, 09:14", direction: "out", type: "Payout",  party: "Adaeze Okafor",     ref: "PAY-2026-04812", amount: "1,250,000.00", ccy: "NGN",   from: "USD", status: "PROCESSING", pillTone: "warn" },
+  { id: "FND-2026-00319", date: "May 6, 07:41", direction: "in",  type: "Funding", party: "USDC · Base network", ref: "FND-2026-00319", amount: "5,000.00", ccy: "USDC", chain: "base", txHash: "0x7b4a2f1c9e8d3a5b6f0c4e2d1a8b7c3f9e6d5a4b", status: "COMPLETED", pillTone: "success" },
   { id: "FND-2026-00318", date: "May 6, 08:02", direction: "in",  type: "Funding", party: "Wire — JPMorgan ****4419", ref: "FND-2026-00318", amount: "25,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04809", date: "May 5, 16:38", direction: "out", type: "Payout",  party: "Mensah Holdings Ltd", ref: "PAY-2026-04809", amount: "48,200.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04802", date: "May 5, 14:22", direction: "out", type: "Payout",  party: "Joseph Mwangi",       ref: "PAY-2026-04802", amount: "62,500.00",   ccy: "KES",   from: "GBP", status: "COMPLETED",  pillTone: "success" },
@@ -294,6 +295,7 @@ const RECIPIENTS_FULL = (() => {
 // ---------- Extended transactions (full feed) ----------
 const TXNS_FULL = [
   ...TXNS,
+  { id: "FND-2026-00320", date: "May 3, 09:12", direction: "in",  type: "Funding", party: "USDT · Tron (TRC-20)", ref: "FND-2026-00320", amount: "10,000.00", ccy: "USDT", chain: "tron", txHash: "TZ9bD4cF6aE1c5B82d3F9CdA4b5e6F7E8d12C0aB9", status: "COMPLETED", pillTone: "success" },
   { id: "PAY-2026-04788", date: "May 3, 11:24", direction: "out", type: "Payout",  party: "Akosua Asante",       ref: "PAY-2026-04788", amount: "62,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04781", date: "May 2, 18:41", direction: "out", type: "Payout",  party: "Chinedu Nwosu",       ref: "PAY-2026-04781", amount: "780,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04772", date: "May 2, 14:55", direction: "out", type: "Payout",  party: "Wanjiru Kamau",       ref: "PAY-2026-04772", amount: "144,200.00",  ccy: "KES",   from: "GBP", status: "COMPLETED",  pillTone: "success" },

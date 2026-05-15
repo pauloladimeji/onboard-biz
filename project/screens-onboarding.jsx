@@ -36,25 +36,72 @@ function AuthShell({ children }) {
 
 function SignUpScreen({ onSubmit, onSwitchToSignIn }) {
   const [email, setEmail] = useState("");
-  const [biz, setBiz] = useState("");
-  const [agreed, setAgreed] = useState(false);
-  const valid = email.includes("@") && email.includes(".") && biz.trim().length > 1 && agreed;
+  const valid = email.includes("@") && email.includes(".");
 
-  const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ email, biz }); };
+  const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ email }); };
 
   return (
     <AuthShell>
       <h1>Create your account</h1>
-      <p className="lede">Sign up below to get started</p>
+      <p className="lede">Enter your work email to get started</p>
 
       <form onSubmit={submit}>
         <div className="field">
-          <label className="lbl">Business name</label>
-          <input className="inp" placeholder="Acme Trading Co" value={biz} onChange={(e)=>setBiz(e.target.value)} autoFocus />
+          <label className="lbl">Work email</label>
+          <input className="inp" type="email" placeholder="finance@acmetrading.com" value={email} onChange={(e)=>setEmail(e.target.value)} autoFocus />
+        </div>
+
+        <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
+          Continue
+        </button>
+      </form>
+
+      <div className="auth-foot">
+        Already have an account? <a onClick={onSwitchToSignIn}>Sign in</a>
+      </div>
+    </AuthShell>
+  );
+}
+
+// =====================================================
+// Register business — step 3 of sign-up (after OTP)
+// =====================================================
+const SIGNUP_COUNTRIES = [
+  "Nigeria", "Ghana", "Kenya", "Tanzania", "Mozambique",
+  "United Kingdom", "United States", "Canada", "Australia",
+  "South Africa", "Germany", "France", "Netherlands", "Singapore",
+  "United Arab Emirates", "Other",
+];
+
+function RegisterBusinessScreen({ email, onSubmit }) {
+  const [fullName, setFullName] = useState("");
+  const [bizName, setBizName] = useState("");
+  const [country, setCountry] = useState("");
+  const [agreed, setAgreed] = useState(false);
+
+  const valid = fullName.trim().length > 1 && bizName.trim().length > 1 && country && agreed;
+  const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ fullName, bizName, country }); };
+
+  return (
+    <AuthShell>
+      <h1>Set up your business</h1>
+      <p className="lede">A few details to open your account</p>
+
+      <form onSubmit={submit}>
+        <div className="field">
+          <label className="lbl">Your full name</label>
+          <input className="inp" placeholder="Adaeze Okafor" value={fullName} onChange={(e)=>setFullName(e.target.value)} autoFocus />
         </div>
         <div className="field">
-          <label className="lbl">Work email</label>
-          <input className="inp" type="email" placeholder="finance@acmetrading.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
+          <label className="lbl">Business name</label>
+          <input className="inp" placeholder="Acme Trading Co" value={bizName} onChange={(e)=>setBizName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="lbl">Country of registration</label>
+          <select className="inp" value={country} onChange={(e)=>setCountry(e.target.value)} style={{appearance:"auto"}}>
+            <option value="">Select country</option>
+            {SIGNUP_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
 
         <label style={{display:"flex", gap:10, alignItems:"flex-start", margin:"6px 0 18px", fontSize: 12.5, color: "var(--gray-700)", lineHeight: 1.5, cursor:"pointer"}}>
@@ -68,8 +115,8 @@ function SignUpScreen({ onSubmit, onSwitchToSignIn }) {
         </button>
       </form>
 
-      <div className="auth-foot">
-        Already have an account? <a onClick={onSwitchToSignIn}>Sign in</a>
+      <div className="auth-foot" style={{fontSize: 12, color: "var(--gray-500)"}}>
+        Signing up as <strong style={{color: "var(--gray-700)"}}>{email}</strong>
       </div>
     </AuthShell>
   );
@@ -190,4 +237,4 @@ function OtpScreen({ email, mode, onSubmit, onChangeEmail, onResend }) {
   );
 }
 
-window.OBOnboarding = { SignUpScreen, SignInScreen, OtpScreen };
+window.OBOnboarding = { SignUpScreen, SignInScreen, OtpScreen, RegisterBusinessScreen };

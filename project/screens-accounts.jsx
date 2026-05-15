@@ -1,7 +1,7 @@
 /* global React */
 const { useState, useMemo } = React;
 const Icon = window.OBIcon;
-const { CURRENCIES, ACCOUNTS_A, TXNS, RAILS_REF, RAILS_NAMED } = window.OBData;
+const { CURRENCIES, ACCOUNTS_A, TXNS, RAILS_REF, RAILS_NAMED, STABLECOIN_CHAINS, WAITLIST_CURRENCIES } = window.OBData;
 
 // =====================================================
 // Atoms used across account screens
@@ -128,15 +128,24 @@ function KybBanner({ status, onSubmitKyb }) {
 // =====================================================
 // Dashboard — Accounts overview
 // =====================================================
-function AccountsDashboard({ kybStatus, onOpenCurrency, onSubmitKyb, onSendPayment, onCreateAccount, onToast, dataState = "full" }) {
+const V0_ACCOUNTS = [
+  { code: "USD", balance: "84,231.50", status: "active", lastUpdated: "2 min ago", hint: "Wire · ACH · USDC · USDT" },
+  { code: "REQUEST", balance: null, status: "not_created" },
+];
+
+function AccountsDashboard({ kybStatus, accountsMode = "v0", onOpenCurrency, onSubmitKyb, onSendPayment, onCreateAccount, onToast, dataState = "full" }) {
   const isApproved = kybStatus === "approved";
   const isEmpty = dataState === "empty";
+  const isV0 = accountsMode === "v0";
   const [addOpen, setAddOpen] = useState(false);
-  // Empty: every currency available but none opened yet
+  const [requestOpen, setRequestOpen] = useState(false);
+
+  const baseAccounts = isV0 ? V0_ACCOUNTS : ACCOUNTS_A;
   const accounts = isEmpty
-    ? ACCOUNTS_A.map(a => ({ ...a, status: "not_created", balance: "0.00" }))
-    : ACCOUNTS_A;
-  const totalUsd = isEmpty ? "0.00" : "106,361.70";
+    ? baseAccounts.map(a => ({ ...a, status: a.code === "REQUEST" ? "not_created" : "not_created", balance: "0.00" }))
+    : baseAccounts;
+  const totalUsd = isEmpty ? "0.00" : isV0 ? "84,231.50" : "106,361.70";
+  const totalLabel = isV0 ? "Total balance" : "Total balance · approx";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
 
   return (
@@ -169,7 +178,7 @@ function AccountsDashboard({ kybStatus, onOpenCurrency, onSubmitKyb, onSendPayme
               <div className="row between" style={{marginBottom: 28, alignItems: "flex-end"}}>
                 <div>
                   <div style={{fontSize:11.5, fontWeight:700, letterSpacing:"0.06em", color:"var(--gray-600)", textTransform:"uppercase", marginBottom: 10}}>
-                    Total balance · approx
+                    {totalLabel}
                   </div>
                   <div style={{fontSize: 38, fontWeight: 600, color:"var(--gray-900)", fontVariantNumeric:"tabular-nums", letterSpacing:"-0.015em", lineHeight:1}}>
                     ${totalUsd} <span style={{fontSize: 15, color:"var(--gray-600)", fontWeight: 500, marginLeft: 6}}>USD</span>
@@ -187,8 +196,9 @@ function AccountsDashboard({ kybStatus, onOpenCurrency, onSubmitKyb, onSendPayme
               <div className="grid-4">
                 {accounts.map((a) => (
                   <CurrencyTile key={a.code} acct={a}
+                    isV0={isV0}
                     onOpen={() => onOpenCurrency(a.code)}
-                    onCreate={() => setAddOpen(true)} />
+                    onCreate={() => isV0 ? setRequestOpen(true) : setAddOpen(true)} />
                 ))}
               </div>
             </div>
@@ -197,6 +207,7 @@ function AccountsDashboard({ kybStatus, onOpenCurrency, onSubmitKyb, onSendPayme
           </>
         )}
       {addOpen && <AddCurrencyModal onClose={() => setAddOpen(false)} onDone={(c) => { setAddOpen(false); onToast && onToast(`${c} account opened`); }} />}
+      {requestOpen && <RequestCurrenciesModal onClose={() => setRequestOpen(false)} onDone={(ccys) => { setRequestOpen(false); onToast && onToast(`Request sent for ${ccys.join(", ")}`); }} />}
     </div>
   );
 }
@@ -254,13 +265,13 @@ function DashboardLockedState({ status, onSubmitKyb }) {
   );
 }
 
-function CurrencyTile({ acct, onOpen, onCreate }) {
+function CurrencyTile({ acct, onOpen, onCreate, isV0 = false }) {
   if (acct.status === "not_created") {
     return (
       <div className="ccy-tile empty-state" onClick={onCreate} role="button" tabIndex={0}>
         <div className="add-icon"><Icon.plus /></div>
-        <div className="add-label">Add currency</div>
-        <div className="add-sub">Open a new funding account</div>
+        <div className="add-label">{isV0 ? "Request other currencies" : "Add currency"}</div>
+        <div className="add-sub">{isV0 ? "GBP, EUR, NGN and more" : "Open a new funding account"}</div>
       </div>
     );
   }
@@ -377,15 +388,35 @@ function RecentTransactions({ txns, title = "Recent activity", onRowClick, dense
 // =====================================================
 // Per-currency detail page — Version A: REFERENCE-BASED
 // =====================================================
-function CurrencyDetailRefBased({ code, onBack, onToast, kybApproved = true }) {
+function CurrencyDetailRefBased({ code, onBack, onToast, kybApproved = true, accountsMode = "ref", fiatIssuance = "ready" }) {
   const meta = CURRENCIES[code];
   const acct = ACCOUNTS_A.find(a => a.code === code);
   if (acct && acct.status === "pending") return <CurrencyPendingState code={code} onBack={onBack} hint={acct.hint} />;
-  const balance = acct?.balance || "0.00";
+  const isV0 = accountsMode === "v0";
+
+  // V0 balance (USD only)
+  const v0Acct = isV0 ? V0_ACCOUNTS.find(a => a.code === "USD") : null;
+  const balance = isV0 ? (v0Acct?.balance || "0.00") : (acct?.balance || "0.00");
+
   const rails = RAILS_REF[code] || [];
   const ccyTxns = TXNS.filter(t => t.ccy === code || t.from === code).slice(0, 8);
+
+  // Build tab list for v0 (stablecoins first)
+  const v0Tabs = [
+    { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
+    { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
+    ...(fiatIssuance === "not_requested"
+      ? [{ id: "fiat-request", name: "Wire · ACH · SWIFT", type: "fiat-request" }]
+      : fiatIssuance === "in_progress"
+        ? rails.map(r => ({ ...r, type: "fiat-pending" }))
+        : rails.map(r => ({ ...r, type: "fiat" }))
+    ),
+  ];
+
+  const tabs = isV0 ? v0Tabs : null;
   const [activeRail, setActiveRail] = useState(0);
   const rail = rails[activeRail];
+  const activeTab = tabs ? tabs[activeRail] : null;
 
   if (!kybApproved) return <CurrencyLockedState code={code} onBack={onBack} />;
 
@@ -402,7 +433,11 @@ function CurrencyDetailRefBased({ code, onBack, onToast, kybApproved = true }) {
           <CcyFlag code={code} size={44} />
           <div>
             <h1 className="title">{code} · {meta.name}</h1>
-            <p className="subtitle">Funding into your shared {code} account · receive with reference</p>
+            <p className="subtitle">
+              {isV0
+                ? "Fund your USD balance via stablecoins or bank transfer"
+                : "Funding into your shared USD account · receive with reference"}
+            </p>
           </div>
         </div>
         <button className="btn">Send {code}</button>
@@ -441,9 +476,17 @@ function CurrencyDetailRefBased({ code, onBack, onToast, kybApproved = true }) {
         <div style={{padding: "22px 28px 0"}}>
           <div className="row between" style={{alignItems: "baseline", marginBottom: 18}}>
             <h2 style={{margin: 0, fontSize: 16, fontWeight: 600, color:"var(--gray-900)"}}>Fund this account</h2>
-            <span style={{fontSize: 12.5, color:"var(--gray-600)"}}>Choose a rail to view its instructions</span>
+            <span style={{fontSize: 12.5, color:"var(--gray-600)"}}>Choose a method to view its instructions</span>
           </div>
-          {rails.length > 1 && (
+          {isV0 ? (
+            <div className="rail-tabs">
+              {v0Tabs.map((t, i) => (
+                <button key={t.id} className={`rail-tab ${i === activeRail ? "on" : ""}`} onClick={() => setActiveRail(i)}>
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          ) : rails.length > 1 && (
             <div className="rail-tabs">
               {rails.map((r, i) => (
                 <button key={r.id} className={`rail-tab ${i === activeRail ? "on" : ""}`} onClick={() => setActiveRail(i)}>
@@ -453,7 +496,18 @@ function CurrencyDetailRefBased({ code, onBack, onToast, kybApproved = true }) {
             </div>
           )}
         </div>
-        {rail && <RailRefPanel rail={rail} ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />}
+
+        {isV0 && activeTab ? (
+          activeTab.type === "stablecoin"
+            ? <StablecoinRailPanel coin={activeTab.coin} onCopy={(v) => onToast(`Copied`)} />
+            : activeTab.type === "fiat-request"
+              ? <FiatRequestPanel onRequest={() => onToast("Fiat funding request sent — we'll be in touch")} />
+              : activeTab.type === "fiat-pending"
+                ? <FiatPendingPanel rail={activeTab} />
+                : <RailRefPanel rail={activeTab} ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
+        ) : (
+          rail && <RailRefPanel rail={rail} ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
+        )}
       </div>
 
       {/* Transactions */}
@@ -791,6 +845,218 @@ function AddCurrencyModal({ onClose, onDone }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
+// Stablecoin rail panel (v0 only)
+// =====================================================
+function StablecoinRailPanel({ coin, onCopy }) {
+  const chains = STABLECOIN_CHAINS[coin] || [];
+  const [activeChain, setActiveChain] = useState(0);
+  const chain = chains[activeChain];
+
+  return (
+    <div style={{padding: "24px 28px 28px"}}>
+      <div style={{fontSize: 12.5, color:"var(--gray-700)", lineHeight: 1.55, marginBottom: 18}}>
+        {coin === "USDC" ? "USD Coin (USDC) is a regulated stablecoin pegged 1:1 to USD." : "Tether (USDT) is a stablecoin pegged 1:1 to USD."} Send {coin} from any supported network below — your balance is credited in USD.
+      </div>
+
+      {/* Network selector */}
+      <div style={{marginBottom: 20}}>
+        <div style={{fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--gray-700)", textTransform: "uppercase", marginBottom: 10}}>
+          Network
+        </div>
+        <div style={{display: "flex", gap: 8, flexWrap: "wrap"}}>
+          {chains.map((c, i) => (
+            <button key={c.id}
+              onClick={() => setActiveChain(i)}
+              style={{
+                padding: "6px 14px", borderRadius: 8,
+                border: i === activeChain ? "1.5px solid var(--info-600)" : "1.5px solid var(--gray-200)",
+                background: i === activeChain ? "var(--info-50)" : "#fff",
+                color: i === activeChain ? "var(--info-700)" : "var(--gray-700)",
+                fontSize: 13, fontWeight: 500, cursor: "pointer",
+              }}>
+              {c.name}
+              <span style={{marginLeft: 6, fontSize: 11, opacity: 0.75, fontWeight: 400}}>({c.short})</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {chain && (
+        <>
+          <div style={{marginBottom: 20}}>
+            <div style={{fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--gray-700)", textTransform: "uppercase", marginBottom: 10}}>
+              Deposit address · {chain.name}
+            </div>
+            <CopyField value={chain.address} big highlight onCopy={onCopy} />
+          </div>
+
+          <div className="def-list" style={{marginBottom: 20}}>
+            <div className="def-row">
+              <div className="k">Minimum deposit</div>
+              <div className="v">{chain.min} {coin}</div>
+              <div style={{width: 28}} />
+            </div>
+            <div className="def-row">
+              <div className="k">Expected arrival</div>
+              <div className="v">{chain.arrival}</div>
+              <div style={{width: 28}} />
+            </div>
+          </div>
+
+          <div className="banner info" style={{borderRadius: 8, padding: "12px 16px"}}>
+            <div className="icw" style={{width: 20, height: 20}}><Icon.info /></div>
+            <div className="body" style={{fontSize: 12.5}}>
+              Only send {coin} on the <strong>{chain.name}</strong> network to this address. Sending on the wrong network will result in permanent loss of funds.
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FiatRequestPanel({ onRequest }) {
+  return (
+    <div style={{padding: "32px 28px 36px", textAlign: "center"}}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14,
+        background: "var(--info-50)", color: "var(--info-700)",
+        display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+      }}>
+        <Icon.bank style={{width: 24, height: 24}} />
+      </div>
+      <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+        Request fiat funding details
+      </div>
+      <div style={{fontSize: 13, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 24px", lineHeight: 1.6}}>
+        Get dedicated Wire, ACH, and SWIFT account details issued through our banking partner. This usually takes 1–2 business days. We'll email you when ready and may reach out if we need anything else.
+      </div>
+      <button className="btn" onClick={onRequest}>
+        <Icon.arrowRight /> Request fiat account details
+      </button>
+    </div>
+  );
+}
+
+function FiatPendingPanel({ rail }) {
+  return (
+    <div style={{padding: "32px 28px 36px", textAlign: "center"}}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14,
+        background: "#FFF6E5", color: "#A16207",
+        display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+      }}>
+        <Icon.clock style={{width: 24, height: 24}} />
+      </div>
+      <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+        {rail.name} details in progress
+      </div>
+      <div style={{fontSize: 13, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+        We're provisioning your account details with our banking partner. We'll email you when ready, and may reach out if the partner needs anything else from you.
+      </div>
+      <div className="addccy-progress" style={{maxWidth: 320, margin: "0 auto"}}><span /></div>
+    </div>
+  );
+}
+
+// =====================================================
+// Request Other Currencies Modal (v0)
+// =====================================================
+function RequestCurrenciesModal({ onClose, onDone }) {
+  const [selected, setSelected] = useState([]);
+  const [other, setOther] = useState("");
+  const [volume, setVolume] = useState("");
+  const [done, setDone] = useState(false);
+
+  const toggle = (code) => setSelected(s => s.includes(code) ? s.filter(c => c !== code) : [...s, code]);
+
+  if (done) {
+    const names = selected.map(c => c);
+    return (
+      <div className="addccy-bg" onClick={onClose}>
+        <div className="addccy" onClick={(e) => e.stopPropagation()}>
+          <button className="addccy-x" onClick={onClose}>×</button>
+          <div className="addccy-success">
+            <div className="ic" style={{background: "var(--success-100)", color: "var(--success-700)"}}>
+              <Icon.check style={{width: 26, height: 26}} />
+            </div>
+            <h3>Request received</h3>
+            <p>We'll email you at <strong>finance@acmetrading.com</strong> when {names.length > 0 ? names.join(", ") : "these currencies"} {names.length === 1 ? "is" : "are"} available on Onboard.</p>
+            <div className="addccy-actions" style={{justifyContent:"center"}}>
+              <button className="btn" onClick={() => onDone(selected)}>Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="addccy-bg" onClick={onClose}>
+      <div className="addccy" onClick={(e) => e.stopPropagation()}>
+        <button className="addccy-x" onClick={onClose}>×</button>
+        <div className="addccy-head">
+          <h3>Request other currencies</h3>
+          <p>Let us know which currencies you need. We'll prioritise based on demand and email you when they're available.</p>
+        </div>
+
+        <div style={{padding: "0 24px 8px"}}>
+          <div style={{fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--gray-600)", textTransform: "uppercase", marginBottom: 12}}>
+            Currencies
+          </div>
+          <div style={{display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20}}>
+            {WAITLIST_CURRENCIES.map((c) => {
+              const on = selected.includes(c.code);
+              return (
+                <button key={c.code} onClick={() => toggle(c.code)} style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "7px 14px", borderRadius: 8,
+                  border: on ? "1.5px solid var(--info-600)" : "1.5px solid var(--gray-200)",
+                  background: on ? "var(--info-50)" : "#fff",
+                  color: on ? "var(--info-700)" : "var(--gray-700)",
+                  fontSize: 13, fontWeight: 500, cursor: "pointer",
+                }}>
+                  <span className="ccy-flag" style={{width: 18, height: 18, backgroundImage: `url(design-system/assets/flags/${c.flag}.svg)`, borderRadius: "50%", flexShrink: 0}} />
+                  {c.code}
+                  <span style={{fontSize: 11, opacity: 0.7, fontWeight: 400}}>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{marginBottom: 16}}>
+            <label style={{fontSize: 12.5, fontWeight: 500, color: "var(--gray-700)", display: "block", marginBottom: 6}}>
+              Other currencies (optional)
+            </label>
+            <input className="inp" placeholder="e.g. CNY, ZAR, MXN" value={other} onChange={(e) => setOther(e.target.value)} />
+          </div>
+
+          <div style={{marginBottom: 8}}>
+            <label style={{fontSize: 12.5, fontWeight: 500, color: "var(--gray-700)", display: "block", marginBottom: 6}}>
+              Expected monthly volume (optional)
+            </label>
+            <select className="inp" value={volume} onChange={(e) => setVolume(e.target.value)} style={{appearance: "auto"}}>
+              <option value="">Select range</option>
+              <option value="<10k">Under $10,000</option>
+              <option value="10-50k">$10,000 – $50,000</option>
+              <option value="50-250k">$50,000 – $250,000</option>
+              <option value=">250k">Over $250,000</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="addccy-actions">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn" disabled={selected.length === 0 && !other.trim()} onClick={() => setDone(true)}>
+            Send request
+          </button>
+        </div>
       </div>
     </div>
   );

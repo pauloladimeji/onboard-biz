@@ -111,7 +111,6 @@ function MockPanel({ flow, onFlow, kyb, onKyb, accountsMode, onAccountsMode, pay
                     <button className={fiatIssuance === "ready"         ? "on" : ""} onClick={() => onFiatIssuance("ready")}>Fiat: ready</button>
                   </div>
                 )}
-                </div>
               </div>
               {route === "payments" && (
                 <div className="mockpanel-group">
@@ -191,9 +190,10 @@ function MockPanel({ flow, onFlow, kyb, onKyb, accountsMode, onAccountsMode, pay
 // App
 // =====================================================
 function App() {
-  // Top-level flow: signup | signup-otp | signin | signin-otp | app
+  // Top-level flow: signup | signup-otp | signup-register | signin | signin-otp | app
   const [flow, setFlow] = useState("app"); // start in app for review
   const [authEmail, setAuthEmail] = useState("finance@acmetrading.com");
+  const [authData, setAuthData] = useState({});
 
   // Sidebar route inside the app
   const [route, setRoute] = useState("dashboard");
@@ -241,6 +241,7 @@ function App() {
   const mockProps = { flow, onFlow: setFlowAndReset, kyb, onKyb: setKyb, accountsMode, onAccountsMode: setAccountsMode, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, paymentApproval, onPaymentApproval: setPaymentApproval, paymentApprovalMethod, onPaymentApprovalMethod: setPaymentApprovalMethod, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance };
 
   // ---------- AUTH FLOWS ----------
+  const { RegisterBusinessScreen } = window.OBOnboarding;
   if (flow === "signup") {
     return (
       <>
@@ -256,8 +257,18 @@ function App() {
       <>
         <FloatingMockPanel mockProps={mockProps} />
         <OtpScreen email={authEmail} mode="signup"
-          onSubmit={() => { setFlow("app"); setKyb("not_submitted"); }}
+          onSubmit={() => setFlow("signup-register")}
           onChangeEmail={() => setFlow("signup")} />
+      </>
+    );
+  }
+  if (flow === "signup-register") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <RegisterBusinessScreen
+          email={authEmail}
+          onSubmit={(data) => { setAuthData(data); setFlow("app"); setKyb("not_submitted"); }} />
       </>
     );
   }
@@ -288,6 +299,7 @@ function App() {
     screen = (
       <AccountsDashboard
         kybStatus={kyb}
+        accountsMode={accountsMode}
         dataState={dataState}
         accountSuspended={accountStatus === "suspended"}
         complianceHold={complianceHold}
