@@ -1,0 +1,145 @@
+# Onboard Business — Design Prototype
+
+## What this is
+
+A React prototype (HTML + JSX, compiled in-browser via Babel standalone) for **Onboard Business** — a B2B web app for international payments, primarily payouts into African corridors funded by USD/stablecoin deposits.
+
+Originally built in **Claude Design**, exported due to usage limits, and continued here in **Claude Code**. The goal is to keep the same file structure and code style so it can be re-imported into Claude Design later.
+
+## Full design history
+
+Read `chats/chat1.md` and `chats/chat2.md` for the complete back-and-forth — every design decision, user feedback, and iteration is there. Those transcripts are the source of truth for *why* things look the way they do.
+
+## Architecture
+
+Single-page app loaded from `project/Onboard Business - Onboarding & Accounts.html`. No build step — Babel standalone compiles JSX in the browser at runtime.
+
+```
+project/
+  Onboard Business - Onboarding & Accounts.html  ← entry point (load this)
+  app.css                   ← main styles
+  app-extras.css            ← additional styles added during iteration
+  design-system/            ← Onboard Business Design System v1
+    colors_and_type.css     ← design tokens + Euclid Circular A fonts
+    assets/
+      flags/                ← SVG flags (us, gb, eu, ng, gh, ke, mz, tz, ca)
+      onboard-logo-lockup-purple.png
+  data.jsx                  ← all mock data + Icon SVGs → window.OBData, window.OBIcon
+  combobox.jsx              ← reusable searchable dropdown → window.OBCombobox
+  screens-onboarding.jsx    ← sign-up, OTP, register business → window.OBOnboarding
+  screens-accounts.jsx      ← dashboard, currency detail, modals → window.OBAccounts
+  screens-payments.jsx      ← send payment flow → window.OBSendPayment
+  screens-recipients-and-tx.jsx ← recipients, transactions, add recipient → window.OBExtras
+  screens-settings.jsx      ← settings (profile, security) → window.OBSettings
+  app.jsx                   ← shell (TopNav, Sidebar, MockPanel, routing) + ReactDOM.render
+  standalone.html           ← self-contained build (fonts/flags/logo inlined as base64)
+```
+
+Each JSX file exports its components via `window.OBXxx` globals (Babel standalone doesn't have modules). Load order in the HTML matters — `data.jsx` first, `app.jsx` last.
+
+## How to run locally
+
+```bash
+cd project
+python3 -m http.server 8080
+# open http://localhost:8080/Onboard%20Business%20-%20Onboarding%20%26%20Accounts.html
+```
+
+Must be served over HTTP — `file://` won't work (script src loading is blocked).
+
+For a portable file: `standalone.html` has everything inlined and opens directly in any browser.
+
+## Mock controls panel
+
+Collapsible dark panel at the bottom of the sidebar. Controls:
+
+| Control | Values | Effect |
+|---|---|---|
+| Flow | Sign-up / Sign-in / App | Switch between auth flows and main app |
+| Accounts model | v0 · USD+stables / v1 · Reference / v2 · Named | v0 = USD + stablecoin funding only; v1 = shared account + reference code; v2 = dedicated named accounts |
+| Fiat funding details (v0 only) | Not requested / Provisioning / Ready | State of Wire/ACH/SWIFT issuance with banking partner |
+| Send payment order | Recipient first / Amount first | Default step order in send flow |
+| 2FA on payments | Required / Off | Whether payment approval step shows |
+| 2FA method | Authenticator / Email OTP | Default 2FA method (user can switch live) |
+| Name lookup (add-recipient) | Default / Force on / Force off | Override auto name-verify behaviour |
+| KYB status | not submitted / in review / approved / rejected | Controls dashboard lock state and banners |
+| Data state | Populated / Empty (new user) | Empty shows zero balances + empty states |
+| Account status | Active / Suspended | Suspended shows red global banner, disables send |
+| Compliance hold | Off / Txn on hold | Shows amber banner, injects held txn at top of list |
+
+## Current state (as of this handoff)
+
+### Completed flows
+- **Sign-up**: email → OTP → Register business (full name, biz name, country) → dashboard
+- **Sign-in**: email → OTP → app
+- **Accounts dashboard**: KYB-gated, currency tiles, recent activity table
+- **Currency detail (v1 ref-based)**: tabs per rail (Wire/ACH/SWIFT for USD, FPS/CHAPS for GBP, SEPA/SWIFT for EUR), reference code, copy fields
+- **Currency detail (v2 named)**: same tab structure, dedicated account numbers
+- **Currency detail (v0 USD)**: USDC/USDT tabs first (network picker, deposit address, min, arrival), then fiat tabs gated by issuance state
+- **Pending currency**: opening-in-progress state with animated progress bar
+- **Add currency modal** (v1/v2): pick → confirm → processing success
+- **Request other currencies modal** (v0): multi-select waitlist (GBP/EUR/NGN/GHS/KES/TZS/MZN) + optional other + volume
+- **Send payment**: recipient-first or amount-first, two-column step 1, stepper, FX rate + fee display with live countdown, reason dropdown (required), memo (optional), review page, 2FA approval step, confirmation
+- **Recipients**: list with lazy-load, search/filter, add new recipient flow
+- **Add recipient**: country + currency + method dropdowns (Combobox), 1st/3rd party tabs, rail-specific fields (NGN NUBAN, GBP sort code, EUR IBAN, USD wire/ACH), name resolution (auto-verify or manual entry), review step
+- **Transactions**: full list with filters (status/type/currency/date range), lazy-load, stablecoin deposit fixtures (USDC/Base, USDT/Tron)
+- **Transaction detail**: hero with sender/receiver flags, money breakdown (amount − fee = debited × rate = recipient gets), settlement timeline (payouts only), compliance hold state
+- **Settings**: business profile (KYB-aware), security (authenticator app setup/revoke)
+- **Global states**: account suspended banner, compliance hold banner
+
+### Pending / deferred
+These came up in the design chat but were explicitly deferred or not yet started:
+
+**Batch 1 remainder** (from chat2.md — was in progress when limits hit):
+- Compact multi-column layout on funding account details (not yet done)
+
+**Batch 2** (send payment depth — deferred):
+- Enter amount in receiving currency (swap field direction)
+- Empty state for send payment when no recipients yet
+
+**Batch 3 remainder**:
+- Send payment source picker locked to USD in v0 mode (currently shows full source picker)
+- Sign-up flow fully connected in v0 mode (minor)
+
+**Backlog** (user explicitly deferred these):
+- Transactions: bulk select + export, saved filter views, real date-range picker
+- Transaction detail: retry/cancel for failed/processing, audit trail, linked transactions
+- Recipients: bulk CSV import, recipient detail view (history + edit + deactivate)
+- Cards (deferred to phase 2)
+- Audit log (deferred to phase 2)
+- Team members / RBAC (deferred to phase 2)
+- API key management (deferred to phase 2)
+- Variation B (multi-corridor incl. NGN funding + hard-currency payouts)
+
+## Key design decisions (don't reverse without checking chat)
+
+- **Mono font removed** — references/account numbers use `tabular-nums` not monospace
+- **No "Quick actions" card** on dashboard — sidebar CTA covers it
+- **No "Switch business"** in topnav
+- **No in-app notification bell** (removed, will come later)
+- **Reason for payment**: required in send flow (was removed then re-added)
+- **Memo**: optional (was required, made optional later)
+- **Settlement time**: removed from amount card, only shows on review page
+- **Rate display**: subtle pulse dot + "Rate refreshes in Xs" countdown (not a noisy section)
+- **KYB rejected state**: no "Restart KYB" button — only "contact compliance@onboard.xyz"
+- **Account details**: tabs per rail (not a list of stacked cards)
+- **FPS reference copy**: always-required note stretches to single line (not wrapped)
+- **Stablecoin tabs**: shown first (before Wire/ACH/SWIFT) in v0
+
+## Code style
+
+- Babel standalone JSX, no TypeScript, no bundler
+- All state via `useState` / `useEffect` from `const { useState, useEffect } = React`
+- Icons inline SVG via `const Icon = window.OBIcon` (defined in data.jsx)
+- Design tokens from CSS variables (`var(--gray-900)`, `var(--info-700)`, etc.)
+- Inline styles for one-offs; class names for repeated patterns
+- No comments unless the WHY is non-obvious
+- Globals exported via `window.OBXxx` at the bottom of each file
+
+## Business context
+
+**Onboard** is pivoting B2B. Two user archetypes:
+- **Variation A** (current implementation): Africa-focused payouts. Fund in USD. Pay out to NGN/GHS/KES/MZN/TZS.
+- **Variation B** (not yet built): Multi-corridor. Fund in USD/GBP/EUR/NGN. Pay out to African corridors + hard currency (USD/GBP/EUR).
+
+**v0 architecture decision**: Onboard's current backend converts all deposits to USD (no per-currency balances). So v0 shows a single USD balance, with stablecoins as funding rails and GBP/EUR/etc. on a waitlist. v1/v2 are the future target architecture.
