@@ -36,6 +36,14 @@ const Icon = {
   inbox:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 13l2-8h14l2 8M3 13v6a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6M3 13h6l1 2h4l1-2h6"/></svg>,
 };
 
+const NetworkIcon = {
+  eth:     (p) => <svg viewBox="0 0 24 24" {...p}><path d="M12 1.5l-7 10.1L12 15l7-3.4L12 1.5z" fill="#627EEA" opacity=".6"/><path d="M12 15l-7-3.4L12 22.5l7-11L12 15z" fill="#627EEA"/><path d="M12 1.5v8.2l7 3.3L12 1.5z" fill="#627EEA" opacity=".8"/></svg>,
+  base:    (p) => <svg viewBox="0 0 24 24" {...p}><circle cx="12" cy="12" r="10" fill="#0052FF"/><path d="M12 5.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm0 10.8a4.3 4.3 0 110-8.6 4.3 4.3 0 010 8.6z" fill="#fff" fillRule="evenodd"/><path d="M12 7.7a4.3 4.3 0 100 8.6V7.7z" fill="#fff"/></svg>,
+  polygon: (p) => <svg viewBox="0 0 24 24" {...p}><path d="M16.2 9.2c-.4-.2-.9-.2-1.2 0l-2.8 1.6-1.9 1.1-2.8 1.6c-.4.2-.9.2-1.2 0L4 12.3c-.4-.2-.6-.6-.6-1v-2.4c0-.4.2-.8.6-1l2.2-1.3c.4-.2.9-.2 1.2 0l2.2 1.3c.4.2.6.6.6 1v1.6l1.9-1.1V7.8c0-.4-.2-.8-.6-1l-4-2.3c-.4-.2-.9-.2-1.2 0l-4.1 2.4c-.4.2-.6.6-.6 1v4.6c0 .4.2.8.6 1l4.1 2.3c.4.2.9.2 1.2 0l2.8-1.6 1.9-1.1 2.8-1.6c.4-.2.9-.2 1.2 0l2.2 1.3c.4.2.6.6.6 1v2.4c0 .4-.2.8-.6 1l-2.2 1.3c-.4.2-.9.2-1.2 0l-2.2-1.3c-.4-.2-.6-.6-.6-1v-1.6l-1.9 1.1v1.6c0 .4.2.8.6 1l4.1 2.3c.4.2.9.2 1.2 0l4.1-2.3c.4-.2.6-.6.6-1v-4.6c0-.4-.2-.8-.6-1L16.2 9.2z" fill="#8247E5"/></svg>,
+  solana:  (p) => <svg viewBox="0 0 24 24" {...p}><path d="M6.1 16.3c.1-.1.3-.2.5-.2h13.3c.3 0 .5.4.3.6l-2.7 2.7c-.1.1-.3.2-.5.2H3.7c-.3 0-.5-.4-.3-.6l2.7-2.7z" fill="url(#sol1)"/><path d="M6.1 4.6c.1-.1.3-.2.5-.2h13.3c.3 0 .5.4.3.6L17.5 7.7c-.1.1-.3.2-.5.2H3.7c-.3 0-.5-.4-.3-.6L6.1 4.6z" fill="url(#sol2)"/><path d="M17.5 10.4c-.1-.1-.3-.2-.5-.2H3.7c-.3 0-.5.4-.3.6l2.7 2.7c.1.1.3.2.5.2h13.3c.3 0 .5-.4.3-.6l-2.7-2.7z" fill="url(#sol3)"/><defs><linearGradient id="sol1" x1="18.5" y1="2.3" x2="6.6" y2="21.5" gradientUnits="userSpaceOnUse"><stop stopColor="#00FFA3"/><stop offset="1" stopColor="#DC1FFF"/></linearGradient><linearGradient id="sol2" x1="14.2" y1="0" x2="2.3" y2="19.2" gradientUnits="userSpaceOnUse"><stop stopColor="#00FFA3"/><stop offset="1" stopColor="#DC1FFF"/></linearGradient><linearGradient id="sol3" x1="16.3" y1="1.2" x2="4.5" y2="20.4" gradientUnits="userSpaceOnUse"><stop stopColor="#00FFA3"/><stop offset="1" stopColor="#DC1FFF"/></linearGradient></defs></svg>,
+  tron:    (p) => <svg viewBox="0 0 24 24" {...p}><path d="M4.2 4.5l15.5 5.6-8.8 11L4.2 4.5z" fill="#FF060A" opacity=".8"/><path d="M4.2 4.5L19.7 10l-3.5-7.5L4.2 4.5z" fill="#FF060A"/><path d="M10.9 21.1l8.8-11.1-3.5-7.5L10.9 21z" fill="#FF060A" opacity=".6"/></svg>,
+};
+
 // ---------- Currency metadata ----------
 // Variation A: funding USD/GBP/EUR; payouts NGN/GHS/KES/MZN/TZS
 const CURRENCIES = {
@@ -227,3 +235,4 @@ const WAITLIST_CURRENCIES = [
 ];
 
 window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES };
+window.OBNetworkIcon = NetworkIcon;

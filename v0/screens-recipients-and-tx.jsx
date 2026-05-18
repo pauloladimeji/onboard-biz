@@ -1,6 +1,7 @@
 /* global React */
 const { useState: useStateR, useMemo: useMemoR, useRef: useRefR, useEffect: useEffectR } = React;
 const RIcon = window.OBIcon;
+const RNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS } = window.OBData;
 const { Pill: RPill, TxRowDir: RTxRowDir, TxAmount: RTxAmount } = window.OBAccounts;
 
@@ -976,7 +977,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
               <div className="row-item"><div className="k">Type</div><div className="v">{tx.type}{tx.chain ? " · Stablecoin" : !isOut && tx.party && tx.party.includes(" — ") ? ` · ${tx.party.split(" — ")[0]}` : ""}</div></div>
               <div className="row-item"><div className="k">Counterparty</div><div className="v" style={tx.chain ? {wordBreak: "break-all"} : {}}>{tx.chain ? tx.txHash : !isOut && tx.party && tx.party.includes(" — ") ? tx.party.split(" — ")[1] : tx.party}</div></div>
               {tx.chain && (
-                <div className="row-item"><div className="k">Network</div><div className="v">{({eth:"Ethereum (ERC-20)",base:"Base",polygon:"Polygon",solana:"Solana (SPL)",tron:"Tron (TRC-20)"})[tx.chain] || tx.chain}</div></div>
+                <div className="row-item"><div className="k">Network</div><div className="v" style={{display:"flex",alignItems:"center",gap:6}}>{RNetworkIcon[tx.chain] && React.createElement(RNetworkIcon[tx.chain], {style:{width:16,height:16,flexShrink:0}})}{({eth:"Ethereum (ERC-20)",base:"Base",polygon:"Polygon",solana:"Solana (SPL)",tron:"Tron (TRC-20)"})[tx.chain] || tx.chain}</div></div>
               )}
               {tx.chain && (
                 <div className="row-item"><div className="k">Conversion rate</div><div className="v">1 {tx.party.split("·")[0].trim()} = 1 USD</div></div>

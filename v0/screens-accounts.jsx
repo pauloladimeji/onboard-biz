@@ -1,6 +1,7 @@
 /* global React */
 const { useState, useMemo } = React;
 const Icon = window.OBIcon;
+const NetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES, TXNS, FIAT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES } = window.OBData;
 
 // =====================================================
@@ -596,6 +597,7 @@ function StablecoinRailPanel({ coin, onCopy }) {
         <div style={{display: "flex", gap: 8, flexWrap: "wrap"}}>
           {chains.map((c, i) => {
             const on = i === activeChain;
+            const NIcon = NetworkIcon[c.id];
             return (
               <button key={c.id}
                 onClick={() => setActiveChain(i)}
@@ -606,9 +608,11 @@ function StablecoinRailPanel({ coin, onCopy }) {
                   color: on ? "var(--info-700)" : "var(--gray-700)",
                   fontSize: 13, fontWeight: 500, cursor: "pointer",
                   transition: "all .12s ease",
+                  display: "inline-flex", alignItems: "center", gap: 7,
                 }}>
+                {NIcon && <NIcon style={{width: 16, height: 16, flexShrink: 0}} />}
                 {c.name}
-                <span style={{marginLeft: 6, fontSize: 11, opacity: 0.75, fontWeight: 400}}>({c.short})</span>
+                <span style={{fontSize: 11, opacity: 0.65, fontWeight: 400}}>({c.short})</span>
               </button>
             );
           })}
