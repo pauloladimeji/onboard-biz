@@ -2,7 +2,7 @@
 const { useState: useStateR, useMemo: useMemoR, useRef: useRefR, useEffect: useEffectR } = React;
 const RIcon = window.OBIcon;
 const RNetworkIcon = window.OBNetworkIcon;
-const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS } = window.OBData;
+const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS, STABLECOIN_CHAINS } = window.OBData;
 const { Pill: RPill, TxRowDir: RTxRowDir, TxAmount: RTxAmount } = window.OBAccounts;
 
 const PAGE_SIZE_TX = 12;
@@ -146,6 +146,39 @@ const FIELD_SCHEMA = {
   ],
 };
 
+// Crypto coin icons (small circle badges)
+function CoinBadge({ coin, size = 22 }) {
+  const colors = { USDC: "#2775CA", USDT: "#26A17B" };
+  const labels = { USDC: "Ⓒ", USDT: "Ⓣ" };
+  return (
+    <div style={{width: size, height: size, borderRadius: "50%", background: colors[coin] || "#888",
+      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: size * 0.7, fontWeight: 700, lineHeight: 1, flexShrink: 0}}>
+      {labels[coin] || "?"}
+    </div>
+  );
+}
+
+function NetworkBadge({ network, size = 14 }) {
+  const NetIc = RNetworkIcon[network];
+  if (!NetIc) return null;
+  return (
+    <div className="ccy-flag" style={{width: size, height: size, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center"}}>
+      <NetIc style={{width: size * 0.8, height: size * 0.8}} />
+    </div>
+  );
+}
+
+// Crypto-specific field schemas
+const CRYPTO_FIELD_SCHEMA = {
+  "USDC-eth":     [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
+  "USDC-base":    [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
+  "USDC-polygon": [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
+  "USDC-solana":  [{ k: "address", label: "Wallet address", kind: "text", placeholder: "Base58 address", maxLength: 44 }],
+  "USDT-eth":     [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
+  "USDT-tron":    [{ k: "address", label: "Wallet address", kind: "text", placeholder: "T… address", maxLength: 34 }],
+};
+
 // "Account identifier complete enough to attempt a name lookup"
 function isLookupReady(railKey, fields) {
   switch (railKey) {
@@ -166,7 +199,8 @@ function isLookupReady(railKey, fields) {
 const SELF_BUSINESS_NAME = "Acme Trading Co";
 
 function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "default" }) {
-  const [step, setStep] = useStateR(0); // 0 country & currency · 1 details · 2 review
+  const [recipientType, setRecipientType] = useStateR("cash"); // 'cash' | 'crypto'
+  const [step, setStep] = useStateR(0); // 0 destination · 1 details · 2 review
   const [country, setCountry] = useStateR(null);
   const [ccy, setCcy] = useStateR(null);
   const [party, setParty] = useStateR("third"); // 'self' | 'third'
@@ -175,10 +209,24 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const [thirdName, setThirdName] = useStateR(""); // 3rd-party fallback name (when lookup not supported)
   const [lookup, setLookup] = useStateR({ status: "idle", name: null }); // idle | loading | matched | mismatched | error | unsupported
 
+  // Crypto-specific state
+  const [cryptoCoin, setCryptoCoin] = useStateR(null); // 'USDC' | 'USDT'
+  const [cryptoNetwork, setCryptoNetwork] = useStateR(null); // chain id
+  const [cryptoAddress, setCryptoAddress] = useStateR("");
+  const [cryptoLabel, setCryptoLabel] = useStateR("");
+
+  const isCrypto = recipientType === "crypto";
+
   const methods = ccy ? (PAYOUT_METHODS[ccy] || []) : [];
   const method  = methods.find(m => m.id === methodId);
   const railKey = ccy && methodId ? `${ccy}-${methodId}` : null;
   const schema  = railKey ? (FIELD_SCHEMA[railKey] || []) : [];
+
+  // Crypto-derived values
+  const cryptoChains = cryptoCoin ? (STABLECOIN_CHAINS[cryptoCoin] || []) : [];
+  const cryptoChainMeta = cryptoNetwork ? cryptoChains.find(c => c.id === cryptoNetwork) : null;
+  const cryptoRailKey = cryptoCoin && cryptoNetwork ? `${cryptoCoin}-${cryptoNetwork}` : null;
+  const cryptoSchema = cryptoRailKey ? (CRYPTO_FIELD_SCHEMA[cryptoRailKey] || []) : [];
 
   const setField = (k, v) => setFields(prev => ({ ...prev, [k]: v }));
 
@@ -242,30 +290,45 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const requireCompliance = country && (COMPLIANCE_REVIEW_COUNTRIES.has(country.cc) || (ccy && COMPLIANCE_REVIEW_CCY.has(ccy)));
 
   // Computed display name for the recipient strip and review
-  const resolvedName =
-    party === "self" ? SELF_BUSINESS_NAME :
-    (lookup.status === "matched" ? lookup.name : thirdName);
+  const resolvedName = isCrypto
+    ? cryptoLabel
+    : (party === "self" ? SELF_BUSINESS_NAME :
+       (lookup.status === "matched" ? lookup.name : thirdName));
 
-  const stepLabels = ["Destination & rail", "Account details", "Review"];
-  const canStep1 = !!country && !!ccy && !!methodId;
+  const stepLabels = ["Destination", "Details", "Review"];
 
-  // Step 2 validity: all required fields filled, AND either lookup matched/unsupported with a name typed (3rd party fallback)
+  const canStep1 = isCrypto
+    ? !!cryptoCoin && !!cryptoNetwork
+    : (!!country && !!ccy && !!methodId);
+
+  // Step 2 validity
   const fieldsComplete = schema.every(f => f.optional || (fields[f.k] && String(fields[f.k]).trim() !== ""));
   const lookupOk =
     lookup.status === "matched" ||
     (lookup.status === "unsupported" && (party === "self" ? true : thirdName.trim().length > 1));
-  const canStep2 = !!method && fieldsComplete && lookupOk;
+  const canStep2 = isCrypto
+    ? (cryptoAddress.trim().length >= 10 && cryptoLabel.trim().length > 1)
+    : (!!method && fieldsComplete && lookupOk);
 
   const reset = () => {
     setStep(0); setCountry(null); setCcy(null); setParty("third");
     setMethodId(null); setFields({}); setThirdName(""); setLookup({ status: "idle", name: null });
+    setCryptoCoin(null); setCryptoNetwork(null); setCryptoAddress(""); setCryptoLabel("");
+  };
+
+  const switchRecipientType = (t) => {
+    if (t === recipientType) return;
+    setRecipientType(t);
+    reset();
   };
 
   // For the saved recipient strip / review
-  const handle = method?.id === "bank"
-    ? (fields.bank && fields.accNo ? `${fields.bank} · ****${String(fields.accNo).slice(-4)}` :
-       fields.iban ? `IBAN · ${fields.iban.replace(/\s/g, "").slice(-4).padStart(4, "•")}` : "")
-    : (fields.accNo ? `${method?.label || "Wallet"} · ${fields.accNo}` : "");
+  const handle = isCrypto
+    ? (cryptoChainMeta ? `${cryptoCoin} · ${cryptoChainMeta.name} · ${cryptoAddress.slice(0, 6)}…${cryptoAddress.slice(-4)}` : "")
+    : (method?.id === "bank"
+      ? (fields.bank && fields.accNo ? `${fields.bank} · ****${String(fields.accNo).slice(-4)}` :
+         fields.iban ? `IBAN · ${fields.iban.replace(/\s/g, "").slice(-4).padStart(4, "•")}` : "")
+      : (fields.accNo ? `${method?.label || "Wallet"} · ${fields.accNo}` : ""));
 
   return (
     <div className="page">
@@ -278,7 +341,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
       <div className="page-head">
         <div>
           <h1 className="title">Add a new recipient</h1>
-          <p className="subtitle">Save bank or wallet details once — pay them in seconds after that.</p>
+          <p className="subtitle">Save bank, wallet, or crypto details once — pay them in seconds after that.</p>
         </div>
       </div>
 
@@ -299,13 +362,35 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
       <div className="pay-flow-card" style={{maxWidth: 720, margin: "0 auto"}}>
 
-        {/* STEP 1 — country and currency (searchable dropdowns) */}
+        {/* STEP 0 — title, cash/crypto toggle, then destination pickers */}
         {step === 0 && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Where are they receiving money?</div>
-              <div className="pay-panel-sub">Pick the country and the currency they hold an account in.</div>
+              <div className="pay-panel-sub">{isCrypto ? "Choose the stablecoin and blockchain network." : "Pick the country and the currency they hold an account in."}</div>
             </div>
+
+            <div className="ar-tabs" role="tablist" style={{marginBottom: 20}}>
+              <button role="tab" aria-selected={recipientType === "cash"} className={`ar-tab ${recipientType === "cash" ? "on" : ""}`} onClick={() => switchRecipientType("cash")}>
+                <div className="ic"><RIcon.bank /></div>
+                <div className="meta">
+                  <div className="t">Cash recipient</div>
+                  <div className="s">Bank account or mobile money</div>
+                </div>
+              </button>
+              <button role="tab" aria-selected={recipientType === "crypto"} className={`ar-tab ${recipientType === "crypto" ? "on" : ""}`} onClick={() => switchRecipientType("crypto")}>
+                <div className="ic"><RIcon.globe /></div>
+                <div className="meta">
+                  <div className="t">Crypto recipient</div>
+                  <div className="s">Send stablecoins to a wallet</div>
+                </div>
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 0 && !isCrypto && (
+          <>
 
             <div className="cbox-row">
               <div className="cbox-field">
@@ -421,8 +506,126 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
           </>
         )}
 
-        {/* STEP 2 — details */}
-        {step === 1 && country && ccy && (
+        {/* STEP 0 — CRYPTO: coin and network */}
+        {step === 0 && isCrypto && (
+          <>
+            <div className="cbox-row">
+              <div className="cbox-field">
+                <div className="cbox-field-lbl">Stablecoin</div>
+                {(() => {
+                  const Combobox = window.OBCombobox;
+                  const opts = ["USDC", "USDT"].map(coin => ({
+                    value: coin,
+                    label: coin,
+                    sub: RCCY[coin]?.name || coin,
+                    leading: <CoinBadge coin={coin} size={22} />,
+                    search: `${coin} ${RCCY[coin]?.name || ""}`,
+                  }));
+                  return (
+                    <Combobox
+                      value={cryptoCoin}
+                      onChange={(c) => { setCryptoCoin(c); setCryptoNetwork(null); }}
+                      options={opts}
+                      placeholder="Select a stablecoin"
+                      searchPlaceholder="Search…"
+                    />
+                  );
+                })()}
+              </div>
+
+              <div className="cbox-field">
+                <div className="cbox-field-lbl">Network</div>
+                {(() => {
+                  const Combobox = window.OBCombobox;
+                  const chains = cryptoCoin ? (STABLECOIN_CHAINS[cryptoCoin] || []) : [];
+                  const opts = chains.map(ch => {
+                    const NetIc = RNetworkIcon[ch.id];
+                    return {
+                      value: ch.id,
+                      label: ch.name,
+                      sub: `${ch.short} · ${ch.arrival}`,
+                      leading: NetIc ? <NetIc style={{width: 22, height: 22}} /> : null,
+                      search: `${ch.name} ${ch.short}`,
+                    };
+                  });
+                  return (
+                    <Combobox
+                      value={cryptoNetwork}
+                      onChange={(id) => setCryptoNetwork(id)}
+                      options={opts}
+                      placeholder={cryptoCoin ? "Select a network" : "Pick a coin first"}
+                      searchPlaceholder="Search network…"
+                      disabled={!cryptoCoin}
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
+            {cryptoNetwork && cryptoChainMeta && (
+              <div className="ar-namecheck idle" style={{marginTop: 16}}>
+                <div className="ic"><RIcon.info /></div>
+                <div className="meta">
+                  <div className="t">{`${cryptoCoin} on ${cryptoChainMeta.name} (${cryptoChainMeta.short})`}</div>
+                  <div className="s">{`Arrival: ${cryptoChainMeta.arrival} · Min withdrawal: ${cryptoChainMeta.min} ${cryptoCoin}`}</div>
+                </div>
+              </div>
+            )}
+
+            <div className="pay-review-foot" style={{marginTop: 24}}>
+              <button className="btn btn-ghost" onClick={onBack}>Cancel</button>
+              <button className="btn btn-lg" disabled={!canStep1} onClick={() => setStep(1)}>
+                Continue <RIcon.arrowRight />
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 1 — CRYPTO: wallet address + label */}
+        {step === 1 && isCrypto && cryptoCoin && cryptoNetwork && (
+          <>
+            <div className="pay-panel-head" style={{paddingBottom: 0}}>
+              <div className="pay-panel-title">Wallet details</div>
+              <div className="pay-panel-sub">{`${cryptoCoin} on ${cryptoChainMeta?.name || cryptoNetwork}`}</div>
+            </div>
+
+            <div className="ar-form">
+              <div className="field">
+                <div className="lbl">Wallet address <span className="req">· required</span></div>
+                <input
+                  className="inp"
+                  value={cryptoAddress}
+                  onChange={(e) => setCryptoAddress(e.target.value.trim())}
+                  placeholder={cryptoSchema[0]?.placeholder || "Wallet address"}
+                  maxLength={cryptoSchema[0]?.maxLength || 64}
+                  style={{fontFamily: "monospace, var(--font-body)", fontSize: 13}}
+                />
+                <div className="help">{`Only send ${cryptoCoin} on the ${cryptoChainMeta?.name} network. Sending on the wrong network will result in permanent loss of funds.`}</div>
+              </div>
+
+              <div className="field">
+                <div className="lbl">Recipient label <span className="req">· required</span></div>
+                <input
+                  className="inp"
+                  value={cryptoLabel}
+                  onChange={(e) => setCryptoLabel(e.target.value)}
+                  placeholder="e.g. Treasury wallet, Vendor — Acme Corp"
+                />
+                <div className="help">A name to help you identify this wallet later.</div>
+              </div>
+            </div>
+
+            <div className="pay-review-foot" style={{marginTop: 24}}>
+              <button className="btn btn-ghost" onClick={() => setStep(0)}>← Back</button>
+              <button className="btn btn-lg" disabled={!canStep2} onClick={() => setStep(2)}>
+                Continue <RIcon.arrowRight />
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 1 — CASH: details */}
+        {step === 1 && !isCrypto && country && ccy && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Account details</div>
@@ -512,8 +715,53 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
           </>
         )}
 
-        {/* STEP 3 — review */}
-        {step === 2 && country && ccy && method && (
+        {/* STEP 2 — CRYPTO review */}
+        {step === 2 && isCrypto && cryptoCoin && cryptoNetwork && (
+          <>
+            <div className="pay-panel-head" style={{paddingBottom: 0}}>
+              <div className="pay-panel-title">Review and save</div>
+              <div className="pay-panel-sub">Confirm everything looks right.</div>
+            </div>
+
+            <div className="pay-recip-strip" style={{margin: "16px 0 8px"}}>
+              <div className="ava">
+                <span>{(cryptoLabel || "??").split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase()}</span>
+                <NetworkBadge network={cryptoNetwork} size={14} />
+              </div>
+              <div className="meta">
+                <div className="t">{cryptoLabel || "Recipient"}</div>
+                <div className="s">{handle}</div>
+              </div>
+              <div className="rt">{cryptoCoin}</div>
+            </div>
+
+            <div className="pay-review-list" style={{marginTop: 8}}>
+              <div className="row-item"><div className="k">Type</div><div className="v">Stablecoin transfer</div></div>
+              <div className="row-item"><div className="k">Stablecoin</div><div className="v">{cryptoCoin} · {RCCY[cryptoCoin]?.name || cryptoCoin}</div></div>
+              <div className="row-item"><div className="k">Network</div><div className="v">{cryptoChainMeta?.name} ({cryptoChainMeta?.short})</div></div>
+              <div className="row-item"><div className="k">Wallet address</div><div className="v" style={{wordBreak: "break-all"}}>{cryptoAddress}</div></div>
+              <div className="row-item"><div className="k">Label</div><div className="v">{cryptoLabel}</div></div>
+            </div>
+
+            <div className="pay-review-foot" style={{marginTop: 24}}>
+              <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
+              <button className="btn btn-lg" onClick={() => {
+                onToast && onToast(`${cryptoLabel} saved as a crypto recipient`);
+                if (onSaved) onSaved({
+                  name: cryptoLabel, ccy: cryptoCoin, country: "crypto", handle,
+                  type: "Crypto", network: cryptoNetwork, networkLabel: cryptoChainMeta?.name,
+                  party: "third",
+                });
+                reset();
+              }}>
+                <RIcon.check /> Save recipient
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* STEP 2 — CASH review */}
+        {step === 2 && !isCrypto && country && ccy && method && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Review and save</div>
@@ -1173,7 +1421,7 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or bank…" />
         </div>
         <FilterSelect label="Currency" value={ccyF} onChange={setCcyF} options={[
-          {v:"all", t:"All currencies"}, {v:"NGN", t:"NGN"}, {v:"GHS", t:"GHS"}, {v:"KES", t:"KES"}, {v:"TZS", t:"TZS"}, {v:"MZN", t:"MZN"},
+          {v:"all", t:"All currencies"}, {v:"NGN", t:"NGN"}, {v:"GHS", t:"GHS"}, {v:"KES", t:"KES"}, {v:"TZS", t:"TZS"}, {v:"MZN", t:"MZN"}, {v:"USDC", t:"USDC"}, {v:"USDT", t:"USDT"},
         ]} />
         {(ccyF !== "all" || q) && (
           <button className="tx-clearfilters" onClick={() => { setCcyF("all"); setQ(""); }}>Clear filters</button>
@@ -1191,13 +1439,14 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
             <div key={r.id} className="rc-row" onClick={() => onPay(r)}>
               <div className="ava">
                 <span>{r.name.split(" ").map(s => s[0]).slice(0, 2).join("")}</span>
+                {r.country === "crypto" ? <NetworkBadge network={r.network} size={14} /> : <RFlag cc={r.country} size={14} />}
               </div>
               <div className="meta">
                 <div className="t">{r.name}</div>
                 <div className="s">{`${r.handle} · ${r.type}`}</div>
               </div>
               <div className="ccy-cell">
-                <RFlag cc={r.country} size={18} />
+                {r.country === "crypto" ? <CoinBadge coin={r.ccy} size={18} /> : <RFlag cc={r.country} size={18} />}
                 <span>{r.ccy}</span>
               </div>
               <div className="last-cell">{`Last paid ${r.last}`}</div>

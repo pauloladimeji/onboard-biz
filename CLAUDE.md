@@ -7,6 +7,8 @@
 - The prototype files are the design medium, not production code — continue working within this structure (the user wants to keep the same file format for re-importing into Claude Design)
 - Ask before implementing anything ambiguous
 
+**Read [`CHANGELOG.md`](CHANGELOG.md)** for a log of all changes made after the initial Claude Design handoff.
+
 **This CLAUDE.md** picks up where the README leaves off — it captures the full context from the Claude Code session that continued the work after Claude Design's usage limits were hit.
 
 ## Full design history

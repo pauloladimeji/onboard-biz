@@ -147,6 +147,9 @@ const RECIPIENTS_FULL = (() => {
     { name: "Henry Akoto",         handle: "ADB · ****3318",             country: "gh", ccy: "GHS", type: "Bank",         last: "Mar 27" },
     { name: "Patience Eyo",        handle: "Kuda · ****8814",            country: "ng", ccy: "NGN", type: "Bank",         last: "Mar 26" },
     { name: "Mwende Kilonzo",      handle: "DTB · ****5560",             country: "ke", ccy: "KES", type: "Bank",         last: "Mar 25" },
+    { name: "Vitalik's Vault",    handle: "USDC · Ethereum · 0x9F2c…B0c4a", country: "crypto", ccy: "USDC", type: "Crypto", network: "eth", networkLabel: "Ethereum", last: "May 7" },
+    { name: "Bridge Capital Ltd",  handle: "USDT · Tron · TZ9b…C0aB9",      country: "crypto", ccy: "USDT", type: "Crypto", network: "tron", networkLabel: "Tron", last: "May 3" },
+    { name: "Solana Treasury",     handle: "USDC · Base · 0x7E2b…C0aB9",    country: "crypto", ccy: "USDC", type: "Crypto", network: "base", networkLabel: "Base", last: "Apr 30" },
   ];
   return seed.map((r, i) => ({ ...r, id: `r${i + 1}` }));
 })();
@@ -154,6 +157,8 @@ const RECIPIENTS_FULL = (() => {
 // ---------- Extended transactions (full feed) ----------
 const TXNS_FULL = [
   ...TXNS,
+  { id: "WDR-2026-00101", date: "May 7, 11:02", direction: "out", type: "Withdrawal", party: "Vitalik's Vault · USDC", ref: "WDR-2026-00101", amount: "2,500.00", ccy: "USDC", from: "USD", chain: "eth", txHash: "0x4c1a8e2f7d3b5a9c6e0f1d2b3a4c5e6f7a8b9c0d", status: "COMPLETED", pillTone: "success" },
+  { id: "WDR-2026-00102", date: "May 5, 15:30", direction: "out", type: "Withdrawal", party: "Bridge Capital Ltd · USDT", ref: "WDR-2026-00102", amount: "8,000.00", ccy: "USDT", from: "USD", chain: "tron", txHash: "TXa1B2c3D4e5F6g7H8i9J0kLmNoPqRsTuVwXyZ", status: "PROCESSING", pillTone: "warn" },
   { id: "FND-2026-00320", date: "May 3, 09:12", direction: "in",  type: "Funding", party: "USDT · Tron (TRC-20)", ref: "FND-2026-00320", amount: "10,000.00", ccy: "USD", chain: "tron", txHash: "TZ9bD4cF6aE1c5B82d3F9CdA4b5e6F7E8d12C0aB9", status: "COMPLETED", pillTone: "success" },
   { id: "PAY-2026-04788", date: "May 3, 11:24", direction: "out", type: "Payout",  party: "Akosua Asante",       ref: "PAY-2026-04788", amount: "62,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04781", date: "May 2, 18:41", direction: "out", type: "Payout",  party: "Chinedu Nwosu",       ref: "PAY-2026-04781", amount: "780,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
@@ -181,6 +186,8 @@ const PAYOUT_RAILS = {
   KES: "Pesalink",
   TZS: "TIPS",
   MZN: "RTGS Mozambique",
+  USDC: "Stablecoin transfer",
+  USDT: "Stablecoin transfer",
 };
 
 // Mock business profile shown on Settings · Profile (also reused by Send Payment "pay myself")

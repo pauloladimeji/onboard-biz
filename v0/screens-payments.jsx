@@ -1,6 +1,7 @@
 /* global React */
 const { useState: useStateP, useMemo: useMemoP, useRef: useRefP, useEffect: useEffectP } = React;
 const PIcon = window.OBIcon;
+const PNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: PCCY, RECIPIENTS_FULL } = window.OBData;
 
 // =====================================================
@@ -16,10 +17,10 @@ const REASONS = [
   "Tax & government", "Refund", "Other",
 ];
 
-const FX = { USD: 1, GBP: 0.79, EUR: 0.92, NGN: 1485.5, GHS: 14.2, KES: 129.4, TZS: 2640.0, MZN: 63.8 };
+const FX = { USD: 1, GBP: 0.79, EUR: 0.92, NGN: 1485.5, GHS: 14.2, KES: 129.4, TZS: 2640.0, MZN: 63.8, USDC: 1, USDT: 1 };
 const FEE = { USD: 4.5, GBP: 3.6, EUR: 4.1 };
 const SOURCES = ["USD"];
-const DEST_OPTIONS = ["NGN", "GHS", "KES", "TZS", "MZN"];
+const DEST_OPTIONS = ["NGN", "GHS", "KES", "TZS", "MZN", "USDC", "USDT"];
 
 function convert(src, dst, a) {
   const n = parseFloat(String(a).replace(/,/g, "")) || 0;
@@ -48,6 +49,29 @@ function PFlag({ cc, size = 24 }) {
   return <div className="ccy-flag" style={{width: size, height: size, backgroundImage: `url(design-system/assets/flags/${cc}.svg)`}} />;
 }
 
+function PCoinBadge({ coin, size = 22 }) {
+  const colors = { USDC: "#2775CA", USDT: "#26A17B" };
+  const labels = { USDC: "Ⓒ", USDT: "Ⓣ" };
+  return (
+    <div style={{width: size, height: size, borderRadius: "50%", background: colors[coin] || "#888",
+      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: size * 0.7, fontWeight: 700, lineHeight: 1, flexShrink: 0}}>
+      {labels[coin] || "?"}
+    </div>
+  );
+}
+
+function RecipientBadge({ recipient, size = 14 }) {
+  if (recipient.country === "crypto") {
+    const NetIc = recipient.network ? PNetworkIcon[recipient.network] : null;
+    if (NetIc) {
+      return <div className="ccy-flag" style={{width: size, height: size, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center"}}><NetIc style={{width: size * 0.8, height: size * 0.8}} /></div>;
+    }
+    return <PCoinBadge coin={recipient.ccy} size={size} />;
+  }
+  return <PFlag cc={recipient.country} size={size} />;
+}
+
 function StepHeader({ steps, current }) {
   return (
     <div className="pay-stepper">
@@ -67,13 +91,19 @@ function StepHeader({ steps, current }) {
   );
 }
 
+function CcyBadge({ code, size = 18 }) {
+  const meta = PCCY[code];
+  if (meta?.stablecoin) return <PCoinBadge coin={code} size={size} />;
+  return <PFlag cc={meta?.flag || "us"} size={size} />;
+}
+
 function CcyDropdown({ value, options, onChange }) {
   const [open, setOpen] = useStateP(false);
   if (options.length <= 1) {
     return (
       <div className="ccy-dd">
         <div className="ccy-locked">
-          <PFlag cc={PCCY[value].flag} size={18} />
+          <CcyBadge code={value} size={18} />
           <span>{value}</span>
         </div>
       </div>
@@ -82,7 +112,7 @@ function CcyDropdown({ value, options, onChange }) {
   return (
     <div className="ccy-dd">
       <button className="ccy-dd-btn" onClick={() => setOpen(!open)} type="button">
-        <PFlag cc={PCCY[value].flag} size={18} />
+        <CcyBadge code={value} size={18} />
         <span>{value}</span>
         <PIcon.arrowDown />
       </button>
@@ -93,7 +123,7 @@ function CcyDropdown({ value, options, onChange }) {
             {options.map((c) => (
               <button key={c} className={`ccy-dd-opt ${c === value ? "on" : ""}`}
                       onClick={() => { onChange(c); setOpen(false); }} type="button">
-                <PFlag cc={PCCY[c].flag} size={18} />
+                <CcyBadge code={c} size={18} />
                 <span>{c}</span>
                 <span className="muted">{PCCY[c].name}</span>
                 {c === value && <PIcon.check />}
@@ -173,7 +203,7 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
               <button key={r.id} className={`recip-row ${sel ? "on" : ""}`} onClick={() => onSelect(r)}>
                 <div className="ava">
                   <span>{r.name.split(" ").map(s => s[0]).slice(0, 2).join("")}</span>
-                  <PFlag cc={r.country} size={14} />
+                  <RecipientBadge recipient={r} size={14} />
                 </div>
                 <div className="meta">
                   <div className="t">{r.name}</div>
@@ -250,7 +280,7 @@ function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, s
           <input className="amt-inp" inputMode="decimal" value={displayRecv} onChange={(e) => onRecvType(e.target.value)} placeholder="0.00" />
           {recipient ? (
             <div className="ccy-locked">
-              <PFlag cc={recipient.country} size={18} /> {dst}
+              <RecipientBadge recipient={recipient} size={18} /> {dst}
             </div>
           ) : showDstPicker ? (
             <CcyDropdown value={dstCcy} options={DEST_OPTIONS} onChange={setDstCcy} />
@@ -284,7 +314,7 @@ function AmountPanel({
         <div className="pay-recip-strip">
           <div className="ava">
             <span>{recipient.name.split(" ").map(s => s[0]).slice(0, 2).join("")}</span>
-            <PFlag cc={recipient.country} size={14} />
+            <RecipientBadge recipient={recipient} size={14} />
           </div>
           <div className="meta">
             <div className="t">{recipient.name}</div>
@@ -546,7 +576,7 @@ function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, rea
       <div className="pay-recip-strip">
         <div className="ava">
           <span>{recipient.name.split(" ").map(s => s[0]).slice(0, 2).join("")}</span>
-          <PFlag cc={recipient.country} size={14} />
+          <RecipientBadge recipient={recipient} size={14} />
         </div>
         <div className="meta">
           <div className="t">{recipient.name}</div>
@@ -643,7 +673,7 @@ function RecipientPanelFiltered({ destCcy, selectedId, onSelect, reason, setReas
               <button key={r.id} className={`recip-row ${sel ? "on" : ""}`} onClick={() => onSelect(r)}>
                 <div className="ava">
                   <span>{r.name.split(" ").map(s => s[0]).slice(0, 2).join("")}</span>
-                  <PFlag cc={r.country} size={14} />
+                  <RecipientBadge recipient={r} size={14} />
                 </div>
                 <div className="meta">
                   <div className="t">{r.name}</div>
@@ -725,7 +755,7 @@ function ReviewPayment({ payment, onBack, onConfirm, requiresApproval = false })
           <div className="leg right">
             <div className="lbl">{`${recipient.name} receives`}</div>
             <div className="big">{`${dstCcy} ${fmt(receive)}`}</div>
-            <div className="sub"><PFlag cc={recipient.country} size={14} /> {recipient.handle}</div>
+            <div className="sub"><RecipientBadge recipient={recipient} size={14} /> {recipient.handle}</div>
           </div>
         </div>
 

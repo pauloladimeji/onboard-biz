@@ -520,12 +520,19 @@
 }
 .rc-row:hover { background: var(--row-hover); }
 .rc-row .ava {
+  position: relative;
   width: 36px; height: 36px; border-radius: 999px;
   background: linear-gradient(135deg, #5433FF, #321F99);
   color: #fff;
   display: grid; place-items: center;
   font-weight: 600; font-size: 12px;
+  flex-shrink: 0;
 }
+.rc-row .ava .ccy-flag {
+  position: absolute; right: -2px; bottom: -2px;
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,.08), 0 0 0 2px #fff;
+}
+.rc-row:hover .ava .ccy-flag { box-shadow: inset 0 0 0 1px rgba(15,23,42,.08), 0 0 0 2px var(--row-hover); }
 .rc-row .meta { min-width: 0; }
 .rc-row .meta .t {
   font-size: 13.5px; font-weight: 500; color: var(--gray-900);
