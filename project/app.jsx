@@ -1,7 +1,7 @@
 /* global React, ReactDOM */
 const { useState, useEffect } = React;
 const Icon = window.OBIcon;
-const { SignUpScreen, SignInScreen, OtpScreen } = window.OBOnboarding;
+const { SignUpScreen, SignInScreen, OtpScreen, TotpSetupScreen } = window.OBOnboarding;
 const { AccountsDashboard, CurrencyDetailRefBased, CurrencyDetailNamedAccounts, Toast } = window.OBAccounts;
 const { SendPayment } = window.OBSendPayment;
 const { AddRecipientScreen, TransactionsScreen, TransactionDetailScreen, RecipientsScreen } = window.OBExtras;
@@ -257,6 +257,7 @@ function App() {
       <>
         <FloatingMockPanel mockProps={mockProps} />
         <OtpScreen email={authEmail} mode="signup"
+          step={1} totalSteps={3}
           onSubmit={() => setFlow("signup-register")}
           onChangeEmail={() => setFlow("signup")} />
       </>
@@ -268,7 +269,17 @@ function App() {
         <FloatingMockPanel mockProps={mockProps} />
         <RegisterBusinessScreen
           email={authEmail}
-          onSubmit={(data) => { setAuthData(data); setFlow("app"); setKyb("not_submitted"); }} />
+          onSubmit={(data) => { setAuthData(data); setFlow("signup-totp"); }} />
+      </>
+    );
+  }
+  if (flow === "signup-totp") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <TotpSetupScreen
+          onSubmit={() => { setFlow("app"); setKyb("not_submitted"); }}
+          onSkip={() => { setFlow("app"); setKyb("not_submitted"); }} />
       </>
     );
   }
