@@ -1,5 +1,162 @@
 /* New screens: add recipient, transactions, transaction detail, recipients list */
 
+/* ---- Skeleton shimmer ---- */
+.skel {
+  background: linear-gradient(90deg, var(--gray-100) 25%, #e8ecf0 50%, var(--gray-100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+  display: block;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skel-row { display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid var(--gray-100); }
+.skel-row:last-child { border-bottom: none; }
+
+/* ---------- Home dashboard — account hero ---------- */
+.home-hero {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  padding: 32px 36px 26px;
+  margin-bottom: 22px;
+}
+.home-hero-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.home-acct-label {
+  display: flex; align-items: center; gap: 10px;
+}
+.home-acct-label .t {
+  font-size: 13px; font-weight: 500; color: var(--gray-700);
+}
+.home-acct-label .ccy-flag { flex-shrink: 0; }
+.home-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--gray-600);
+}
+.home-status .dot {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: #22C55E;
+  flex-shrink: 0;
+}
+.home-balance {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 24px;
+}
+.home-balance-num {
+  font-size: 44px; font-weight: 600; color: var(--gray-900);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1;
+}
+.home-balance-ccy {
+  font-size: 18px; font-weight: 500; color: var(--gray-500);
+}
+.home-actions {
+  display: flex; gap: 10px;
+  margin-bottom: 26px;
+}
+.home-divider {
+  height: 1px; background: var(--gray-100);
+  margin-bottom: 20px;
+}
+.home-rails {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.home-rails-label {
+  font-size: 11.5px; font-weight: 600; color: var(--gray-500);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-right: 4px; flex-shrink: 0;
+}
+.home-rail-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px;
+  background: var(--gray-100);
+  border-radius: 999px;
+  font-size: 12px; font-weight: 500; color: var(--gray-700);
+  white-space: nowrap;
+}
+.home-rail-chip.convert {
+  background: #FEF3C7; color: #92400E;
+}
+.home-rail-chip .chip-arrow {
+  font-size: 10px; color: var(--gray-500); margin-left: 2px;
+}
+.home-rail-chip.convert .chip-arrow { color: #B45309; }
+.home-rails-note {
+  margin-top: 10px;
+  font-size: 12px; color: var(--gray-500);
+}
+
+/* ---------- FlowShell — left-side vertical step list ---------- */
+.flow-shell { display: grid; grid-template-columns: 184px 1fr; gap: 0 48px; align-items: start; }
+.flow-steps { padding-top: 4px; position: sticky; top: 32px; }
+.flow-step { display: flex; align-items: center; gap: 12px; }
+.flow-step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12.5px; font-weight: 600; flex-shrink: 0;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.flow-step.todo  .flow-step-dot { background: transparent; color: var(--gray-400); border: 1.5px solid var(--gray-300); }
+.flow-step.active .flow-step-dot { background: var(--info-700); color: #fff; border: 1.5px solid var(--info-700); }
+.flow-step.done  .flow-step-dot { background: var(--gray-100); color: var(--gray-500); border: 1.5px solid var(--gray-200); }
+.flow-step-lbl { font-size: 13px; font-weight: 500; }
+.flow-step.todo  .flow-step-lbl { color: var(--gray-400); }
+.flow-step.active .flow-step-lbl { color: var(--gray-900); font-weight: 600; }
+.flow-step.done  .flow-step-lbl { color: var(--gray-500); }
+.flow-step-connector { height: 20px; width: 1.5px; background: var(--gray-200); margin: 3px 0 3px 13px; }
+.flow-content { min-width: 0; }
+.flow-content .pay-panel { min-height: unset; }
+
+/* ---------- Auth info panel: logo in right column ---------- */
+.auth-info-logo {
+  padding: 44px 0 52px;
+  width: 100%;
+}
+.auth-info-logo img {
+  height: 17px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
+}
+
+/* ---------- Auth info panel: sign-up steps variant ---------- */
+.auth-info-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+.auth-info-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.auth-info-step-num {
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  border: 1px solid rgba(255, 255, 255, .2);
+  color: rgba(255, 255, 255, .9);
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 600;
+  flex-shrink: 0;
+}
+.auth-info-step-title {
+  font-size: 14.5px; font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.auth-info-step-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, .55);
+  line-height: 1.55;
+}
+
 /* ---------- Combobox (searchable dropdown) ---------- */
 .cbox { position: relative; display: inline-block; }
 .cbox-trigger {
@@ -63,7 +220,7 @@
   border: 1px solid var(--gray-200);
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(15,23,42,0.12), 0 2px 6px rgba(15,23,42,0.06);
-  z-index: 50;
+  z-index: 200;
   overflow: hidden;
   animation: cbox-pop .12s ease-out;
 }

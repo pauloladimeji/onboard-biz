@@ -1,8 +1,12 @@
 /* global React, ReactDOM */
 const { useState, useEffect } = React;
 const Icon = window.OBIcon;
-const { SignUpScreen, SignInScreen, OtpScreen, TotpSetupScreen } = window.OBOnboarding;
-const { AccountsDashboard, CurrencyDetailPage, Toast } = window.OBAccounts;
+const {
+  ExpressInterestScreen, SignUpConfirmationScreen,
+  SignInScreen, SignInStatusScreen, SignInPasswordScreen, SetPasswordScreen,
+  TotpSetupScreen,
+} = window.OBOnboarding;
+const { AccountsDashboard, AddMoneyPage, CurrencyDetailPage, Toast } = window.OBAccounts;
 const { SendPayment } = window.OBSendPayment;
 const { AddRecipientScreen, TransactionsScreen, TransactionDetailScreen, RecipientsScreen } = window.OBExtras;
 const { SettingsScreen } = window.OBSettings;
@@ -32,7 +36,7 @@ function Sidebar({ active, onNavigate, mockProps }) {
   );
   return (
     <aside className="sidebar" style={{display: "flex", flexDirection: "column"}}>
-      {item("dashboard", "Accounts",     <Icon.home />)}
+      {item("dashboard", "Home",          <Icon.home />)}
       {item("payments",  "Send payment", <Icon.paperplane />)}
       {item("recipients","Recipients",   <Icon.people />)}
       {item("activity",  "Transactions", <Icon.list />)}
@@ -74,7 +78,7 @@ function PlaceholderScreen({ title, blurb, planned = [] }) {
 // =====================================================
 // Mock-router — lives inside the sidebar so it never overlaps the UI
 // =====================================================
-function MockPanel({ flow, onFlow, kyb, onKyb, accountsMode, onAccountsMode, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout }) {
+function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout }) {
   const [open, setOpen] = useState(true);
   return (
     <div className="mockpanel">
@@ -89,18 +93,38 @@ function MockPanel({ flow, onFlow, kyb, onKyb, accountsMode, onAccountsMode, pay
         <div className="mockpanel-body">
           <div className="mockpanel-group">
             <div className="mockpanel-label">Flow</div>
-            <div className="mockpanel-row">
+            <div className="mockpanel-row wrap">
               <button className={flow === "signup" ? "on" : ""} onClick={() => onFlow("signup")}>Sign-up</button>
               <button className={flow === "signin" ? "on" : ""} onClick={() => onFlow("signin")}>Sign-in</button>
+              <button className={flow === "signin-set-password" ? "on" : ""} onClick={() => onFlow("signin-set-password")}>Set pw</button>
               <button className={flow === "app"    ? "on" : ""} onClick={() => onFlow("app")}>App</button>
             </div>
           </div>
-          {flow !== "app" && (
+          {flow !== "app" && flow !== "signin-set-password" && (
             <div className="mockpanel-group">
               <div className="mockpanel-label">Auth layout</div>
               <div className="mockpanel-row">
                 <button className={authLayout === "centered" ? "on" : ""} onClick={() => onAuthLayout("centered")}>Full screen</button>
                 <button className={authLayout === "split" ? "on" : ""} onClick={() => onAuthLayout("split")}>Two column</button>
+              </div>
+            </div>
+          )}
+          {flow.startsWith("signin") && (
+            <div className="mockpanel-group">
+              <div className="mockpanel-label">Sign-in status</div>
+              <div className="mockpanel-row wrap">
+                {[
+                  ["unknown",             "Unknown"],
+                  ["pending_review",      "Pending review"],
+                  ["rejected",            "Rejected"],
+                  ["sumsub_pending",      "Sumsub pending"],
+                  ["verified_no_password","Verified (no pw)"],
+                  ["verified_active",     "Verified"],
+                ].map(([val, label]) => (
+                  <button key={val} className={signinAccountStatus === val ? "on" : ""} onClick={() => onSigninAccountStatus(val)}>
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -133,16 +157,7 @@ function MockPanel({ flow, onFlow, kyb, onKyb, accountsMode, onAccountsMode, pay
                   </div>
                 </div>
               )}
-              <div className="mockpanel-group">
-                <div className="mockpanel-label">KYB status</div>
-                <div className="mockpanel-row wrap">
-                  {["not_submitted","in_review","approved","rejected"].map(s => (
-                    <button key={s} className={(kyb === s || (s === "in_review" && kyb === "submitted")) ? "on" : ""} onClick={() => onKyb(s)}>
-                      {s === "in_review" ? "in review" : s.replace("_"," ")}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
               <div className="mockpanel-group">
                 <div className="mockpanel-label">Data state</div>
                 <div className="mockpanel-row">
@@ -176,18 +191,14 @@ function MockPanel({ flow, onFlow, kyb, onKyb, accountsMode, onAccountsMode, pay
 // App
 // =====================================================
 function App() {
-  // Top-level flow: signup | signup-otp | signup-register | signin | signin-otp | app
+  // Top-level flow: signup | signup-confirm | signin | signin-status | signin-password | signin-totp-setup | signin-set-password | app
   const [flow, setFlow] = useState("app"); // start in app for review
   const [authEmail, setAuthEmail] = useState("finance@acmetrading.com");
-  const [authData, setAuthData] = useState({});
 
   // Sidebar route inside the app
   const [route, setRoute] = useState("dashboard");
   // 'dashboard' | 'currency'
   const [openCcy, setOpenCcy] = useState(null);
-
-  // Architecture toggle
-  const [accountsMode, setAccountsMode] = useState("v0"); // "v0" | "ref" | "named"
 
   // Fiat issuance state (v0 only): not_requested | in_progress | ready
   const [fiatIssuance, setFiatIssuance] = useState("ready");
@@ -198,8 +209,9 @@ function App() {
   // Send payment flow toggle
   const [payMode, setPayMode] = useState("recipient"); // "recipient" | "amount" — default order
 
-  // KYB demo state
-  const [kyb, setKyb] = useState("not_submitted");
+  // Sign-in account status (drives the sign-in gate screens)
+  // "unknown" | "pending_review" | "rejected" | "sumsub_pending" | "verified_no_password" | "verified_active"
+  const [signinAccountStatus, setSigninAccountStatus] = useState("verified_active");
 
   // Mock toggle: name-lookup behaviour for Add Recipient
   // "default" = rail decides, "on" = force-available, "off" = force-unsupported
@@ -226,52 +238,28 @@ function App() {
     if (f === "app") { setRoute("dashboard"); setOpenCcy(null); }
   };
 
-  const mockProps = { flow, onFlow: setFlowAndReset, kyb, onKyb: setKyb, accountsMode, onAccountsMode: setAccountsMode, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout };
+  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout };
 
   // ---------- AUTH FLOWS ----------
-  const { RegisterBusinessScreen } = window.OBOnboarding;
   if (flow === "signup") {
     return (
       <>
         <FloatingMockPanel mockProps={mockProps} />
-        <SignUpScreen
+        <ExpressInterestScreen
           layout={authLayout}
-          onSubmit={({ email }) => { setAuthEmail(email); setFlow("signup-otp"); }}
+          onSubmit={({ email }) => { setAuthEmail(email); setFlow("signup-confirm"); }}
           onSwitchToSignIn={() => setFlow("signin")} />
       </>
     );
   }
-  if (flow === "signup-otp") {
+  if (flow === "signup-confirm") {
     return (
       <>
         <FloatingMockPanel mockProps={mockProps} />
-        <OtpScreen email={authEmail} mode="signup"
-          layout={authLayout}
-          step={1} totalSteps={3}
-          onSubmit={() => setFlow("signup-register")}
-          onChangeEmail={() => setFlow("signup")} />
-      </>
-    );
-  }
-  if (flow === "signup-register") {
-    return (
-      <>
-        <FloatingMockPanel mockProps={mockProps} />
-        <RegisterBusinessScreen
+        <SignUpConfirmationScreen
           layout={authLayout}
           email={authEmail}
-          onSubmit={(data) => { setAuthData(data); setFlow("signup-totp"); }} />
-      </>
-    );
-  }
-  if (flow === "signup-totp") {
-    return (
-      <>
-        <FloatingMockPanel mockProps={mockProps} />
-        <TotpSetupScreen
-          layout={authLayout}
-          onSubmit={() => { setFlow("app"); setKyb("not_submitted"); }}
-          onSkip={() => { setFlow("app"); setKyb("not_submitted"); }} />
+          onSignIn={() => setFlow("signin")} />
       </>
     );
   }
@@ -281,19 +269,57 @@ function App() {
         <FloatingMockPanel mockProps={mockProps} />
         <SignInScreen
           layout={authLayout}
-          onSubmit={({ email }) => { setAuthEmail(email); setFlow("signin-otp"); }}
+          onSubmit={({ email }) => {
+            setAuthEmail(email);
+            setFlow(signinAccountStatus === "verified_active" ? "signin-password" : "signin-status");
+          }}
           onSwitchToSignUp={() => setFlow("signup")} />
       </>
     );
   }
-  if (flow === "signin-otp") {
+  if (flow === "signin-status") {
     return (
       <>
         <FloatingMockPanel mockProps={mockProps} />
-        <OtpScreen email={authEmail} mode="signin"
+        <SignInStatusScreen
+          layout={authLayout}
+          email={authEmail}
+          status={signinAccountStatus}
+          onSignUp={() => setFlow("signup")}
+          onChangeEmail={() => setFlow("signin")} />
+      </>
+    );
+  }
+  if (flow === "signin-password") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <SignInPasswordScreen
+          layout={authLayout}
+          email={authEmail}
+          onSubmit={() => setFlow("app")}
+          onBack={() => setFlow("signin")} />
+      </>
+    );
+  }
+  if (flow === "signin-totp-setup") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <TotpSetupScreen
           layout={authLayout}
           onSubmit={() => setFlow("app")}
-          onChangeEmail={() => setFlow("signin")} />
+          onSkip={() => setFlow("app")} />
+      </>
+    );
+  }
+  if (flow === "signin-set-password") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <SetPasswordScreen
+          layout={authLayout}
+          onSubmit={() => setFlow("signin-totp-setup")} />
       </>
     );
   }
@@ -303,19 +329,18 @@ function App() {
   if (route === "dashboard") {
     screen = (
       <AccountsDashboard
-        kybStatus={kyb}
-        accountsMode={accountsMode}
         dataState={dataState}
         accountSuspended={accountStatus === "suspended"}
         complianceHold={complianceHold}
         onOpenCurrency={goCurrency}
-        onSubmitKyb={() => { showToast("Redirecting to KYB form…"); setTimeout(() => setKyb("in_review"), 800); }}
-        onSendPayment={() => showToast("Send payment flow — phase 2")}
-        onCreateAccount={(c) => showToast(`Create ${c} account — phase 2`)}
+        onAddMoney={() => setRoute("add-money")}
+        onSendPayment={() => setRoute("payments")}
         onToast={showToast} />
     );
+  } else if (route === "add-money") {
+    screen = <AddMoneyPage onBack={() => setRoute("dashboard")} onToast={showToast} fiatIssuance={fiatIssuance} accountSuspended={accountStatus === "suspended"} />;
   } else if (route === "currency" && openCcy) {
-    screen = <CurrencyDetailPage code={openCcy} onBack={backToAccounts} onToast={showToast} kybApproved={kyb === "approved"} fiatIssuance={fiatIssuance} accountSuspended={accountStatus === "suspended"} />;
+    screen = <CurrencyDetailPage code={openCcy} onBack={backToAccounts} onToast={showToast} fiatIssuance={fiatIssuance} accountSuspended={accountStatus === "suspended"} />;
   } else if (route === "payments") {
     screen = <SendPayment
       key={payMode}
@@ -343,7 +368,7 @@ function App() {
   } else if (route === "activity") {
     screen = <TransactionsScreen dataState={dataState} complianceHold={complianceHold} onOpenTx={setOpenTx} onToast={showToast} />;
   } else if (route === "settings") {
-    screen = <SettingsScreen kyb={kyb} onKyb={setKyb} onToast={showToast} />;
+    screen = <SettingsScreen onToast={showToast} />;
   } else {
     screen = <PlaceholderScreen title="Settings" blurb="Business profile, statements, FX preferences." />;
   }

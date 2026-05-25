@@ -71,6 +71,7 @@ const CURRENCIES = {
 // Sample transactions (recent — dashboard preview shows 5–8)
 const TXNS = [
   { id: "PAY-2026-04812", date: "May 6, 09:14", direction: "out", type: "Payout",  party: "Adaeze Okafor",     ref: "PAY-2026-04812", amount: "1,250,000.00", ccy: "NGN",   from: "USD", status: "PROCESSING", pillTone: "warn" },
+  { id: "FND-2026-00321", date: "May 7, 10:15", direction: "in",  type: "Funding", party: "NGN — First Bank ****1181", ref: "FND-2026-00321", amount: "504.87", fromAmount: "750,000.00", ccy: "USD", from: "NGN", rate: "1 USD = ₦1,485.50", convFee: "0.5%", status: "COMPLETED", pillTone: "success" },
   { id: "FND-2026-00319", date: "May 6, 07:41", direction: "in",  type: "Funding", party: "USDC · Base network", ref: "FND-2026-00319", amount: "5,000.00", ccy: "USD", chain: "base", txHash: "0x7b4a2f1c9e8d3a5b6f0c4e2d1a8b7c3f9e6d5a4b", status: "COMPLETED", pillTone: "success" },
   { id: "FND-2026-00318", date: "May 6, 08:02", direction: "in",  type: "Funding", party: "Wire — JPMorgan ****4419", ref: "FND-2026-00318", amount: "25,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04809", date: "May 5, 16:38", direction: "out", type: "Payout",  party: "Mensah Holdings Ltd", ref: "PAY-2026-04809", amount: "48,200.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },

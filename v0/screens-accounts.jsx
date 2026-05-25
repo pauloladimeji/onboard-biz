@@ -1,5 +1,5 @@
 /* global React */
-const { useState, useMemo } = React;
+const { useState, useMemo, useEffect } = React;
 const Icon = window.OBIcon;
 const NetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES, TXNS, FIAT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES } = window.OBData;
@@ -76,54 +76,24 @@ function TimingChip({ tone, label }) {
   return <span className={`timechip ${tone || ""}`}><Icon.clock /> {label}</span>;
 }
 
-// =====================================================
-// KYB banner — used on the dashboard
-// =====================================================
-function KybBanner({ status, onSubmitKyb }) {
-  if (status === "approved") return null;
-
-  if (status === "not_submitted") {
-    return (
-      <div className="banner warn">
-        <div className="icw"><Icon.shield /></div>
-        <div className="body">
-          <div className="ttl">Verify your business to start making payments</div>
-          <div className="copy">Funding and payouts are paused until your KYB is approved. The form takes about 8 minutes.</div>
-          <div className="actions">
-            <button className="btn btn-sm" onClick={onSubmitKyb}>Start KYB <Icon.external /></button>
-            <button className="btn btn-sm btn-ghost">What we&rsquo;ll ask for</button>
+function PanelSkeleton() {
+  return (
+    <div style={{padding: "24px 28px 28px"}}>
+      <div className="skel" style={{width: 110, height: 24, borderRadius: 99, marginBottom: 22}} />
+      <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px 28px", marginBottom: 20}}>
+        {[80, 70, 90, 65].map((w, i) => (
+          <div key={i}>
+            <div className="skel" style={{width: 72, height: 11, marginBottom: 7}} />
+            <div className="skel" style={{width: `${w}%`, height: 16}} />
           </div>
-        </div>
+        ))}
       </div>
-    );
-  }
-
-  if (status === "submitted" || status === "in_review") {
-    return (
-      <div className="banner info">
-        <div className="icw"><Icon.clock /></div>
-        <div className="body">
-          <div className="ttl">KYB under review</div>
-          <div className="copy">
-            Our compliance team is reviewing your documents — usually 1–2 business days. We may reach out if we need anything else.
-          </div>
-        </div>
+      <div style={{display: "flex", gap: 10, marginTop: 8}}>
+        <div className="skel" style={{width: 130, height: 36, borderRadius: 8}} />
+        <div className="skel" style={{width: 130, height: 36, borderRadius: 8}} />
       </div>
-    );
-  }
-
-  if (status === "rejected") {
-    return (
-      <div className="banner danger">
-        <div className="icw"><Icon.alert /></div>
-        <div className="body">
-          <div className="ttl">KYB couldn&rsquo;t be approved</div>
-          <div className="copy">We weren&rsquo;t able to verify your business. If you think this is a mistake, reach out to <strong>compliance@onboard.xyz</strong>.</div>
-        </div>
-      </div>
-    );
-  }
-  return null;
+    </div>
+  );
 }
 
 // =====================================================
@@ -134,41 +104,61 @@ const V0_ACCOUNTS = [
   { code: "REQUEST", balance: null, status: "not_created" },
 ];
 
-function AccountsDashboard({ kybStatus, onOpenCurrency, onSubmitKyb, onSendPayment, onCreateAccount, onToast, dataState = "full", accountSuspended = false }) {
-  const isApproved = kybStatus === "approved";
-  const isEmpty = dataState === "empty";
-  const [requestOpen, setRequestOpen] = useState(false);
+const FUNDING_RAILS = [
+  { id: "ach",   label: "ACH" },
+  { id: "wire",  label: "Wire" },
+  { id: "swift", label: "SWIFT" },
+  { id: "usdc",  label: "USDC" },
+  { id: "usdt",  label: "USDT" },
+  { id: "ngn",   label: "NGN", convert: true },
+];
 
-  const accounts = isEmpty
-    ? V0_ACCOUNTS.map(a => a.code === "REQUEST" ? a : { ...a, balance: "0.00" })
-    : V0_ACCOUNTS;
-  const totalUsd = isEmpty ? "0.00" : "84,231.50";
-  const totalLabel = "Total balance";
+function DashboardSkeleton() {
+  return (
+    <>
+      <div className="home-hero">
+        <div className="home-hero-top">
+          <div className="skel" style={{width: 140, height: 14}} />
+          <div className="skel" style={{width: 90, height: 12}} />
+        </div>
+        <div className="skel" style={{width: 210, height: 44, margin: "20px 0 24px"}} />
+        <div className="home-actions">
+          <div className="skel" style={{width: 132, height: 44, borderRadius: 10}} />
+          <div className="skel" style={{width: 132, height: 44, borderRadius: 10}} />
+        </div>
+        <div className="home-divider" />
+        <div className="skel" style={{width: 320, height: 12}} />
+      </div>
+      <div className="tablecard">
+        <div className="head" style={{padding: "16px 20px 12px"}}><h2>Recent activity</h2></div>
+        {[55, 45, 60, 40, 50].map((w, i) => (
+          <div key={i} className="skel-row">
+            <div className="skel" style={{width: 32, height: 32, borderRadius: 8, flexShrink: 0}} />
+            <div style={{flex: 1, display: "flex", flexDirection: "column", gap: 6}}>
+              <div className="skel" style={{width: `${w}%`, height: 13}} />
+              <div className="skel" style={{width: `${w - 15}%`, height: 11}} />
+            </div>
+            <div className="skel" style={{width: 72, height: 14}} />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function AccountsDashboard({ onOpenCurrency, onSendPayment, onAddMoney, onToast, dataState = "full", accountSuspended = false }) {
+  const isEmpty = dataState === "empty";
+  const balance = isEmpty ? "0.00" : "84,231.50";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
+  const [loading, setLoading] = useState(true);
+  React.useEffect(() => { const t = setTimeout(() => setLoading(false), 900); return () => clearTimeout(t); }, []);
+
+  if (loading) return <div className="page"><DashboardSkeleton /></div>;
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <h1 className="title">Accounts</h1>
-          <p className="subtitle">
-            {isApproved
-              ? "Funding balances and recent activity across Acme Trading Co."
-              : "Complete verification to unlock your account and start making payments."}
-          </p>
-        </div>
-        {isApproved && (
-          <div style={{display:"flex", gap:8}}>
-            <button className="btn btn-soft"><Icon.refresh /> Refresh</button>
-            <button className="btn" onClick={onSendPayment}><Icon.paperplane /> Send payment</button>
-          </div>
-        )}
-      </div>
-
-      <KybBanner status={kybStatus} onSubmitKyb={onSubmitKyb} />
-
       {accountSuspended && (
-        <div className="banner danger">
+        <div className="banner danger" style={{marginBottom: 18}}>
           <div className="icw"><Icon.alert /></div>
           <div className="body">
             <div className="ttl">Account suspended</div>
@@ -177,94 +167,41 @@ function AccountsDashboard({ kybStatus, onOpenCurrency, onSubmitKyb, onSendPayme
         </div>
       )}
 
-      {!isApproved
-        ? <DashboardLockedState status={kybStatus} onSubmitKyb={onSubmitKyb} />
-        : (
-          <>
-            {/* Total + currency tiles */}
-            <div className="card" style={{marginBottom: 22, padding: "28px 32px"}}>
-              <div className="row between" style={{marginBottom: 28, alignItems: "flex-end"}}>
-                <div>
-                  <div style={{fontSize:11.5, fontWeight:700, letterSpacing:"0.06em", color:"var(--gray-600)", textTransform:"uppercase", marginBottom: 10}}>
-                    {totalLabel}
-                  </div>
-                  <div style={{fontSize: 38, fontWeight: 600, color:"var(--gray-900)", fontVariantNumeric:"tabular-nums", letterSpacing:"-0.015em", lineHeight:1}}>
-                    ${totalUsd} <span style={{fontSize: 15, color:"var(--gray-600)", fontWeight: 500, marginLeft: 6}}>USD</span>
-                  </div>
-                </div>
-                <div style={{textAlign:"right", fontSize: 12, color:"var(--gray-600)"}}>
-                  <div style={{display:"inline-flex", alignItems:"center", gap:6}}>
-                    <span style={{width:6, height:6, borderRadius:999, background:"#22C55E"}} />
-                    Last updated 2 minutes ago
-                  </div>
-                  <div style={{marginTop: 4}}>FX rates from open of business · indicative</div>
-                </div>
-              </div>
-
-              <div className="grid-4">
-                {accounts.map((a) => (
-                  <CurrencyTile key={a.code} acct={a}
-                    onOpen={() => onOpenCurrency(a.code)}
-                    onCreate={() => setRequestOpen(true)} />
-                ))}
-              </div>
-            </div>
-
-            <RecentTransactions txns={recentTxns} onRowClick={() => onToast("Transaction details — phase 2")} />
-          </>
-        )}
-      {requestOpen && <RequestCurrenciesModal onClose={() => setRequestOpen(false)} onDone={(ccys) => { setRequestOpen(false); onToast && onToast(`Request sent for ${ccys.join(", ")}`); }} />}
-    </div>
-  );
-}
-
-function DashboardLockedState({ status, onSubmitKyb }) {
-  const isPending = status === "submitted" || status === "in_review";
-  return (
-    <div className="card" style={{padding: 0}}>
-      <div style={{padding: "56px 32px 60px", display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center"}}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 14,
-          background: isPending ? "var(--info-100)" : "#FFF6E5",
-          color: isPending ? "var(--info-700)" : "#A16207",
-          display: "grid", placeItems: "center", marginBottom: 18,
-        }}>
-          {isPending ? <Icon.clock style={{width: 26, height: 26}} /> : <Icon.shield style={{width: 26, height: 26}} />}
-        </div>
-        <div style={{fontSize: 18, fontWeight: 600, color: "var(--gray-900)", marginBottom: 6}}>
-          {isPending
-            ? "Your accounts are almost ready"
-            : status === "rejected"
-              ? "Verification couldn\u2019t be completed"
-              : "Verify your business to open accounts"}
-        </div>
-        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 460, lineHeight: 1.6, marginBottom: 22}}>
-          {isPending
-            ? "Our compliance team is reviewing your documents \u2014 usually 1\u20132 business days. We may reach out if we need anything else."
-            : status === "rejected"
-              ? <>We weren&rsquo;t able to verify your business. If you think this is a mistake, reach out to <strong>compliance@onboard.xyz</strong>.</>
-              : "Complete verification to unlock your account and start making payments \u2014 usually takes 1\u20132 business days."}
-        </div>
-        {!isPending && status !== "rejected" && (
-          <button className="btn" onClick={onSubmitKyb}>
-            Start KYB <Icon.external />
-          </button>
-        )}
-      </div>
-
-      {/* Decorative locked tile preview */}
-      <div style={{padding: "0 24px 28px"}}>
-        <div className="grid-3" style={{opacity: 0.55, pointerEvents: "none"}}>
-          <div className="ccy-tile" style={{cursor: "default", filter: "grayscale(0.4)"}}>
-            <div className="head">
-              <div className="meta"><div className="name">USD</div></div>
-              <CcyFlag code="USD" />
-            </div>
-            <div className="bal" style={{color:"var(--gray-400)"}}>—</div>
-            <div className="foot">Pending verification</div>
+      <div className="home-hero">
+        <div className="home-hero-top">
+          <div className="home-acct-label">
+            <CcyFlag code="USD" size={22} />
+            <span className="t">Global USD Account</span>
+          </div>
+          <div className="home-status">
+            <span className="dot" />
+            Active · Updated 2 min ago
           </div>
         </div>
+
+        <div className="home-balance">
+          <span className="home-balance-num">${balance}</span>
+          <span className="home-balance-ccy">USD</span>
+        </div>
+
+        <div className="home-actions">
+          <button className="btn btn-lg" onClick={onAddMoney}>
+            <Icon.plus /> Add money
+          </button>
+          <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}>
+            <Icon.paperplane /> Send money
+          </button>
+        </div>
+
+        <div className="home-divider" />
+
+        <div className="home-rails-note">Fund with USD, NGN, or stablecoins — all deposits are held as USD</div>
       </div>
+
+      <RecentTransactions
+        txns={recentTxns}
+        onRowClick={() => onToast("Transaction details — phase 2")}
+        emptyHint="Fund your account to get started. Deposits appear here once they arrive." />
     </div>
   );
 }
@@ -359,7 +296,7 @@ function RecentTransactions({ txns, title = "Recent activity", onRowClick, dense
 // =====================================================
 // Per-currency detail page (USD only in v0)
 // =====================================================
-function CurrencyDetailPage({ code, onBack, onToast, kybApproved = true, fiatIssuance = "ready", accountSuspended = false }) {
+function CurrencyDetailPage({ code, onBack, onToast, fiatIssuance = "ready", accountSuspended = false }) {
   const meta = CURRENCIES[code];
   const balance = V0_ACCOUNTS.find(a => a.code === "USD")?.balance || "0.00";
   const ccyTxns = TXNS.filter(t => t.ccy === code || t.from === code).slice(0, 8);
@@ -374,14 +311,14 @@ function CurrencyDetailPage({ code, onBack, onToast, kybApproved = true, fiatIss
   ];
 
   const [activeRail, setActiveRail] = useState(0);
+  const [tabLoading, setTabLoading] = useState(false);
   const activeTab = tabs[activeRail];
-
-  if (!kybApproved) return <CurrencyLockedState code={code} onBack={onBack} />;
+  const switchRail = (i) => { if (i === activeRail) return; setActiveRail(i); setTabLoading(true); setTimeout(() => setTabLoading(false), 350); };
 
   return (
     <div className="page">
       <div className="crumbs">
-        <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Accounts</a>
+        <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Home</a>
         <span className="crumb-sep">/</span>
         <span className="crumb-current">{code} · {meta.name}</span>
       </div>
@@ -443,14 +380,14 @@ function CurrencyDetailPage({ code, onBack, onToast, kybApproved = true, fiatIss
           </div>
           <div className="rail-tabs">
             {tabs.map((t, i) => (
-              <button key={t.id} className={`rail-tab ${i === activeRail ? "on" : ""}`} onClick={() => setActiveRail(i)}>
+              <button key={t.id} className={`rail-tab ${i === activeRail ? "on" : ""}`} onClick={() => switchRail(i)}>
                 {t.name}
               </button>
             ))}
           </div>
         </div>
 
-        {activeTab && (
+        {tabLoading ? <PanelSkeleton /> : activeTab && (
           activeTab.type === "stablecoin"
             ? <StablecoinRailPanel coin={activeTab.coin} onCopy={(v) => onToast(`Copied`)} />
             : activeTab.type === "fiat-pending"
@@ -512,7 +449,7 @@ function CurrencyPendingState({ code, onBack, hint }) {
   return (
     <div className="page">
       <div className="crumbs">
-        <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Accounts</a>
+        <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Home</a>
         <span className="crumb-sep">/</span>
         <span className="crumb-current">{code}</span>
       </div>
@@ -540,32 +477,6 @@ function CurrencyPendingState({ code, onBack, hint }) {
           <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 14}}>
             {hint || "Provisioning"} · You&rsquo;ll receive an email when complete
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CurrencyLockedState({ code, onBack }) {
-  const meta = CURRENCIES[code];
-  return (
-    <div className="page">
-      <div className="crumbs">
-        <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Accounts</a>
-        <span className="crumb-sep">/</span>
-        <span className="crumb-current">{code}</span>
-      </div>
-      <div className="card" style={{padding: "64px 32px", textAlign: "center"}}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 14,
-          background: "#FFF6E5", color: "#A16207",
-          display: "grid", placeItems: "center", marginBottom: 18, marginInline: "auto",
-        }}><Icon.shield style={{width: 26, height: 26}} /></div>
-        <div style={{fontSize: 18, fontWeight: 600, color: "var(--gray-900)", marginBottom: 6}}>
-          {code} account isn&rsquo;t open yet
-        </div>
-        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 440, lineHeight: 1.6, marginInline: "auto"}}>
-          Your {meta.name} account opens once Onboard finishes verifying your business. We&rsquo;ll email you the moment it&rsquo;s ready.
         </div>
       </div>
     </div>
@@ -621,8 +532,8 @@ function StablecoinRailPanel({ coin, onCopy }) {
 
       {chain && (
         <>
-          <div className="banner info" style={{borderRadius: 8, padding: "12px 16px", marginBottom: 20}}>
-            <Icon.info style={{width: 16, height: 16, flexShrink: 0, color: "var(--info-600)"}} />
+          <div className="banner danger" style={{borderRadius: 8, padding: "12px 16px", marginBottom: 20}}>
+            <Icon.alert style={{width: 16, height: 16, flexShrink: 0, color: "var(--danger-600)"}} />
             <div className="body" style={{fontSize: 12.5}}>
               Only send {coin} on the <strong>{chain.name}</strong> network to this address. Sending on the wrong network will result in permanent loss of funds.
             </div>
@@ -673,12 +584,12 @@ function FiatPendingPanel({ rail }) {
         <Icon.clock style={{width: 24, height: 24}} />
       </div>
       <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
-        {rail.name} details in progress
+        {rail.name} account being set up
       </div>
-      <div style={{fontSize: 13, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
-        We're provisioning your account details with our banking partner. We'll email you when ready, and may reach out if the partner needs anything else from you.
+      <div style={{fontSize: 13, color: "var(--gray-600)", maxWidth: 380, margin: "0 auto 16px", lineHeight: 1.6}}>
+        Your request has been submitted to our banking partner. We'll email you when your account details are ready — they may also reach out if anything is needed from you.
       </div>
-      <div className="addccy-progress" style={{maxWidth: 320, margin: "0 auto"}}><span /></div>
+      <TimingChip tone="slow" label="1–2 business days" />
     </div>
   );
 }
@@ -783,8 +694,142 @@ function RequestCurrenciesModal({ onClose, onDone }) {
   );
 }
 
+// =====================================================
+// NGN convert-on-deposit rail panel
+// =====================================================
+const NGN_ACCOUNT = {
+  bank:   "Providus Bank",
+  name:   "Onboard / Acme Trading Co",
+  number: "5200 0443 12",
+};
+
+function NgnRailPanel({ onCopy }) {
+  return (
+    <div style={{padding: "24px 28px 28px"}}>
+      <div className="row between" style={{marginBottom: 18, gap: 12, flexWrap: "wrap"}}>
+        <div style={{fontSize: 12.5, color:"var(--gray-700)", lineHeight: 1.55, flex: "1 1 auto", minWidth: 0, paddingRight: 16}}>
+          Send NGN from any Nigerian bank to the details below. Your deposit is converted to USD at the live rate when it lands.
+        </div>
+        <TimingChip tone="fast" label="Minutes" />
+      </div>
+
+      <div className="banner info" style={{borderRadius: 8, padding: "12px 16px", marginBottom: 20}}>
+        <Icon.info style={{width: 16, height: 16, flexShrink: 0, color: "var(--info-600)"}} />
+        <div className="body" style={{fontSize: 12.5}}>
+          The exchange rate is locked at the moment your NGN deposit clears — not when you initiate the transfer. Rate shown on transaction receipt.
+        </div>
+      </div>
+
+      <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px", marginBottom: 20}}>
+        {[
+          { k: "Bank",             v: NGN_ACCOUNT.bank,   copy: false },
+          { k: "Account name",     v: NGN_ACCOUNT.name,   copy: false },
+          { k: "Account number",   v: NGN_ACCOUNT.number, copy: true  },
+          { k: "Conversion rate",  v: "1 USD = ₦1,485.50", copy: false },
+          { k: "Deposit fee",      v: "0.5%",             copy: false },
+          { k: "Minimum deposit",  v: "₦50,000",          copy: false },
+        ].map(f => (
+          <div key={f.k} style={{minWidth: 0}}>
+            <div style={{fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", color: "var(--gray-500)", textTransform: "uppercase", marginBottom: 5}}>{f.k}</div>
+            <div style={{fontSize: 13.5, color: "var(--gray-900)", fontWeight: 500, display: "flex", alignItems: "center", gap: 6}}>
+              <span style={{overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{f.v}</span>
+              {f.copy && <CopyInline value={f.v} onCopy={onCopy} />}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="row" style={{gap: 8}}>
+        <button className="btn btn-soft btn-sm" onClick={() => {
+          const lines = `Bank: ${NGN_ACCOUNT.bank}\nAccount name: ${NGN_ACCOUNT.name}\nAccount number: ${NGN_ACCOUNT.number}`;
+          if (navigator.clipboard) navigator.clipboard.writeText(lines).catch(()=>{});
+          onCopy("all account details");
+        }}><Icon.copy /> Copy all details</button>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
+// Add money page
+// =====================================================
+function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", accountSuspended = false }) {
+  const fiatRailsWithLabels = FIAT_RAILS.map(r => ({
+    ...r,
+    name: r.id === "usd-wire" ? "Wire (USD)" : r.id === "usd-ach" ? "ACH (USD)" : r.name,
+    type: fiatIssuance === "in_progress" ? "fiat-pending" : "fiat",
+  }));
+
+  const tabs = [
+    { id: "ngn",  name: "NGN",  type: "ngn" },
+    { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
+    { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
+    ...fiatRailsWithLabels,
+  ];
+
+  const [activeRail, setActiveRail] = useState(0);
+  const [tabLoading, setTabLoading] = useState(true);
+  const activeTab = tabs[activeRail];
+  useEffect(() => { const t = setTimeout(() => setTabLoading(false), 700); return () => clearTimeout(t); }, []);
+  const switchRail = (i) => { if (i === activeRail) return; setActiveRail(i); setTabLoading(true); setTimeout(() => setTabLoading(false), 350); };
+
+  return (
+    <div className="page">
+      <div className="crumbs">
+        <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Home</a>
+        <span className="crumb-sep">/</span>
+        <span className="crumb-current">Add money</span>
+      </div>
+
+      <div className="page-head">
+        <div>
+          <h1 className="title">Add money</h1>
+          <p className="subtitle">Fund your USD balance via bank transfer, stablecoin, or local currency (NGN).</p>
+        </div>
+      </div>
+
+      {accountSuspended && (
+        <div className="banner danger" style={{marginBottom: 22}}>
+          <div className="icw"><Icon.alert /></div>
+          <div className="body">
+            <div className="ttl">Deposits unavailable</div>
+            <div className="copy">Deposits are not supported while your account is suspended. Contact <strong>support@onboard.xyz</strong> to resolve this.</div>
+          </div>
+        </div>
+      )}
+
+      <div className="card" style={{padding: 0, overflow: "hidden"}}>
+        <div style={{padding: "22px 28px 0"}}>
+          <div className="row between" style={{alignItems: "baseline", marginBottom: 18}}>
+            <h2 style={{margin: 0, fontSize: 15.5, fontWeight: 600, color:"var(--gray-900)"}}>Choose a funding method</h2>
+            <span style={{fontSize: 12.5, color:"var(--gray-600)"}}>All deposits are held as USD</span>
+          </div>
+          <div className="rail-tabs">
+            {tabs.map((t, i) => (
+              <button key={t.id} className={`rail-tab ${i === activeRail ? "on" : ""}`} onClick={() => switchRail(i)}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tabLoading ? <PanelSkeleton /> : activeTab && (
+          activeTab.type === "stablecoin"
+            ? <StablecoinRailPanel coin={activeTab.coin} onCopy={() => onToast("Copied")} />
+            : activeTab.type === "fiat-pending"
+              ? <FiatPendingPanel rail={activeTab} />
+              : activeTab.type === "ngn"
+                ? <NgnRailPanel onCopy={(v) => onToast("Copied")} />
+                : <FiatRailPanel rail={activeTab} ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 window.OBAccounts = {
   AccountsDashboard,
+  AddMoneyPage,
   CurrencyDetailPage,
   Toast,
   Pill,

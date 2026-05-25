@@ -13,7 +13,7 @@
  *   width          (str|num) — applied to the trigger button (default 100%)
  *   id             (str?) — used for aria
  */
-const { useState: cbUseState, useEffect: cbUseEffect, useRef: cbUseRef, useMemo: cbUseMemo } = React;
+const { useState: cbUseState, useEffect: cbUseEffect, useLayoutEffect: cbUseLayoutEffect, useRef: cbUseRef, useMemo: cbUseMemo } = React;
 const cbIcon = window.OBIcon;
 
 window.OBCombobox = function Combobox(props) {
@@ -37,6 +37,16 @@ window.OBCombobox = function Combobox(props) {
   const wrapRef = cbUseRef(null);
   const listRef = cbUseRef(null);
   const searchRef = cbUseRef(null);
+  const [popPos, setPopPos] = cbUseState(null);
+
+  cbUseLayoutEffect(() => {
+    if (open && wrapRef.current) {
+      const r = wrapRef.current.getBoundingClientRect();
+      setPopPos({ top: r.bottom + 6, left: r.left, width: r.width });
+    } else {
+      setPopPos(null);
+    }
+  }, [open]);
 
   const selected = cbUseMemo(
     () => options.find((o) => o.value === value) || null,
@@ -137,7 +147,7 @@ window.OBCombobox = function Combobox(props) {
         <div className="cbox-caret"><cbIcon.arrowDown /></div>
       </button>
       {open && (
-        <div className="cbox-pop" role="listbox">
+        <div className="cbox-pop" role="listbox" style={popPos ? { position: "fixed", top: popPos.top, left: popPos.left, width: popPos.width, right: "auto" } : undefined}>
           <div className="cbox-search">
             <cbIcon.search />
             <input

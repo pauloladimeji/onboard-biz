@@ -1,5 +1,5 @@
 /* global React */
-const { useState: useStateS } = React;
+const { useState: useStateS, useEffect: useEffectS } = React;
 const SIcon = window.OBIcon;
 const { BUSINESS_PROFILE } = window.OBData;
 
@@ -14,8 +14,33 @@ const SECTIONS = [
 
 const SUPPORT_EMAIL = "support@onboard.xyz";
 
-function SettingsScreen({ kyb, onKyb, onToast }) {
+function SettingsBodySkeleton() {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      {[4,3].map((rows,ci) => (
+        <div key={ci} className="set-card">
+          <div className="set-card-head">
+            <div className="skel" style={{width:130,height:16}} />
+          </div>
+          {[...Array(rows)].map((_,i) => (
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 0",borderBottom:"1px solid var(--gray-100)"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <div className="skel" style={{width:90,height:12}} />
+                <div className="skel" style={{width:160,height:14}} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SettingsScreen({ onToast }) {
   const [active, setActive] = useStateS("profile");
+  const [bodyLoading, setBodyLoading] = useStateS(true);
+  useEffectS(() => { const t = setTimeout(() => setBodyLoading(false), 700); return () => clearTimeout(t); }, []);
+  const switchSection = (id) => { if (id === active) return; setActive(id); setBodyLoading(true); setTimeout(() => setBodyLoading(false), 350); };
 
   return (
     <div className="page">
@@ -34,7 +59,7 @@ function SettingsScreen({ kyb, onKyb, onToast }) {
               <button
                 key={s.id}
                 className={`settings-rail-item ${active === s.id ? "on" : ""}`}
-                onClick={() => setActive(s.id)}
+                onClick={() => switchSection(s.id)}
               >
                 <span className="ic"><Ic /></span>
                 <span className="meta">
@@ -47,8 +72,12 @@ function SettingsScreen({ kyb, onKyb, onToast }) {
         </nav>
 
         <div className="settings-body">
-          {active === "profile"  && <ProfileSection onToast={onToast} kyb={kyb} />}
-          {active === "security" && <SecuritySection onToast={onToast} />}
+          {bodyLoading ? <SettingsBodySkeleton /> : (
+            <>
+              {active === "profile"  && <ProfileSection onToast={onToast} />}
+              {active === "security" && <SecuritySection onToast={onToast} />}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -56,30 +85,8 @@ function SettingsScreen({ kyb, onKyb, onToast }) {
 }
 
 // ---------- Section · Profile ----------
-function ProfileSection({ onToast, kyb }) {
+function ProfileSection({ onToast }) {
   const p = BUSINESS_PROFILE;
-  const status = kyb === "submitted" ? "in_review" : kyb;
-  const isVerified = status === "approved";
-
-  // Verification banner — visible whenever NOT verified (pending, not started, rejected)
-  const banner = (() => {
-    if (isVerified) return null;
-    if (status === "in_review") return {
-      tone: "info", icon: <SIcon.clock />,
-      t: "Verification in review",
-      s: "Your business is under review by our compliance team. This usually takes 1–3 business days.",
-    };
-    if (status === "rejected") return {
-      tone: "danger", icon: <SIcon.alert />,
-      t: "Verification rejected",
-      s: `We couldn’t verify your business. Reach out to ${SUPPORT_EMAIL} so we can help you resubmit.`,
-    };
-    return {
-      tone: "warn", icon: <SIcon.shield />,
-      t: "Business not verified yet",
-      s: "Outbound payments are paused until your business is verified. Complete verification to unlock all rails.",
-    };
-  })();
 
   const supportNote = (
     <div className="set-support-note">
@@ -93,30 +100,20 @@ function ProfileSection({ onToast, kyb }) {
 
   return (
     <>
-      {banner && (
-        <div className={`set-banner ${banner.tone}`}>
-          <div className="ic">{banner.icon}</div>
-          <div className="meta">
-            <div className="t">{banner.t}</div>
-            <div className="s">{banner.s}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Business — minimal until verified */}
+      {/* Business profile */}
       <div className="set-card">
         <div className="set-card-head">
           <div>
             <h2 className="set-card-title">
               Business
-              {isVerified && (
+              {true && (
                 <span className="set-chip ok" style={{marginLeft: 10, verticalAlign: "middle"}}>
                   <SIcon.check /> Verified
                 </span>
               )}
             </h2>
             <p className="set-card-sub">
-              {isVerified
+              {true
                 ? "Used on receipts, statements, and shown to recipients."
                 : "Limited details until your business is verified."}
             </p>
@@ -124,7 +121,7 @@ function ProfileSection({ onToast, kyb }) {
         </div>
         <div className="set-list">
           <ReadOnlyRow label="Business name" value={p.legalName} />
-          {isVerified && (
+          {true && (
             <>
               <ReadOnlyRow label="Trading name"        value={p.tradingName} />
               <ReadOnlyRow label="Registration number" value={p.rcNumber} />
@@ -137,7 +134,7 @@ function ProfileSection({ onToast, kyb }) {
       </div>
 
       {/* Registered address — only when verified */}
-      {isVerified && (
+      {true && (
         <div className="set-card">
           <div className="set-card-head">
             <div>

@@ -4,6 +4,7 @@ const RIcon = window.OBIcon;
 const RNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS, STABLECOIN_CHAINS } = window.OBData;
 const { Pill: RPill, TxRowDir: RTxRowDir, TxAmount: RTxAmount } = window.OBAccounts;
+const RFlowShell = window.OBFlowShell;
 
 const PAGE_SIZE_TX = 12;
 const PAGE_SIZE_RC = 10;
@@ -209,6 +210,8 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const [thirdName, setThirdName] = useStateR(""); // 3rd-party fallback name (when lookup not supported)
   const [lookup, setLookup] = useStateR({ status: "idle", name: null }); // idle | loading | matched | mismatched | error | unsupported
 
+  const [saving, setSaving] = useStateR(false);
+
   // Crypto-specific state
   const [cryptoCoin, setCryptoCoin] = useStateR(null); // 'USDC' | 'USDT'
   const [cryptoNetwork, setCryptoNetwork] = useStateR(null); // chain id
@@ -345,22 +348,8 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
         </div>
       </div>
 
-      <div className="pay-stepper" style={{marginBottom: 22}}>
-        {stepLabels.map((s, i) => {
-          const state = i < step ? "done" : i === step ? "active" : "todo";
-          return (
-            <React.Fragment key={s + i}>
-              <div className={`pay-step ${state}`}>
-                <div className="num">{state === "done" ? <RIcon.check /> : i + 1}</div>
-                <div className="lbl">{s}</div>
-              </div>
-              {i < stepLabels.length - 1 && <div className={`pay-step-bar ${i < step ? "done" : ""}`} />}
-            </React.Fragment>
-          );
-        })}
-      </div>
-
-      <div className="pay-flow-card" style={{maxWidth: 720, margin: "0 auto"}}>
+      <RFlowShell steps={stepLabels} current={step}>
+      <div className="pay-flow-card">
 
         {/* STEP 0 — title, cash/crypto toggle, then destination pickers */}
         {step === 0 && (
@@ -744,17 +733,16 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
             </div>
 
             <div className="pay-review-foot" style={{marginTop: 24}}>
-              <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
-              <button className="btn btn-lg" onClick={() => {
-                onToast && onToast(`${cryptoLabel} saved as a crypto recipient`);
-                if (onSaved) onSaved({
-                  name: cryptoLabel, ccy: cryptoCoin, country: "crypto", handle,
-                  type: "Crypto", network: cryptoNetwork, networkLabel: cryptoChainMeta?.name,
-                  party: "third",
-                });
-                reset();
+              <button className="btn btn-ghost" onClick={() => setStep(1)} disabled={saving}>← Back</button>
+              <button className="btn btn-lg" disabled={saving} onClick={() => {
+                setSaving(true);
+                setTimeout(() => {
+                  onToast && onToast(`${cryptoLabel} saved as a crypto recipient`);
+                  if (onSaved) onSaved({ name: cryptoLabel, ccy: cryptoCoin, country: "crypto", handle, type: "Crypto", network: cryptoNetwork, networkLabel: cryptoChainMeta?.name, party: "third" });
+                  reset();
+                }, 900);
               }}>
-                <RIcon.check /> Save recipient
+                {saving ? <><span className="spin" style={{width:14,height:14,borderWidth:2}} /> Saving…</> : <><RIcon.check /> Save recipient</>}
               </button>
             </div>
           </>
@@ -795,22 +783,22 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
             </div>
 
             <div className="pay-review-foot" style={{marginTop: 24}}>
-              <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
-              <button className="btn btn-lg" onClick={() => {
-                onToast && onToast(`${resolvedName} saved as a recipient`);
-                if (onSaved) onSaved({
-                  name: resolvedName, ccy, country: country.cc, handle,
-                  type: method.id === "bank" ? "Bank" : "Mobile money",
-                  party,
-                });
-                reset();
+              <button className="btn btn-ghost" onClick={() => setStep(1)} disabled={saving}>← Back</button>
+              <button className="btn btn-lg" disabled={saving} onClick={() => {
+                setSaving(true);
+                setTimeout(() => {
+                  onToast && onToast(`${resolvedName} saved as a recipient`);
+                  if (onSaved) onSaved({ name: resolvedName, ccy, country: country.cc, handle, type: method.id === "bank" ? "Bank" : "Mobile money", party });
+                  reset();
+                }, 900);
               }}>
-                <RIcon.check /> Save recipient
+                {saving ? <><span className="spin" style={{width:14,height:14,borderWidth:2}} /> Saving…</> : <><RIcon.check /> Save recipient</>}
               </button>
             </div>
           </>
         )}
       </div>
+      </RFlowShell>
     </div>
   );
 }
@@ -944,6 +932,24 @@ function NameResolution({ party, lookup, lookupAvailable = true, selfName, third
 // =====================================================
 // 2. TRANSACTIONS — full feed with filters + lazy load
 // =====================================================
+function TxListSkeleton() {
+  return (
+    <div className="tablecard" style={{marginTop: 0}}>
+      {[62, 48, 55, 44, 58, 42, 50, 46].map((w, i) => (
+        <div key={i} className="skel-row">
+          <div className="skel" style={{width: 28, height: 28, borderRadius: 6, flexShrink: 0}} />
+          <div style={{flex: 1, display: "flex", flexDirection: "column", gap: 6}}>
+            <div className="skel" style={{width: `${w}%`, height: 13}} />
+            <div className="skel" style={{width: `${w - 18}%`, height: 11}} />
+          </div>
+          <div className="skel" style={{width: 56, height: 20, borderRadius: 99}} />
+          <div className="skel" style={{width: 80, height: 14}} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceHold = false }) {
   const HOLD_TXN = { id: "PAY-2026-04901", date: "May 7, 11:24", direction: "out", type: "Payout", party: "Riverline Imports Ltd", ref: "PAY-2026-04901", amount: "84,500.00", ccy: "GBP", from: "USD", status: "ON HOLD", pillTone: "warn", hold: true };
   const baseList = complianceHold ? [HOLD_TXN, ...TXNS_FULL] : TXNS_FULL;
@@ -984,6 +990,8 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
   }, [visible, filtered.length]);
 
   const list = filtered.slice(0, visible);
+  const [loading, setLoading] = useStateR(true);
+  useEffectR(() => { const t = setTimeout(() => setLoading(false), 700); return () => clearTimeout(t); }, []);
 
   // Top-level summary stats
   const stats = useMemoR(() => {
@@ -1039,7 +1047,7 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
       </div>
 
       {/* Table */}
-      <div className="tablecard">
+      {loading ? <TxListSkeleton /> : <div className="tablecard">
         <div className="head">
           <h2>Activity</h2>
           <span className="meta">{`Showing ${list.length} of ${filtered.length}`}</span>
@@ -1092,7 +1100,7 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
             )}
           </>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -1139,6 +1147,62 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
   const settledLabel = tx.status === "COMPLETED" ? "Settled" : tx.status === "PROCESSING" ? "Settling" : "Failed";
   const settledTone  = tx.status === "COMPLETED" ? "done" : tx.status === "PROCESSING" ? "active" : "fail";
 
+  const [loading, setLoading] = useStateR(true);
+  useEffectR(() => { setLoading(true); const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, [tx.id]);
+
+  const txHashShort = tx.txHash ? (tx.txHash.length > 16 ? `${tx.txHash.slice(0, 8)}…${tx.txHash.slice(-6)}` : tx.txHash) : null;
+  const explorerUrl = tx.chain && tx.txHash ? ({
+    eth:     `https://etherscan.io/tx/${tx.txHash}`,
+    base:    `https://basescan.org/tx/${tx.txHash}`,
+    tron:    `https://tronscan.org/#/transaction/${tx.txHash}`,
+    polygon: `https://polygonscan.com/tx/${tx.txHash}`,
+    solana:  `https://solscan.io/tx/${tx.txHash}`,
+  })[tx.chain] : null;
+
+  if (loading) return (
+    <div className="page">
+      <div className="crumbs">
+        <a className="crumb-back" onClick={onBack}><RIcon.arrowLeft /> Back to Transactions</a>
+        <span className="crumb-sep">/</span>
+        <span className="crumb-current">{tx.ref}</span>
+      </div>
+      <div className="page-head" style={{alignItems: "flex-start"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <div className="skel" style={{width: 140, height: 26}} />
+          <div className="skel" style={{width: 220, height: 14}} />
+        </div>
+      </div>
+      <div className="card" style={{padding: "26px 30px", marginBottom: 22}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:32}}>
+          <div style={{display:"flex",flexDirection:"column",gap:10,flex:1}}>
+            <div className="skel" style={{width: 80, height: 12}} />
+            <div className="skel" style={{width: "60%", height: 32}} />
+            <div className="skel" style={{width: "40%", height: 12}} />
+          </div>
+          <div className="skel" style={{width: 28, height: 28, borderRadius: 99}} />
+          <div style={{display:"flex",flexDirection:"column",gap:10,flex:1,alignItems:"flex-end"}}>
+            <div className="skel" style={{width: 80, height: 12}} />
+            <div className="skel" style={{width: "60%", height: 32}} />
+            <div className="skel" style={{width: "40%", height: 12}} />
+          </div>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+        {[5,4].map((rows,ci) => (
+          <div key={ci} className="card" style={{padding:"24px 28px"}}>
+            <div className="skel" style={{width:110,height:16,marginBottom:20}} />
+            {[...Array(rows)].map((_,i) => (
+              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--gray-100)"}}>
+                <div className="skel" style={{width:80,height:13}} />
+                <div className="skel" style={{width:120,height:13}} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="page">
       <div className="crumbs">
@@ -1171,10 +1235,10 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
               {!tx.chain && <RFlag cc={srcMeta?.flag || "us"} size={20} />}
               <div className="lbl">{isOut ? "You paid" : tx.chain ? "Deposited" : "Received from"}</div>
             </div>
-            <div className="big">{tx.chain ? `${tx.amount} ${tx.party.split("·")[0].trim()}` : `${tx.from || tx.ccy} ${tx.amount}`}</div>
+            <div className="big">{tx.chain ? `${tx.amount} ${tx.party.split("·")[0].trim()}` : isIn && tx.fromAmount ? `${tx.from} ${tx.fromAmount}` : `${tx.from || tx.ccy} ${tx.amount}`}</div>
             <div className="sub">
               {isOut && tx.from && <>From your <strong>{tx.from}</strong> balance</>}
-              {isIn && !tx.chain && <>{tx.party}</>}
+              {isIn && !tx.chain && <>{tx.party.includes(" — ") ? tx.party.split(" — ")[1] : tx.party}</>}
               {isIn && tx.chain && <>{tx.party}</>}
             </div>
           </div>
@@ -1231,10 +1295,19 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
                 <div className="row-item"><div className="k">Conversion rate</div><div className="v">1 {tx.party.split("·")[0].trim()} = 1 USD</div></div>
               )}
               {tx.txHash && (
-                <div className="row-item"><div className="k">Tx hash</div><div className="v" style={{wordBreak: "break-all"}}><span>{tx.txHash}</span><button className="copy-inline" onClick={() => copy(tx.txHash, "tx hash")}><RIcon.copy /></button></div></div>
+                <div className="row-item"><div className="k">Tx hash</div><div className="v">
+                  {explorerUrl
+                    ? <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{color:"var(--info-700)",textDecoration:"none",fontVariantNumeric:"tabular-nums"}}>{txHashShort}</a>
+                    : <span style={{fontVariantNumeric:"tabular-nums"}}>{txHashShort}</span>
+                  }
+                  <button className="copy-inline" onClick={() => copy(tx.txHash, "tx hash")}><RIcon.copy /></button>
+                </div></div>
               )}
               {tx.from && tx.from !== tx.ccy && !tx.chain && (
-                <div className="row-item"><div className="k">FX rate</div><div className="v">{`${tx.from} → ${tx.ccy}`}</div></div>
+                <div className="row-item"><div className="k">FX rate</div><div className="v">{tx.rate || `${tx.from} → ${tx.ccy}`}</div></div>
+              )}
+              {tx.convFee && (
+                <div className="row-item"><div className="k">Conversion fee</div><div className="v">{tx.convFee}</div></div>
               )}
               <div className="row-item"><div className="k">Initiated</div><div className="v">{tx.date.replace(/,/, ", 2026,")}</div></div>
               {isOut && <div className="row-item"><div className="k">Memo</div><div className="v">{`Invoice #${tx.ref.slice(-5)} · ${tx.party}`}</div></div>}
@@ -1402,6 +1475,8 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
   }, [visible, filtered.length]);
 
   const list = filtered.slice(0, visible);
+  const [loadingRc, setLoadingRc] = useStateR(true);
+  useEffectR(() => { const t = setTimeout(() => setLoadingRc(false), 700); return () => clearTimeout(t); }, []);
 
   return (
     <div className="page">
@@ -1428,7 +1503,20 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
         )}
       </div>
 
-      <div className="tablecard">
+      {loadingRc ? (
+        <div className="tablecard">
+          {[58, 44, 62, 40, 52].map((w, i) => (
+            <div key={i} className="skel-row">
+              <div className="skel" style={{width: 40, height: 40, borderRadius: 99, flexShrink: 0}} />
+              <div style={{flex: 1, display: "flex", flexDirection: "column", gap: 6}}>
+                <div className="skel" style={{width: `${w}%`, height: 13}} />
+                <div className="skel" style={{width: `${w - 15}%`, height: 11}} />
+              </div>
+              <div className="skel" style={{width: 36, height: 14}} />
+            </div>
+          ))}
+        </div>
+      ) : <div className="tablecard">
         <div className="head">
           <h2>All recipients</h2>
           <span className="meta">{`${list.length} of ${filtered.length}`}</span>
@@ -1488,7 +1576,7 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
             </div>
           )
         )}
-      </div>
+      </div>}
     </div>
   );
 }

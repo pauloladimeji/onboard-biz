@@ -72,24 +72,30 @@ function RecipientBadge({ recipient, size = 14 }) {
   return <PFlag cc={recipient.country} size={size} />;
 }
 
-function StepHeader({ steps, current }) {
+function FlowShell({ steps, current, children }) {
   return (
-    <div className="pay-stepper">
-      {steps.map((s, i) => {
-        const state = i < current ? "done" : i === current ? "active" : "todo";
-        return (
-          <React.Fragment key={s + i}>
-            <div className={`pay-step ${state}`}>
-              <div className="num">{state === "done" ? <PIcon.check /> : i + 1}</div>
-              <div className="lbl">{s}</div>
-            </div>
-            {i < steps.length - 1 && <div className={`pay-step-bar ${i < current ? "done" : ""}`} />}
-          </React.Fragment>
-        );
-      })}
+    <div className="flow-shell">
+      <div className="flow-steps">
+        {steps.map((label, i) => {
+          const state = i < current ? "done" : i === current ? "active" : "todo";
+          return (
+            <React.Fragment key={label + i}>
+              {i > 0 && <div className="flow-step-connector" />}
+              <div className={`flow-step ${state}`}>
+                <div className="flow-step-dot">
+                  {state === "done" ? <PIcon.check /> : i + 1}
+                </div>
+                <div className="flow-step-lbl">{label}</div>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+      <div className="flow-content">{children}</div>
     </div>
   );
 }
+window.OBFlowShell = FlowShell;
 
 function CcyBadge({ code, size = 18 }) {
   const meta = PCCY[code];
@@ -381,7 +387,8 @@ function StepOnePlaceholder({ mode }) {
 // =====================================================
 function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", paymentApproval = "required", paymentApprovalMethod = "totp", accountSuspended = false, dataState = "full" }) {
   const [mode, setMode] = useStateP(defaultMode); // "recipient" | "amount"
-  const [step, setStep] = useStateP(0);            // 0 form | 1 review | 2 approve | 3 confirmation
+  // steps: 0=pick, 1=configure, 2=review, 3=approve(cond), 4=confirm
+  const [step, setStep] = useStateP(0);
   const [recipient, setRecipient] = useStateP(null);
   const [srcCcy, setSrcCcy] = useStateP("USD");
   const [dstCcy, setDstCcy] = useStateP("NGN");
@@ -419,7 +426,7 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
         <div className="page-head">
           <div>
             <h1 className="title">Send payment</h1>
-            <p className="subtitle">Move money to suppliers, payroll, and partners across Africa — settles in minutes, not days.</p>
+            <p className="subtitle">Move money to suppliers, payroll, and partners across the world.</p>
           </div>
         </div>
         <div className="banner danger">
@@ -436,120 +443,38 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
     );
   }
 
-  // Switching modes resets step 1 partial state on the right pane to avoid cross-contamination
-  const switchMode = (m) => {
-    if (m === mode) return;
-    setMode(m);
-    setStep(0);
-  };
-
-  const stepLabels = mode === "recipient"
-    ? (paymentApproval === "required" ? ["Recipient & amount", "Review", "Approve", "Done"] : ["Recipient & amount", "Review", "Done"])
-    : (paymentApproval === "required" ? ["Amount & recipient", "Review", "Approve", "Done"] : ["Amount & recipient", "Review", "Done"]);
-
   const dstFinal = recipient ? recipient.ccy : dstCcy;
   const amtNum = parseFloat(String(amount).replace(/,/g,"")) || 0;
-
-  // For recipient-first: right pane unlocks once recipient selected
-  // For amount-first:    right pane unlocks once amount > 0
-  const rightUnlocked = mode === "recipient" ? !!recipient : amtNum > 0;
   const canReview = !!recipient && amtNum > 0 && !!reason;
 
-  const goReview = () => { if (canReview) setStep(1); };
-  const goApprove = () => {
-    if (paymentApproval === "required") setStep(2);
-    else doConfirm();
-  };
+  // step labels visible in the stepper (confirmation is outside FlowShell)
+  const hasApproval = paymentApproval === "required";
+  const stepLabels = mode === "recipient"
+    ? (hasApproval ? ["Recipient", "Amount", "Review", "Approve"] : ["Recipient", "Amount", "Review"])
+    : (hasApproval ? ["Amount", "Recipient", "Review", "Approve"] : ["Amount", "Recipient", "Review"]);
+
+  // map logical step to stepper index (confirmation step is outside)
+  const stepperIndex = step <= stepLabels.length - 1 ? step : stepLabels.length;
+
+  const goReview  = () => { if (canReview) setStep(2); };
+  const goApprove = () => { hasApproval ? setStep(3) : doConfirm(); };
   const doConfirm = () => {
     setReference("PAY-2026-" + String(Math.floor(Math.random() * 90000) + 10000));
-    setStep(paymentApproval === "required" ? 3 : 2);
+    setStep(hasApproval ? 4 : 3);
   };
-  // legacy hook
-  const confirm = doConfirm;
   const reset = () => {
     setStep(0); setRecipient(null); setSrcCcy("USD"); setDstCcy("NGN");
     setAmount(""); setReason(""); setMemo(""); setReference(null);
   };
 
-  const leftPane = mode === "recipient" ? (
-    <RecipientPanel
-      selectedId={recipient?.id}
-      onSelect={(r) => { setRecipient(r); setDstCcy(r.ccy); }}
-      onAddNew={onAddRecipient}
-      title="1 · Choose recipient"
-      subtitle="Pick a saved recipient or add a new one" />
-  ) : (
-    <AmountInputOnlyPanel
-      srcCcy={srcCcy} setSrcCcy={setSrcCcy}
-      dstCcy={dstCcy} setDstCcy={setDstCcy}
-      amount={amount} setAmount={setAmount}
-      title="1 · Enter amount"
-      subtitle="Set source and destination currencies, then the amount" />
-  );
+  const isConfirmStep = (hasApproval && step === 4) || (!hasApproval && step === 3);
 
-  const rightPane = !rightUnlocked ? (
-    <StepOnePlaceholder mode={mode} />
-  ) : mode === "recipient" ? (
-    <AmountPanelRight
-      recipient={recipient} srcCcy={srcCcy} setSrcCcy={setSrcCcy}
-      amount={amount} setAmount={setAmount}
-      reason={reason} setReason={setReason}
-      memo={memo} setMemo={setMemo}
-      title="2 · Amount to send"
-      onReview={goReview} canReview={canReview} />
-  ) : (
-    <RecipientPanelFiltered
-      destCcy={dstCcy}
-      selectedId={recipient?.id}
-      onSelect={setRecipient}
-      reason={reason} setReason={setReason}
-      memo={memo} setMemo={setMemo}
-      onAddNew={onAddRecipient}
-      title="2 · Choose recipient"
-      onReview={goReview} canReview={canReview} />
-  );
-
-  return (
-    <div className="page pay-flow">
-      <h1 className="title">Send payment</h1>
-      <p className="subtitle">Move money to suppliers, payroll, and partners across Africa — settles in minutes, not days.</p>
-
-      <StepHeader steps={stepLabels} current={step} />
-
-      {step === 0 && (
-        <>
-          <div className="pay-grid">
-            {leftPane}
-            {rightPane}
-          </div>
-        </>
-      )}
-
-      {step === 1 && (
-        <ReviewPayment
-          payment={{
-            recipient, srcCcy, dstCcy: dstFinal, amount, reason, memo,
-            receive: convert(srcCcy, dstFinal, amount),
-            fee: FEE[srcCcy] || 0,
-          }}
-          requiresApproval={paymentApproval === "required"}
-          onBack={() => setStep(0)}
-          onConfirm={goApprove} />
-      )}
-
-      {step === 2 && paymentApproval === "required" && (
-        <PaymentApprovalStep
-          method={paymentApprovalMethod}
-          payment={{
-            recipient, srcCcy, dstCcy: dstFinal, amount,
-            receive: convert(srcCcy, dstFinal, amount),
-          }}
-          onBack={() => setStep(1)}
-          onApprove={doConfirm}
-          onToast={onToast} />
-      )}
-
-      {((step === 2 && paymentApproval === "off") || step === 3) && (
+  // Render confirmation outside FlowShell (no stepper)
+  if (isConfirmStep) {
+    return (
+      <div className="page pay-flow">
+        <h1 className="title">Send payment</h1>
+        <p className="subtitle">Move money to suppliers, payroll, and partners across the world.</p>
         <SendConfirmation
           payment={{
             recipient, srcCcy, dstCcy: dstFinal, amount, reason, memo,
@@ -559,17 +484,95 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
           reference={reference}
           onDone={() => onToast && onToast("Transaction details — phase 2")}
           onNewPayment={reset} />
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="page pay-flow">
+      <h1 className="title">Send payment</h1>
+      <p className="subtitle">Move money to suppliers, payroll, and partners across the world.</p>
+
+      <FlowShell steps={stepLabels} current={stepperIndex}>
+
+        {/* STEP 0 — recipient-first: pick recipient; amount-first: enter amount */}
+        {step === 0 && mode === "recipient" && (
+          <RecipientPanel
+            selectedId={recipient?.id}
+            onSelect={(r) => { setRecipient(r); setDstCcy(r.ccy); setStep(1); }}
+            onAddNew={onAddRecipient}
+            title="Choose recipient"
+            subtitle="Pick a saved recipient or add a new one" />
+        )}
+
+        {step === 0 && mode === "amount" && (
+          <AmountInputOnlyPanel
+            srcCcy={srcCcy} setSrcCcy={setSrcCcy}
+            dstCcy={dstCcy} setDstCcy={setDstCcy}
+            amount={amount} setAmount={setAmount}
+            reason={reason} setReason={setReason}
+            memo={memo} setMemo={setMemo}
+            onContinue={() => { if (amtNum > 0 && reason) setStep(1); }}
+            canContinue={amtNum > 0 && !!reason} />
+        )}
+
+        {/* STEP 1 — recipient-first: enter amount; amount-first: pick recipient */}
+        {step === 1 && mode === "recipient" && (
+          <AmountPanelRight
+            recipient={recipient} srcCcy={srcCcy} setSrcCcy={setSrcCcy}
+            amount={amount} setAmount={setAmount}
+            reason={reason} setReason={setReason}
+            memo={memo} setMemo={setMemo}
+            onBack={() => setStep(0)}
+            onReview={goReview} canReview={canReview} />
+        )}
+
+        {step === 1 && mode === "amount" && (
+          <RecipientPanelFiltered
+            destCcy={dstCcy}
+            selectedId={recipient?.id}
+            onSelect={(r) => { setRecipient(r); setStep(2); }}
+            onAddNew={onAddRecipient}
+            onBack={() => setStep(0)} />
+        )}
+
+        {/* STEP 2 — review */}
+        {step === 2 && (
+          <ReviewPayment
+            payment={{
+              recipient, srcCcy, dstCcy: dstFinal, amount, reason, memo,
+              receive: convert(srcCcy, dstFinal, amount),
+              fee: FEE[srcCcy] || 0,
+            }}
+            requiresApproval={hasApproval}
+            onBack={() => setStep(1)}
+            onConfirm={goApprove} />
+        )}
+
+        {/* STEP 3 — 2FA approve */}
+        {step === 3 && hasApproval && (
+          <PaymentApprovalStep
+            method={paymentApprovalMethod}
+            payment={{
+              recipient, srcCcy, dstCcy: dstFinal, amount,
+              receive: convert(srcCcy, dstFinal, amount),
+            }}
+            onBack={() => setStep(2)}
+            onApprove={doConfirm}
+            onToast={onToast} />
+        )}
+
+      </FlowShell>
     </div>
   );
 }
 
-// Right-pane variant: amount + reason + memo (recipient already chosen)
-function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, reason, setReason, memo, setMemo, title, onReview, canReview }) {
+// Amount step: amount + reason + memo (recipient already chosen)
+function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, reason, setReason, memo, setMemo, onBack, onReview, canReview }) {
   return (
     <div className="pay-panel">
       <div className="pay-panel-head">
-        <div className="pay-panel-title">{title}</div>
+        <div className="pay-panel-title">Amount to send</div>
         <div className="pay-panel-sub">{`Sending to ${recipient.name}`}</div>
       </div>
 
@@ -582,7 +585,10 @@ function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, rea
           <div className="t">{recipient.name}</div>
           <div className="s">{recipient.handle}</div>
         </div>
-        <div className="rt">{recipient.ccy}</div>
+        <div className="rt" style={{display: "flex", alignItems: "center", gap: 10}}>
+          <span>{recipient.ccy}</span>
+          <button className="btn btn-ghost btn-sm" style={{padding: "4px 10px", fontSize: 12}} onClick={onBack}>Change</button>
+        </div>
       </div>
 
       <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} amount={amount} setAmount={setAmount} recipient={recipient} />
@@ -596,23 +602,29 @@ function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, rea
   );
 }
 
-// Left-pane variant for amount-first: just amount + currencies
-function AmountInputOnlyPanel({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, title, subtitle }) {
+// Amount-first step 0: enter amount + currencies + reason/memo, then Continue
+function AmountInputOnlyPanel({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, reason, setReason, memo, setMemo, onContinue, canContinue }) {
   return (
     <div className="pay-panel">
       <div className="pay-panel-head">
-        <div className="pay-panel-title">{title}</div>
-        <div className="pay-panel-sub">{subtitle}</div>
+        <div className="pay-panel-title">Enter amount</div>
+        <div className="pay-panel-sub">Set the destination currency and amount to send</div>
       </div>
 
       <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} dstCcy={dstCcy} setDstCcy={setDstCcy}
         amount={amount} setAmount={setAmount} showDstPicker />
+
+      <ReasonMemoFields reason={reason} setReason={setReason} memo={memo} setMemo={setMemo} />
+
+      <button className="btn btn-lg" style={{marginTop: 18, width: "100%", justifyContent: "center"}} disabled={!canContinue} onClick={onContinue}>
+        Continue <PIcon.arrowRight />
+      </button>
     </div>
   );
 }
 
-// Right pane for amount-first: filtered recipient list + reason/memo below
-function RecipientPanelFiltered({ destCcy, selectedId, onSelect, reason, setReason, memo, setMemo, onAddNew, title, onReview, canReview }) {
+// Amount-first step 1: filtered recipient list (select auto-advances)
+function RecipientPanelFiltered({ destCcy, selectedId, onSelect, onAddNew, onBack }) {
   const [q, setQ] = useStateP("");
   const [visible, setVisible] = useStateP(PAGE_SIZE);
   const sentinelRef = useRefP(null);
@@ -644,7 +656,10 @@ function RecipientPanelFiltered({ destCcy, selectedId, onSelect, reason, setReas
   return (
     <div className="pay-panel">
       <div className="pay-panel-head">
-        <div className="pay-panel-title">{title}</div>
+        <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12}}>
+          <div className="pay-panel-title">Choose recipient</div>
+          <button className="btn btn-ghost btn-sm" style={{padding: "4px 10px", fontSize: 12, flexShrink: 0}} onClick={onBack}>← Back</button>
+        </div>
         <div className="pay-panel-sub">{`Showing recipients that can receive ${destCcy}`}</div>
       </div>
 
@@ -666,7 +681,7 @@ function RecipientPanelFiltered({ destCcy, selectedId, onSelect, reason, setReas
           <div style={{fontSize: 12, marginTop: 4}}>Add a new one to continue.</div>
         </div>
       ) : (
-        <div className="recip-list" style={{maxHeight: 260, overflowY: "auto"}}>
+        <div className="recip-list" style={{maxHeight: 480, overflowY: "auto"}}>
           {list.map((r) => {
             const sel = r.id === selectedId;
             return (
@@ -692,13 +707,6 @@ function RecipientPanelFiltered({ destCcy, selectedId, onSelect, reason, setReas
           )}
         </div>
       )}
-
-      <div style={{height: 1, background: "var(--gray-200)", margin: "14px 0"}} />
-      <ReasonMemoFields reason={reason} setReason={setReason} memo={memo} setMemo={setMemo} />
-
-      <button className="btn btn-lg" style={{marginTop: 18, width: "100%", justifyContent: "center"}} disabled={!canReview} onClick={onReview}>
-        Review payment <PIcon.arrowRight />
-      </button>
     </div>
   );
 }
@@ -731,6 +739,8 @@ function ReviewPayment({ payment, onBack, onConfirm, requiresApproval = false })
   const { recipient, srcCcy, dstCcy, amount, reason, memo, receive, fee } = payment;
   const totalDebit = (parseFloat(String(amount).replace(/,/g,"")) || 0) + fee;
   const rate = FX[dstCcy] / FX[srcCcy];
+  const [busy, setBusy] = useStateP(false);
+  const handleConfirm = () => { setBusy(true); setTimeout(() => { onConfirm(); }, 1200); };
 
   return (
     <div className="pay-review">
@@ -789,9 +799,9 @@ function ReviewPayment({ payment, onBack, onConfirm, requiresApproval = false })
         </div>
 
         <div className="pay-review-foot">
-          <button className="btn btn-ghost" onClick={onBack}>← Back</button>
-          <button className="btn btn-lg" onClick={onConfirm}>
-            <PIcon.shield /> {requiresApproval ? "Continue to approval" : "Confirm & send"}
+          <button className="btn btn-ghost" onClick={onBack} disabled={busy}>← Back</button>
+          <button className="btn btn-lg" onClick={handleConfirm} disabled={busy}>
+            {busy ? <><span className="spin" style={{width:14,height:14,borderWidth:2}} /> Sending…</> : <><PIcon.shield /> {requiresApproval ? "Continue to approval" : "Confirm & send"}</>}
           </button>
         </div>
       </div>
