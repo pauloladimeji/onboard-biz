@@ -114,12 +114,10 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, p
               <div className="mockpanel-label">Sign-in status</div>
               <div className="mockpanel-row wrap">
                 {[
-                  ["unknown",             "Unknown"],
-                  ["pending_review",      "Pending review"],
-                  ["rejected",            "Rejected"],
-                  ["sumsub_pending",      "Sumsub pending"],
-                  ["verified_no_password","Verified (no pw)"],
-                  ["verified_active",     "Verified"],
+                  ["not_provisioned", "Not provisioned"],
+                  ["rejected",        "Rejected"],
+                  ["wrong_password",  "Wrong password"],
+                  ["verified_active", "Verified"],
                 ].map(([val, label]) => (
                   <button key={val} className={signinAccountStatus === val ? "on" : ""} onClick={() => onSigninAccountStatus(val)}>
                     {label}
@@ -271,8 +269,11 @@ function App() {
           layout={authLayout}
           onSubmit={({ email }) => {
             setAuthEmail(email);
-            setFlow(signinAccountStatus === "verified_active" ? "signin-password" : "signin-status");
+            if (signinAccountStatus === "verified_active") setFlow("app");
+            else if (signinAccountStatus === "wrong_password") { /* stay on signin, error shown via prop */ }
+            else setFlow("signin-status");
           }}
+          error={signinAccountStatus === "wrong_password" ? "Incorrect password." : null}
           onSwitchToSignUp={() => setFlow("signup")} />
       </>
     );
@@ -287,18 +288,6 @@ function App() {
           status={signinAccountStatus}
           onSignUp={() => setFlow("signup")}
           onChangeEmail={() => setFlow("signin")} />
-      </>
-    );
-  }
-  if (flow === "signin-password") {
-    return (
-      <>
-        <FloatingMockPanel mockProps={mockProps} />
-        <SignInPasswordScreen
-          layout={authLayout}
-          email={authEmail}
-          onSubmit={() => setFlow("app")}
-          onBack={() => setFlow("signin")} />
       </>
     );
   }

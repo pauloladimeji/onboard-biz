@@ -12,12 +12,13 @@ function AuthShellCentered({ children, step, totalSteps }) {
         <img src="design-system/assets/onboard-logo-lockup-purple.png?v=1778066455523" alt="Onboard Business" />
       </div>
 
-      {totalSteps > 1 && (
-        <AuthStepper step={step} totalSteps={totalSteps} />
-      )}
-
-      <div className="auth-card-wrap">
-        {children}
+      <div className="auth-centered-body">
+        {totalSteps > 1 && (
+          <AuthStepper step={step} totalSteps={totalSteps} />
+        )}
+        <div className="auth-card-wrap">
+          {children}
+        </div>
       </div>
 
       <div className="auth-centered-legal">
@@ -31,21 +32,36 @@ function AuthShellCentered({ children, step, totalSteps }) {
 // Split auth shell — left = form, right = info panel
 // =====================================================
 function AuthInfoPanel() {
+  const badges = [
+    { label: "FinCEN MSB" },
+    { label: "FCA EMI" },
+    { label: "SEC Reg." },
+    { label: "CBN Licensed" },
+  ];
   return (
     <div className="auth-info-panel">
-      <div className="auth-info-logo">
-        <img src="design-system/assets/onboard-logo-lockup-purple.png?v=1778066455523" alt="Onboard Business" />
-      </div>
-      <h2 className="auth-info-tagline" style={{margin: "auto 0"}}>
-        The modern way to move <span>money</span>.
-      </h2>
-      <div className="auth-info-licenses" style={{marginBottom: "auto", paddingTop: 20}}>
-        {["FinCEN", "VASP", "SEC", "CBN"].map(name => (
-          <div key={name} className="auth-info-license">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            {name}
-          </div>
-        ))}
+      <div style={{marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 20}}>
+        <img
+          src="design-system/assets/onboard-icon-512.png"
+          alt=""
+          style={{width: 32, height: 32, mixBlendMode: "screen", display: "block"}}
+        />
+        <div style={{display: "flex", flexDirection: "column", gap: 12}}>
+          <h2 className="auth-info-tagline" style={{margin: 0, textAlign: "center"}}>
+            The modern way to move <span>money</span> across borders.
+          </h2>
+          <p className="auth-info-sub" style={{margin: 0, textAlign: "center"}}>
+            Receive money globally, pay out anywhere — built for businesses that move money across borders.
+          </p>
+        </div>
+        <div className="auth-info-licenses" style={{justifyContent: "center"}}>
+          {badges.map(({ label }) => (
+            <div key={label} className="auth-info-license">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              {label}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -80,7 +96,7 @@ function AuthInfoPanelSignUp() {
         ))}
       </div>
       <div className="auth-info-licenses" style={{marginTop: "auto"}}>
-        {["FinCEN", "VASP", "SEC", "CBN"].map(name => (
+        {["FinCEN MSB", "FCA EMI", "SEC Reg.", "CBN Licensed"].map(name => (
           <div key={name} className="auth-info-license">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
             {name}
@@ -95,12 +111,13 @@ function AuthShellSplit({ children, step, totalSteps, variant }) {
   return (
     <div className="auth-split">
       <div className="auth-split-left">
-        {totalSteps > 1 && (
-          <AuthStepper step={step} totalSteps={totalSteps} />
-        )}
-
-        <div className="auth-card-wrap">
-          {children}
+        <div className="auth-centered-body">
+          {totalSteps > 1 && (
+            <AuthStepper step={step} totalSteps={totalSteps} />
+          )}
+          <div className="auth-card-wrap">
+            {children}
+          </div>
         </div>
 
         <div className="auth-centered-legal">
@@ -305,27 +322,55 @@ function SignUpConfirmationScreen({ email, onSignIn, layout }) {
 }
 
 // =====================================================
-// Sign-in — email entry
+// Sign-in — email + password on one page
 // =====================================================
-function SignInScreen({ onSubmit, onSwitchToSignUp, layout }) {
-  const [email, setEmail] = useState("");
-  const valid = email.includes("@") && email.includes(".");
+function SignInScreen({ onSubmit, onSwitchToSignUp, layout, error }) {
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [show, setShow]         = useState(false);
 
+  const valid = email.includes("@") && email.includes(".") && password.length >= 1;
   const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ email }); };
+
+  const EyeOff = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
+  const EyeOn  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 
   return (
     <AuthShell step={1} totalSteps={1} layout={layout}>
       <h1>Sign in</h1>
-      <p className="auth-lede">Enter your email to continue</p>
+      <p className="auth-lede">Sign in to your Onboard Business account</p>
 
       <form onSubmit={submit}>
         <div className="field">
           <label className="lbl">Email address</label>
           <input className="inp" type="email" placeholder="finance@acmetrading.com" autoFocus
-                 value={email} onChange={(e)=>setEmail(e.target.value)} />
+                 value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
+
+        <div className="field">
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6}}>
+            <label className="lbl" style={{margin:0}}>Password</label>
+            <a style={{fontSize:12.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>Forgot password?</a>
+          </div>
+          <div style={{position:"relative"}}>
+            <input className="inp" type={show ? "text" : "password"} placeholder="••••••••"
+                   value={password} onChange={(e) => setPassword(e.target.value)} style={{paddingRight:42}} />
+            <button type="button" onClick={() => setShow(!show)}
+                    style={{position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"var(--gray-500)", padding:4}}>
+              {show ? <EyeOff /> : <EyeOn />}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{display:"flex", alignItems:"center", gap:8, background:"var(--danger-50,#FEF2F2)", border:"1px solid #FECACA", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:13, color:"var(--danger-700,#B91C1C)"}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>{error} <a style={{color:"var(--danger-700,#B91C1C)", fontWeight:600, cursor:"pointer", textDecoration:"underline"}}>Reset password</a></span>
+          </div>
+        )}
+
         <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
-          Continue
+          Sign in
         </button>
       </form>
 
@@ -340,61 +385,83 @@ function SignInScreen({ onSubmit, onSwitchToSignUp, layout }) {
 // Sign-in status gate — shown after email lookup
 // =====================================================
 function SignInStatusScreen({ email, status, onSignUp, onChangeEmail, layout }) {
+  // Engineering confirmed: no middle state. Any unprovisioned email shows the
+  // same screen — we can’t tell if they’ve applied or not.
+  const isNotProvisioned = !status || status === "not_provisioned" || status === "unknown" || status === "pending_review" || status === "sumsub_pending";
+
+  if (isNotProvisioned) {
+    return (
+      <AuthShell step={1} totalSteps={1} layout={layout}>
+        <div style={{textAlign:"center", marginBottom:24}}>
+          <div style={{
+            width:52, height:52, borderRadius:"50%",
+            background:"var(--gray-100)", color:"var(--gray-500)",
+            display:"grid", placeItems:"center", margin:"0 auto 18px",
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{width:24,height:24}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <h1 style={{marginBottom:6, fontSize:22}}>Account not set up</h1>
+          <p className="auth-lede" style={{margin:0}}>This email isn’t linked to an active Onboard Business account.</p>
+        </div>
+
+        {/* Two-path block */}
+        <div style={{display:"flex", flexDirection:"column", gap:0, border:"1px solid var(--gray-200)", borderRadius:12, overflow:"hidden"}}>
+
+          {/* Path A — already applied */}
+          <div style={{padding:"20px 22px"}}>
+            <div style={{fontSize:13, fontWeight:700, color:"var(--gray-900)", marginBottom:6, display:"flex", alignItems:"center", gap:8}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,color:"var(--gray-500)",flexShrink:0}}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Already applied?
+            </div>
+            <p style={{fontSize:13, color:"var(--gray-600)", lineHeight:1.55, margin:"0 0 10px"}}>
+              Check your inbox — we email you when your application is approved, and again when your account is ready to activate. Check spam too.
+            </p>
+            <a style={{fontSize:13, color:"var(--info-700)", fontWeight:500, cursor:"pointer"}}>Contact support →</a>
+          </div>
+
+          {/* Divider with OR */}
+          <div style={{display:"flex", alignItems:"center", gap:0, borderTop:"1px solid var(--gray-200)", borderBottom:"1px solid var(--gray-200)"}}>
+            <div style={{flex:1, height:1}} />
+            <span style={{padding:"0 14px", fontSize:11.5, fontWeight:600, color:"var(--gray-400)", letterSpacing:"0.04em", lineHeight:"32px"}}>OR</span>
+            <div style={{flex:1, height:1}} />
+          </div>
+
+          {/* Path B — new */}
+          <div style={{padding:"20px 22px"}}>
+            <div style={{fontSize:13, fontWeight:700, color:"var(--gray-900)", marginBottom:6, display:"flex", alignItems:"center", gap:8}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,color:"var(--gray-500)",flexShrink:0}}><path d="M12 5v14M5 12h14"/></svg>
+              New to Onboard Business?
+            </div>
+            <p style={{fontSize:13, color:"var(--gray-600)", lineHeight:1.55, margin:"0 0 14px"}}>
+              We review applications manually. Most businesses hear back within an hour.
+            </p>
+            <button className="btn btn-dark btn-block" style={{width:"100%"}} onClick={() => onSignUp && onSignUp()}>
+              Apply for access
+            </button>
+          </div>
+
+        </div>
+
+        <div className="auth-foot" style={{marginTop:20}}>
+          <a onClick={onChangeEmail} style={{color:"var(--gray-600)"}}>← Use a different email</a>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  // Distinct known outcomes
   const STATUS = {
-    unknown: {
-      bg: "var(--gray-100)", ic: "var(--gray-600)",
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      ),
-      title: "We don’t recognise this email",
-      body: "This email isn’t associated with an Onboard Business account. To get access, submit an application and our team will review it.",
-      primary: { label: "Apply for access", action: "signup" },
-      secondary: { label: "Try Onboard for individuals →", action: "consumer" },
-    },
-    pending_review: {
-      bg: "var(--info-100)", ic: "var(--info-700)",
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      ),
-      title: "Application under review",
-      body: "We're reviewing whether Onboard is the right fit for your business - this usually takes under an hour. If it is, we'll send a KYB verification link to your email.",
-      secondary: { label: "Contact support →", action: "support" },
-    },
     rejected: {
       bg: "var(--danger-100)", ic: "var(--danger-700)",
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-      ),
+      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
       title: "We’re unable to move forward",
       body: "Unfortunately we’re not able to open a business account for this email at this time. If you’re looking for personal international transfers, Onboard for individuals may be a better fit.",
       secondary: { label: "Try Onboard mobile app →", action: "consumer" },
     },
-    sumsub_pending: {
-      bg: "#FEF3C7", ic: "#B45309",
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      ),
-      title: "Verification in progress",
-      body: "Check your inbox - we sent a link to complete your KYB verification with our compliance partner.\n\nHaven't received it, or filled it over 24 hours ago without getting a response? Get in touch and we'll sort it out.",
-      secondary: { label: "Contact support →", action: "support" },
-    },
-    verified_no_password: {
-      bg: "var(--info-100)", ic: "var(--info-700)",
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      ),
-      title: "Check your inbox",
-      body: `We sent an account setup link to ${email}. Click it to set your password and get started.\n\nCan’t find it? Check your spam folder first. If it’s still not there, contact support and we’ll send a new one.`,
-      secondary: { label: "Contact support →", action: "support" },
-    },
   };
 
-  const cfg = STATUS[status] || STATUS.unknown;
-
-  const handleAction = (action) => {
-    if (action === "signup") onSignUp && onSignUp();
-    // consumer, support, resend — mock only; no-op
-  };
+  const cfg = STATUS[status];
+  if (!cfg) return null;
 
   return (
     <AuthShell step={1} totalSteps={1} layout={layout}>
@@ -406,30 +473,16 @@ function SignInStatusScreen({ email, status, onSignUp, onChangeEmail, layout }) 
         }}>
           {cfg.icon}
         </div>
-
         <h1 style={{marginBottom:10, fontSize:22}}>{cfg.title}</h1>
-        <p className="auth-lede" style={{marginBottom:28, whiteSpace:"pre-line"}}>
-          {cfg.body}
-        </p>
-
-        <div style={{display:"flex", flexDirection:"column", gap:10}}>
-          {cfg.primary && (
-            <button className="btn btn-lg btn-block btn-dark" onClick={() => handleAction(cfg.primary.action)}>
-              {cfg.primary.label}
-            </button>
-          )}
-          {cfg.secondary && (
-            <a style={{fontSize:13.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}} onClick={() => handleAction(cfg.secondary.action)}>
-              {cfg.secondary.label}
-            </a>
-          )}
-        </div>
+        <p className="auth-lede" style={{marginBottom:28, whiteSpace:"pre-line"}}>{cfg.body}</p>
+        {cfg.secondary && (
+          <a style={{fontSize:13.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>
+            {cfg.secondary.label}
+          </a>
+        )}
       </div>
-
       <div className="auth-foot" style={{marginTop:28}}>
-        <a onClick={onChangeEmail} style={{color:"var(--gray-600)"}}>
-          ← Use a different email
-        </a>
+        <a onClick={onChangeEmail} style={{color:"var(--gray-600)"}}>← Use a different email</a>
       </div>
     </AuthShell>
   );
