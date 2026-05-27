@@ -186,7 +186,7 @@ function AccountsDashboard({ onOpenCurrency, onSendPayment, onAddMoney, onToast,
 
         <div className="home-actions">
           <button className="btn btn-lg" onClick={onAddMoney}>
-            <Icon.plus /> Add money
+            <Icon.plus /> Deposit
           </button>
           <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}>
             <Icon.paperplane /> Send money
@@ -751,7 +751,7 @@ function NgnRailPanel({ onCopy }) {
 }
 
 // =====================================================
-// Add money page
+// Deposit page
 // =====================================================
 function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", accountSuspended = false }) {
   const fiatRailsWithLabels = FIAT_RAILS.map(r => ({
@@ -778,26 +778,28 @@ function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", accountSuspende
       <div className="crumbs">
         <a className="crumb-back" onClick={onBack}><Icon.arrowLeft /> Back to Home</a>
         <span className="crumb-sep">/</span>
-        <span className="crumb-current">Add money</span>
+        <span className="crumb-current">Deposit</span>
       </div>
 
       <div className="page-head">
         <div>
-          <h1 className="title">Add money</h1>
+          <h1 className="title">Deposit</h1>
           <p className="subtitle">Fund your USD balance via bank transfer, stablecoin, or local currency (NGN).</p>
         </div>
       </div>
 
-      {accountSuspended && (
-        <div className="banner danger" style={{marginBottom: 22}}>
+      {accountSuspended ? (
+        <div className="banner danger">
           <div className="icw"><Icon.alert /></div>
           <div className="body">
-            <div className="ttl">Deposits unavailable</div>
-            <div className="copy">Deposits are not supported while your account is suspended. Contact <strong>support@onboard.xyz</strong> to resolve this.</div>
+            <div className="ttl">Deposits disabled</div>
+            <div className="copy">Your account is currently suspended. Deposits are not available until the suspension is lifted. Contact support for next steps.</div>
+            <div className="actions">
+              <button className="btn btn-sm">Contact support</button>
+            </div>
           </div>
         </div>
-      )}
-
+      ) : (
       <div className="card" style={{padding: 0, overflow: "hidden"}}>
         <div style={{padding: "22px 28px 0"}}>
           <div className="row between" style={{alignItems: "baseline", marginBottom: 18}}>
@@ -823,6 +825,7 @@ function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", accountSuspende
                 : <FiatRailPanel rail={activeTab} ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
         )}
       </div>
+      )}
     </div>
   );
 }

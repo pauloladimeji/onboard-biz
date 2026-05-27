@@ -37,6 +37,7 @@ function Sidebar({ active, onNavigate, mockProps }) {
   return (
     <aside className="sidebar" style={{display: "flex", flexDirection: "column"}}>
       {item("dashboard", "Home",          <Icon.home />)}
+      {item("add-money", "Deposit",      <Icon.arrowDownLeft />)}
       {item("payments",  "Send payment", <Icon.paperplane />)}
       {item("recipients","Recipients",   <Icon.people />)}
       {item("activity",  "Transactions", <Icon.list />)}
@@ -269,12 +270,23 @@ function App() {
           layout={authLayout}
           onSubmit={({ email }) => {
             setAuthEmail(email);
-            if (signinAccountStatus === "verified_active") setFlow("app");
-            else if (signinAccountStatus === "wrong_password") { /* stay on signin, error shown via prop */ }
+            if (signinAccountStatus === "verified_active" || signinAccountStatus === "wrong_password") setFlow("signin-password");
             else setFlow("signin-status");
           }}
-          error={signinAccountStatus === "wrong_password" ? "Incorrect password." : null}
           onSwitchToSignUp={() => setFlow("signup")} />
+      </>
+    );
+  }
+  if (flow === "signin-password") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <SignInPasswordScreen
+          layout={authLayout}
+          email={authEmail}
+          error={signinAccountStatus === "wrong_password" ? "Incorrect password." : null}
+          onSubmit={() => { if (signinAccountStatus === "verified_active") setFlow("app"); }}
+          onBack={() => setFlow("signin")} />
       </>
     );
   }

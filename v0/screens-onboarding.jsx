@@ -35,8 +35,7 @@ function AuthInfoPanel() {
   const badges = [
     { label: "FinCEN MSB" },
     { label: "FCA EMI" },
-    { label: "SEC Reg." },
-    { label: "CBN Licensed" },
+    { label: "EU VASP" },
   ];
   return (
     <div className="auth-info-panel">
@@ -96,7 +95,7 @@ function AuthInfoPanelSignUp() {
         ))}
       </div>
       <div className="auth-info-licenses" style={{marginTop: "auto"}}>
-        {["FinCEN MSB", "FCA EMI", "SEC Reg.", "CBN Licensed"].map(name => (
+        {["FinCEN MSB", "FCA EMI", "EU VASP"].map(name => (
           <div key={name} className="auth-info-license">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
             {name}
@@ -324,16 +323,10 @@ function SignUpConfirmationScreen({ email, onSignIn, layout }) {
 // =====================================================
 // Sign-in — email + password on one page
 // =====================================================
-function SignInScreen({ onSubmit, onSwitchToSignUp, layout, error }) {
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [show, setShow]         = useState(false);
-
-  const valid = email.includes("@") && email.includes(".") && password.length >= 1;
+function SignInScreen({ onSubmit, onSwitchToSignUp, layout }) {
+  const [email, setEmail] = useState("");
+  const valid = email.includes("@") && email.includes(".");
   const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ email }); };
-
-  const EyeOff = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
-  const EyeOn  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 
   return (
     <AuthShell step={1} totalSteps={1} layout={layout}>
@@ -347,30 +340,8 @@ function SignInScreen({ onSubmit, onSwitchToSignUp, layout, error }) {
                  value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
 
-        <div className="field">
-          <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6}}>
-            <label className="lbl" style={{margin:0}}>Password</label>
-            <a style={{fontSize:12.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>Forgot password?</a>
-          </div>
-          <div style={{position:"relative"}}>
-            <input className="inp" type={show ? "text" : "password"} placeholder="••••••••"
-                   value={password} onChange={(e) => setPassword(e.target.value)} style={{paddingRight:42}} />
-            <button type="button" onClick={() => setShow(!show)}
-                    style={{position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"var(--gray-500)", padding:4}}>
-              {show ? <EyeOff /> : <EyeOn />}
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div style={{display:"flex", alignItems:"center", gap:8, background:"var(--danger-50,#FEF2F2)", border:"1px solid #FECACA", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:13, color:"var(--danger-700,#B91C1C)"}}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>{error} <a style={{color:"var(--danger-700,#B91C1C)", fontWeight:600, cursor:"pointer", textDecoration:"underline"}}>Reset password</a></span>
-          </div>
-        )}
-
         <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
-          Sign in
+          Continue
         </button>
       </form>
 
@@ -400,49 +371,35 @@ function SignInStatusScreen({ email, status, onSignUp, onChangeEmail, layout }) 
           }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{width:24,height:24}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
-          <h1 style={{marginBottom:6, fontSize:22}}>Account not set up</h1>
-          <p className="auth-lede" style={{margin:0}}>This email isn’t linked to an active Onboard Business account.</p>
+          <h1 style={{marginBottom:6, fontSize:22}}>No account found</h1>
+          <p className="auth-lede" style={{margin:0}}>This email isn&rsquo;t linked to an active Onboard Business account.</p>
         </div>
 
-        {/* Two-path block */}
-        <div style={{display:"flex", flexDirection:"column", gap:0, border:"1px solid var(--gray-200)", borderRadius:12, overflow:"hidden"}}>
+        <button className="btn btn-lg btn-block btn-dark" onClick={() => onSignUp && onSignUp()}>
+          Apply for access
+        </button>
+        <p style={{fontSize:12.5, color:"var(--gray-500)", textAlign:"center", marginTop:10, marginBottom:28, lineHeight:1.55}}>
+          We&rsquo;ll review your application and get back to you within the hour.
+        </p>
 
-          {/* Path A — already applied */}
-          <div style={{padding:"20px 22px"}}>
-            <div style={{fontSize:13, fontWeight:700, color:"var(--gray-900)", marginBottom:6, display:"flex", alignItems:"center", gap:8}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,color:"var(--gray-500)",flexShrink:0}}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              Already applied?
-            </div>
-            <p style={{fontSize:13, color:"var(--gray-600)", lineHeight:1.55, margin:"0 0 10px"}}>
-              Check your inbox — we email you when your application is approved, and again when your account is ready to activate. Check spam too.
-            </p>
-            <a style={{fontSize:13, color:"var(--info-700)", fontWeight:500, cursor:"pointer"}}>Contact support →</a>
+        <div style={{
+          display:"flex", alignItems:"flex-start", gap:12,
+          background:"var(--gray-50)", border:"1px solid var(--gray-200)",
+          borderRadius:10, padding:"16px 18px",
+          fontSize:13, color:"var(--gray-600)", lineHeight:1.55,
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,color:"var(--gray-400)",flexShrink:0,marginTop:2}}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <div>
+            <strong style={{color:"var(--gray-900)", fontWeight:600, display:"block", marginBottom:4}}>Already applied?</strong>
+            Check your inbox (or spam) — we&rsquo;ll email you twice: first when your application is reviewed and a verification link sent, and again when you&rsquo;re verified and your account is ready to activate.
+            <span style={{display:"block", marginTop:10}}>
+              Still waiting to hear back?{" "}
+              <a style={{color:"var(--info-700)", fontWeight:500, cursor:"pointer"}}>Contact support →</a>
+            </span>
           </div>
-
-          {/* Divider with OR */}
-          <div style={{display:"flex", alignItems:"center", gap:0, borderTop:"1px solid var(--gray-200)", borderBottom:"1px solid var(--gray-200)"}}>
-            <div style={{flex:1, height:1}} />
-            <span style={{padding:"0 14px", fontSize:11.5, fontWeight:600, color:"var(--gray-400)", letterSpacing:"0.04em", lineHeight:"32px"}}>OR</span>
-            <div style={{flex:1, height:1}} />
-          </div>
-
-          {/* Path B — new */}
-          <div style={{padding:"20px 22px"}}>
-            <div style={{fontSize:13, fontWeight:700, color:"var(--gray-900)", marginBottom:6, display:"flex", alignItems:"center", gap:8}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,color:"var(--gray-500)",flexShrink:0}}><path d="M12 5v14M5 12h14"/></svg>
-              New to Onboard Business?
-            </div>
-            <p style={{fontSize:13, color:"var(--gray-600)", lineHeight:1.55, margin:"0 0 14px"}}>
-              We review applications manually. Most businesses hear back within an hour.
-            </p>
-            <button className="btn btn-dark btn-block" style={{width:"100%"}} onClick={() => onSignUp && onSignUp()}>
-              Apply for access
-            </button>
-          </div>
-
         </div>
 
-        <div className="auth-foot" style={{marginTop:20}}>
+        <div className="auth-foot" style={{marginTop:24}}>
           <a onClick={onChangeEmail} style={{color:"var(--gray-600)"}}>← Use a different email</a>
         </div>
       </AuthShell>
@@ -491,12 +448,15 @@ function SignInStatusScreen({ email, status, onSignUp, onChangeEmail, layout }) 
 // =====================================================
 // Sign-in password screen (verified_active path)
 // =====================================================
-function SignInPasswordScreen({ email, onSubmit, onBack, layout }) {
+function SignInPasswordScreen({ email, onSubmit, onBack, layout, error }) {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const valid = password.length >= 6;
+  const valid = password.length >= 1;
 
   const submit = (e) => { e.preventDefault(); if (valid) onSubmit(); };
+
+  const EyeOff = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
+  const EyeOn  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
 
   return (
     <AuthShell step={1} totalSteps={1} layout={layout}>
@@ -510,28 +470,31 @@ function SignInPasswordScreen({ email, onSubmit, onBack, layout }) {
 
       <form onSubmit={submit}>
         <div className="field">
-          <label className="lbl">Password</label>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6}}>
+            <label className="lbl" style={{margin:0}}>Password</label>
+            <a style={{fontSize:12.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>Forgot password?</a>
+          </div>
           <div style={{position:"relative"}}>
             <input className="inp" type={show ? "text" : "password"} placeholder="••••••••" autoFocus
                    value={password} onChange={(e)=>setPassword(e.target.value)} style={{paddingRight:42}} />
             <button type="button" onClick={() => setShow(!show)}
                     style={{position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", color:"var(--gray-500)", padding:4}}>
-              {show
-                ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:16,height:16}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              }
+              {show ? <EyeOff /> : <EyeOn />}
             </button>
           </div>
         </div>
 
+        {error && (
+          <div style={{display:"flex", alignItems:"center", gap:8, background:"var(--danger-50,#FEF2F2)", border:"1px solid #FECACA", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:13, color:"var(--danger-700,#B91C1C)"}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>{error} <a style={{color:"var(--danger-700,#B91C1C)", fontWeight:600, cursor:"pointer", textDecoration:"underline"}}>Reset password</a></span>
+          </div>
+        )}
+
         <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
-          Continue
+          Sign in
         </button>
       </form>
-
-      <div className="auth-foot">
-        <a style={{color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>Forgot password?</a>
-      </div>
     </AuthShell>
   );
 }

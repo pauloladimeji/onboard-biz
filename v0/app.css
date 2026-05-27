@@ -684,7 +684,7 @@ table.t .dir-out { color: var(--gray-900); }
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   color: rgba(255,255,255,0.72);
   letter-spacing: 0.05em;
   background: rgba(255,255,255,0.08);
