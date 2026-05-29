@@ -196,6 +196,12 @@ const SIGNUP_COUNTRIES = [
 
 const SIGNUP_COUNTRY_OPTIONS = SIGNUP_COUNTRIES.map(c => ({ value: c, label: c }));
 
+const NG_BUSINESS_TYPES = [
+  { value: "co", label: "Private or Public Limited Company", short: "RC" },
+  { value: "bn", label: "Business Name",                     short: "BN" },
+  { value: "it", label: "Incorporated Trustees",             short: "IT" },
+];
+
 const SIGNUP_VOLUMES = [
   { value: "under_20k",    label: "Under $20K / month" },
   { value: "20k_200k",     label: "$20K – $200K / month" },
@@ -216,6 +222,7 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
   const [email, setEmail]               = useState("");
   const [phone, setPhone]               = useState("");
   const [bizName, setBizName]           = useState("");
+  const [bizType, setBizType]           = useState("");
   const [bizRegNo, setBizRegNo]         = useState("");
   const [bizSector, setBizSector]       = useState("");
   const [bizCountry, setBizCountry]     = useState("");
@@ -226,10 +233,13 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
   const [showRestricted, setShowRestricted] = useState(false);
   const [agreed, setAgreed]             = useState(false);
 
+  const isNigeria = bizCountry === "Nigeria";
   const valid = firstName.trim() && lastName.trim()
     && email.includes("@") && email.includes(".")
-    && bizName.trim() && bizRegNo.trim() && bizSector && bizCountry
-    && bizWebsite.trim() && bizVolume && bizUseCase.trim().length > 10
+    && bizName.trim() && bizSector && bizCountry
+    && (!isNigeria || bizType)
+    && bizRegNo.trim() && bizWebsite.trim() && bizVolume
+    && bizUseCase.trim().length > 10
     && restrictedOk && agreed;
 
   const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ firstName, lastName, email, phone, bizName, bizRegNo, bizSector, bizCountry, bizWebsite, bizVolume, bizUseCase }); };
@@ -286,16 +296,48 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
             <label className="lbl">Country of incorporation</label>
             <Combobox
               value={bizCountry}
-              onChange={(val) => setBizCountry(val)}
+              onChange={(val) => { setBizCountry(val); setBizType(""); setBizRegNo(""); }}
               options={SIGNUP_COUNTRY_OPTIONS}
               placeholder="Select country"
               searchPlaceholder="Search countries…"
             />
           </div>
         </div>
+        {isNigeria && (
+          <div className="field">
+            <label className="lbl">Business type</label>
+            <select className="inp" value={bizType} onChange={(e) => { setBizType(e.target.value); setBizRegNo(""); }} style={{appearance:"auto"}}>
+              <option value="">Select business type</option>
+              {NG_BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+        )}
         <div className="field">
           <label className="lbl">Business registration number</label>
-          <input className="inp" placeholder="e.g. RC-1284772" value={bizRegNo} onChange={(e)=>setBizRegNo(e.target.value)} />
+          {isNigeria ? (
+            <>
+              <div style={{position:"relative"}}>
+                {bizType && (
+                  <span style={{
+                    position:"absolute", left:16, top:"50%", transform:"translateY(-50%)",
+                    fontSize:14, fontWeight:600, color:"var(--gray-500)", pointerEvents:"none",
+                    userSelect:"none",
+                  }}>
+                    {NG_BUSINESS_TYPES.find(t => t.value === bizType)?.short} –
+                  </span>
+                )}
+                <input className="inp" inputMode="numeric" pattern="[0-9]*"
+                  placeholder={bizType ? "1284772" : "Select business type first"}
+                  disabled={!bizType}
+                  value={bizRegNo}
+                  onChange={(e) => setBizRegNo(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  style={{paddingLeft: bizType ? 64 : 16}} />
+              </div>
+              <div className="help">Numbers only — the prefix ({bizType ? NG_BUSINESS_TYPES.find(t => t.value === bizType)?.short : "RC / BN / IT"} ) is not required.</div>
+            </>
+          ) : (
+            <input className="inp" placeholder="e.g. RC-1284772" value={bizRegNo} onChange={(e)=>setBizRegNo(e.target.value)} />
+          )}
         </div>
         <div className="field">
           <label className="lbl">Website or social profile</label>
