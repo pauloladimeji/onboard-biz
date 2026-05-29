@@ -1,6 +1,7 @@
 /* global React */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
+const Combobox = window.OBCombobox;
 
 // =====================================================
 // Centered auth shell
@@ -193,22 +194,53 @@ const SIGNUP_COUNTRIES = [
   "Singapore", "United Arab Emirates", "India", "Other",
 ];
 
+const SIGNUP_COUNTRY_OPTIONS = SIGNUP_COUNTRIES.map(c => ({ value: c, label: c }));
+
+const SIGNUP_VOLUMES = [
+  { value: "under_20k",    label: "Under $20K / month" },
+  { value: "20k_200k",     label: "$20K – $200K / month" },
+  { value: "200k_5m",      label: "$200K – $5M / month" },
+  { value: "over_5m",      label: "Over $5M / month" },
+];
+
+const RESTRICTED_COUNTRIES = [
+  "Cuba", "Iran", "Iraq", "Libya", "Myanmar (Burma)", "North Korea (DPRK)",
+  "Russia", "Belarus", "Somalia", "South Sudan", "Sudan", "Syria",
+  "Venezuela", "Yemen", "Zimbabwe", "Central African Republic",
+  "Democratic Republic of Congo", "Crimea region (Ukraine)",
+];
+
 function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName]   = useState("");
-  const [email, setEmail]         = useState("");
-  const [phone, setPhone]         = useState("");
-  const [bizName, setBizName]     = useState("");
-  const [bizSector, setBizSector] = useState("");
-  const [bizCountry, setBizCountry] = useState("");
-  const [bizWebsite, setBizWebsite] = useState("");
-  const [agreed, setAgreed]       = useState(false);
+  const [firstName, setFirstName]       = useState("");
+  const [lastName, setLastName]         = useState("");
+  const [email, setEmail]               = useState("");
+  const [phone, setPhone]               = useState("");
+  const [bizName, setBizName]           = useState("");
+  const [bizRegNo, setBizRegNo]         = useState("");
+  const [bizSector, setBizSector]       = useState("");
+  const [bizCountry, setBizCountry]     = useState("");
+  const [bizWebsite, setBizWebsite]     = useState("");
+  const [bizVolume, setBizVolume]       = useState("");
+  const [bizUseCase, setBizUseCase]     = useState("");
+  const [restrictedOk, setRestrictedOk] = useState(false);
+  const [showRestricted, setShowRestricted] = useState(false);
+  const [agreed, setAgreed]             = useState(false);
 
   const valid = firstName.trim() && lastName.trim()
     && email.includes("@") && email.includes(".")
-    && bizName.trim() && bizSector && bizCountry && agreed;
+    && bizName.trim() && bizRegNo.trim() && bizSector && bizCountry
+    && bizWebsite.trim() && bizVolume && bizUseCase.trim().length > 10
+    && restrictedOk && agreed;
 
-  const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ firstName, lastName, email, phone, bizName, bizSector, bizCountry, bizWebsite }); };
+  const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ firstName, lastName, email, phone, bizName, bizRegNo, bizSector, bizCountry, bizWebsite, bizVolume, bizUseCase }); };
+
+  const CheckboxRow = ({ checked, onChange, children }) => (
+    <label style={{display:"flex", gap:10, alignItems:"flex-start", marginBottom:14, fontSize:12.5, color:"var(--gray-700)", lineHeight:1.55, cursor:"pointer"}}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
+             style={{marginTop:2, width:16, height:16, accentColor:"#0F172A", flexShrink:0}} />
+      <span>{children}</span>
+    </label>
+  );
 
   return (
     <AuthShell step={1} totalSteps={1} layout={layout} variant="signup">
@@ -216,6 +248,8 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
       <p className="auth-lede">Tell us about your business and we&rsquo;ll be in touch.</p>
 
       <form onSubmit={submit}>
+
+        {/* Personal details */}
         <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14}}>
           <div className="field" style={{marginBottom:0}}>
             <label className="lbl">First name</label>
@@ -226,24 +260,20 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
             <input className="inp" placeholder="Okafor" value={lastName} onChange={(e)=>setLastName(e.target.value)} />
           </div>
         </div>
-
         <div className="field">
           <label className="lbl">Work email</label>
           <input className="inp" type="email" placeholder="finance@acmetrading.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
         </div>
-
         <div className="field">
-          <label className="lbl">
-            Phone <span style={{color:"var(--gray-500)", fontWeight:400}}>— optional</span>
-          </label>
+          <label className="lbl">Phone <span style={{color:"var(--gray-500)", fontWeight:400}}>— optional</span></label>
           <input className="inp" type="tel" placeholder="+234 801 234 5678" value={phone} onChange={(e)=>setPhone(e.target.value)} />
         </div>
 
+        {/* Business identity */}
         <div className="field">
-          <label className="lbl">Business name</label>
-          <input className="inp" placeholder="Acme Trading Co." value={bizName} onChange={(e)=>setBizName(e.target.value)} />
+          <label className="lbl">Legal business name</label>
+          <input className="inp" placeholder="Acme Trading Co. Ltd." value={bizName} onChange={(e)=>setBizName(e.target.value)} />
         </div>
-
         <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14}}>
           <div className="field" style={{marginBottom:0}}>
             <label className="lbl">Sector</label>
@@ -253,26 +283,67 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
             </select>
           </div>
           <div className="field" style={{marginBottom:0}}>
-            <label className="lbl">Country of registration</label>
-            <select className="inp" value={bizCountry} onChange={(e)=>setBizCountry(e.target.value)} style={{appearance:"auto"}}>
-              <option value="">Select country</option>
-              {SIGNUP_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <label className="lbl">Country of incorporation</label>
+            <Combobox
+              value={bizCountry}
+              onChange={(val) => setBizCountry(val)}
+              options={SIGNUP_COUNTRY_OPTIONS}
+              placeholder="Select country"
+              searchPlaceholder="Search countries…"
+            />
           </div>
         </div>
-
         <div className="field">
-          <label className="lbl">
-            Website <span style={{color:"var(--gray-500)", fontWeight:400}}>— optional</span>
-          </label>
-          <input className="inp" type="url" placeholder="https://acmetrading.com" value={bizWebsite} onChange={(e)=>setBizWebsite(e.target.value)} />
+          <label className="lbl">Business registration number</label>
+          <input className="inp" placeholder="e.g. RC-1284772" value={bizRegNo} onChange={(e)=>setBizRegNo(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="lbl">Website or social profile</label>
+          <input className="inp" placeholder="https://acmetrading.com" value={bizWebsite} onChange={(e)=>setBizWebsite(e.target.value)} />
+          <div className="help">Your website, a LinkedIn page, or any public online presence.</div>
         </div>
 
-        <label style={{display:"flex", gap:10, alignItems:"flex-start", margin:"4px 0 20px", fontSize:12.5, color:"var(--gray-700)", lineHeight:1.5, cursor:"pointer"}}>
-          <input type="checkbox" checked={agreed} onChange={(e)=>setAgreed(e.target.checked)}
-                 style={{marginTop:2, width:16, height:16, accentColor:"#0F172A", flexShrink:0}} />
-          <span>I&rsquo;m authorised to open an account for this business and agree to the <a style={{color:"var(--info-700)", textDecoration:"none"}}>Terms</a> and <a style={{color:"var(--info-700)", textDecoration:"none"}}>Privacy Notice</a>.</span>
-        </label>
+        {/* Volume & use case */}
+        <div className="field">
+          <label className="lbl">Monthly transaction volume</label>
+          <select className="inp" value={bizVolume} onChange={(e)=>setBizVolume(e.target.value)} style={{appearance:"auto"}}>
+            <option value="">Select a range</option>
+            {SIGNUP_VOLUMES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label className="lbl">Intended use case</label>
+          <textarea className="inp" rows={3} placeholder="Describe how you plan to use Onboard — e.g. paying overseas suppliers, receiving payments from clients, stablecoin treasury management."
+            value={bizUseCase} onChange={(e)=>setBizUseCase(e.target.value)}
+            style={{resize:"vertical", lineHeight:1.55}} />
+        </div>
+
+        {/* Compliance */}
+        <CheckboxRow checked={restrictedOk} onChange={setRestrictedOk}>
+          This business does not operate in or serve customers in any{" "}
+          <a onClick={(e) => { e.preventDefault(); setShowRestricted(v => !v); }}
+             style={{color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>
+            restricted region
+          </a>.
+        </CheckboxRow>
+        {showRestricted && (
+          <div style={{
+            background:"var(--gray-50)", border:"1px solid var(--gray-200)",
+            borderRadius:8, padding:"12px 14px", marginTop:-8, marginBottom:14,
+            fontSize:12, color:"var(--gray-600)", lineHeight:1.7,
+          }}>
+            <div style={{fontWeight:600, color:"var(--gray-900)", marginBottom:6, fontSize:12}}>Restricted regions</div>
+            <div style={{columns:2, gap:12}}>
+              {RESTRICTED_COUNTRIES.map(c => <div key={c}>{c}</div>)}
+            </div>
+          </div>
+        )}
+
+        <CheckboxRow checked={agreed} onChange={setAgreed}>
+          I&rsquo;m authorised to open an account for this business and agree to the{" "}
+          <a style={{color:"var(--info-700)", textDecoration:"none"}}>Terms</a> and{" "}
+          <a style={{color:"var(--info-700)", textDecoration:"none"}}>Privacy Notice</a>.
+        </CheckboxRow>
 
         <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
           Submit application

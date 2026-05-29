@@ -414,7 +414,7 @@ table.t .dir-out { color: var(--gray-900); }
 .auth-centered-logo img { height: 24px; width: auto; display: block; }
 .auth-card-wrap {
   width: 100%;
-  max-width: 460px;
+  max-width: 560px;
   background: #fff;
   border-radius: 16px;
   border: 1px solid var(--gray-200);
