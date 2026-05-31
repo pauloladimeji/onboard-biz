@@ -1,5 +1,11 @@
 /* New screens: add recipient, transactions, transaction detail, recipients list */
 
+/* ---- Send payment: over-balance error state ---- */
+.amt-box-err {
+  border-color: var(--danger-600, #DC2626) !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10);
+}
+
 /* ---- Skeleton shimmer ---- */
 .skel {
   background: linear-gradient(90deg, var(--gray-100) 25%, #e8ecf0 50%, var(--gray-100) 75%);

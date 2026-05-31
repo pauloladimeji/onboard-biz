@@ -2,7 +2,7 @@
 const { useState: useStateP, useMemo: useMemoP, useRef: useRefP, useEffect: useEffectP } = React;
 const PIcon = window.OBIcon;
 const PNetworkIcon = window.OBNetworkIcon;
-const { CURRENCIES: PCCY, RECIPIENTS_FULL } = window.OBData;
+const { CURRENCIES: PCCY, RECIPIENTS_FULL, V0_USD_BALANCE } = window.OBData;
 
 // =====================================================
 // Recipient data
@@ -242,12 +242,16 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
 // =====================================================
 // Amount panel (full or compact)
 // =====================================================
-function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, recipient, showDstPicker = false }) {
+function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, recipient, showDstPicker = false, availBalance }) {
   const dst = recipient ? recipient.ccy : dstCcy;
   const rate = FX[dst] / FX[srcCcy];
   const fee = FEE[srcCcy] || 0;
   const [driver, setDriver] = useStateP("send");
   const [recvAmt, setRecvAmt] = useStateP("");
+
+  const amtNum = parseFloat(String(amount).replace(/,/g, "")) || 0;
+  const hasBalance = availBalance !== undefined && availBalance !== null;
+  const overBal = hasBalance && amtNum > 0 && (amtNum + fee) > availBalance;
 
   const onSendType = (v) => {
     setDriver("send");
@@ -269,11 +273,15 @@ function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, s
     <div className="pay-fx">
       <div className="pay-fx-row">
         <div className="lb">If you send</div>
-        <div className="amt-box">
+        <div className={`amt-box${overBal ? " amt-box-err" : ""}`}>
           <input className="amt-inp" inputMode="decimal" value={displaySend} onChange={(e) => onSendType(e.target.value)} placeholder="0.00" />
           <CcyDropdown value={srcCcy} options={SOURCES} onChange={setSrcCcy} />
         </div>
-        <div className="hint">{`From your ${srcCcy} balance`}</div>
+        <div className="hint" style={overBal ? {color: "var(--danger-600)"} : undefined}>
+          {hasBalance
+            ? <>Available: <strong style={{fontVariantNumeric: "tabular-nums"}}>${fmt(availBalance)}</strong>{overBal && " · Insufficient balance"}</>
+            : `From your ${srcCcy} balance`}
+        </div>
       </div>
 
       <div className="pay-fx-divider">
@@ -445,7 +453,10 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
 
   const dstFinal = recipient ? recipient.ccy : dstCcy;
   const amtNum = parseFloat(String(amount).replace(/,/g,"")) || 0;
-  const canReview = !!recipient && amtNum > 0 && !!reason;
+  const availBalance = V0_USD_BALANCE;
+  const fee = FEE[srcCcy] || 0;
+  const overBalance = amtNum > 0 && (amtNum + fee) > availBalance;
+  const canReview = !!recipient && amtNum > 0 && !!reason && !overBalance;
 
   // step labels visible in the stepper (confirmation is outside FlowShell)
   const hasApproval = paymentApproval === "required";
@@ -512,8 +523,9 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
             amount={amount} setAmount={setAmount}
             reason={reason} setReason={setReason}
             memo={memo} setMemo={setMemo}
-            onContinue={() => { if (amtNum > 0 && reason) setStep(1); }}
-            canContinue={amtNum > 0 && !!reason} />
+            availBalance={availBalance}
+            onContinue={() => { if (amtNum > 0 && reason && !overBalance) setStep(1); }}
+            canContinue={amtNum > 0 && !!reason && !overBalance} />
         )}
 
         {/* STEP 1 — recipient-first: enter amount; amount-first: pick recipient */}
@@ -523,6 +535,7 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
             amount={amount} setAmount={setAmount}
             reason={reason} setReason={setReason}
             memo={memo} setMemo={setMemo}
+            availBalance={availBalance}
             onBack={() => setStep(0)}
             onReview={goReview} canReview={canReview} />
         )}
@@ -568,7 +581,7 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
 }
 
 // Amount step: amount + reason + memo (recipient already chosen)
-function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, reason, setReason, memo, setMemo, onBack, onReview, canReview }) {
+function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, reason, setReason, memo, setMemo, onBack, onReview, canReview, availBalance }) {
   return (
     <div className="pay-panel">
       <div className="pay-panel-head">
@@ -591,7 +604,7 @@ function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, rea
         </div>
       </div>
 
-      <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} amount={amount} setAmount={setAmount} recipient={recipient} />
+      <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} amount={amount} setAmount={setAmount} recipient={recipient} availBalance={availBalance} />
 
       <ReasonMemoFields reason={reason} setReason={setReason} memo={memo} setMemo={setMemo} />
 
@@ -603,7 +616,7 @@ function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, rea
 }
 
 // Amount-first step 0: enter amount + currencies + reason/memo, then Continue
-function AmountInputOnlyPanel({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, reason, setReason, memo, setMemo, onContinue, canContinue }) {
+function AmountInputOnlyPanel({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, reason, setReason, memo, setMemo, onContinue, canContinue, availBalance }) {
   return (
     <div className="pay-panel">
       <div className="pay-panel-head">
@@ -612,7 +625,7 @@ function AmountInputOnlyPanel({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, se
       </div>
 
       <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} dstCcy={dstCcy} setDstCcy={setDstCcy}
-        amount={amount} setAmount={setAmount} showDstPicker />
+        amount={amount} setAmount={setAmount} showDstPicker availBalance={availBalance} />
 
       <ReasonMemoFields reason={reason} setReason={setReason} memo={memo} setMemo={setMemo} />
 
