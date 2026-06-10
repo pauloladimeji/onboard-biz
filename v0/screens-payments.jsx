@@ -277,10 +277,12 @@ function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, s
           <input className="amt-inp" inputMode="decimal" value={displaySend} onChange={(e) => onSendType(e.target.value)} placeholder="0.00" />
           <CcyDropdown value={srcCcy} options={SOURCES} onChange={setSrcCcy} />
         </div>
-        <div className="hint" style={overBal ? {color: "var(--danger-600)"} : undefined}>
-          {hasBalance
-            ? <>Available: <strong style={{fontVariantNumeric: "tabular-nums"}}>${fmt(availBalance)}</strong>{overBal && " · Insufficient balance"}</>
-            : `From your ${srcCcy} balance`}
+        <div className="hint" style={overBal ? {color: "var(--danger-600, #DC2626)"} : undefined}>
+          {hasBalance && overBal
+            ? <>Total with fee: <strong style={{fontVariantNumeric: "tabular-nums"}}>${fmt(amtNum + fee)}</strong> · Available: <strong style={{fontVariantNumeric: "tabular-nums"}}>${fmt(availBalance)}</strong></>
+            : hasBalance
+              ? <>Available: <strong style={{fontVariantNumeric: "tabular-nums"}}>${fmt(availBalance)}</strong></>
+              : `From your ${srcCcy} balance`}
         </div>
       </div>
 

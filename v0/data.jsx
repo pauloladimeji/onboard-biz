@@ -148,9 +148,9 @@ const RECIPIENTS_FULL = (() => {
     { name: "Henry Akoto",         handle: "ADB · ****3318",             country: "gh", ccy: "GHS", type: "Bank",         last: "Mar 27" },
     { name: "Patience Eyo",        handle: "Kuda · ****8814",            country: "ng", ccy: "NGN", type: "Bank",         last: "Mar 26" },
     { name: "Mwende Kilonzo",      handle: "DTB · ****5560",             country: "ke", ccy: "KES", type: "Bank",         last: "Mar 25" },
-    { name: "Vitalik's Vault",    handle: "USDC · Ethereum · 0x9F2c…B0c4a", country: "crypto", ccy: "USDC", type: "Crypto", network: "eth", networkLabel: "Ethereum", last: "May 7" },
-    { name: "Bridge Capital Ltd",  handle: "USDT · Tron · TZ9b…C0aB9",      country: "crypto", ccy: "USDT", type: "Crypto", network: "tron", networkLabel: "Tron", last: "May 3" },
-    { name: "Solana Treasury",     handle: "USDC · Base · 0x7E2b…C0aB9",    country: "crypto", ccy: "USDC", type: "Crypto", network: "base", networkLabel: "Base", last: "Apr 30" },
+    { name: "Vitalik's Vault",    handle: "Ethereum · 0x9F2c…B0c4a", country: "crypto", type: "Crypto", network: "eth",  networkLabel: "Ethereum", last: "May 7" },
+    { name: "Bridge Capital Ltd",  handle: "Tron · TZ9b…C0aB9",      country: "crypto", type: "Crypto", network: "tron", networkLabel: "Tron",     last: "May 3" },
+    { name: "Solana Treasury",     handle: "Base · 0x7E2b…C0aB9",    country: "crypto", type: "Crypto", network: "base", networkLabel: "Base",     last: "Apr 30" },
   ];
   return seed.map((r, i) => ({ ...r, id: `r${i + 1}` }));
 })();

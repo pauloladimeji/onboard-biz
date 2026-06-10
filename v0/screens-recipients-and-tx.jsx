@@ -2,7 +2,7 @@
 const { useState: useStateR, useMemo: useMemoR, useRef: useRefR, useEffect: useEffectR } = React;
 const RIcon = window.OBIcon;
 const RNetworkIcon = window.OBNetworkIcon;
-const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS, STABLECOIN_CHAINS } = window.OBData;
+const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS } = window.OBData;
 const { Pill: RPill, TxRowDir: RTxRowDir, TxAmount: RTxAmount } = window.OBAccounts;
 const RFlowShell = window.OBFlowShell;
 
@@ -45,11 +45,8 @@ const METHOD_DESC = {
   card: "Send to a card",
 };
 
-// Country-aware override: USD outside the US is a SWIFT wire, USD inside the US is ACH/wire.
-function methodDescFor(country, ccy, methodId) {
-  if (ccy === "USD" && methodId === "bank") {
-    return country?.cc === "us" ? "Pay into a US bank (Wire / ACH)" : "Pay into a USD bank account (SWIFT)";
-  }
+function methodDescFor(ccy, methodId) {
+  if (ccy === "USD" && methodId === "bank") return "Pay into a bank account (Wire / ACH / SWIFT)";
   return METHOD_DESC[methodId] || "";
 }
 
@@ -75,18 +72,22 @@ const PAYOUT_METHODS = {
     { id: "momo", label: "Mobile money",  icon: "zap"  },
   ],
   USD: [
-    { id: "bank", label: "Bank account",  icon: "bank" },
+    { id: "wire",  label: "Wire",             icon: "bank",  desc: "Fedwire · US domestic" },
+    { id: "ach",   label: "ACH",              icon: "bank",  desc: "US domestic ACH" },
+    { id: "swift", label: "SWIFT",            icon: "globe", desc: "International USD wire" },
   ],
   GBP: [
-    { id: "bank", label: "Bank account",  icon: "bank" },
+    { id: "fps",   label: "Faster Payments",  icon: "zap",   desc: "UK domestic · arrives in seconds" },
+    { id: "swift", label: "SWIFT",            icon: "globe", desc: "International GBP wire" },
   ],
   EUR: [
-    { id: "bank", label: "Bank account",  icon: "bank" },
+    { id: "sepa",  label: "SEPA",             icon: "bank",  desc: "EU / EEA bank transfers" },
+    { id: "swift", label: "SWIFT",            icon: "globe", desc: "International EUR wire" },
   ],
 };
 
 // Which rails support automated name lookup (i.e. we can verify the name from the account number)
-const NAME_LOOKUP_SUPPORT = new Set(["NGN-bank", "GHS-bank", "KES-bank", "GBP-bank", "EUR-bank", "USD-bank", "NGN-momo", "GHS-momo", "KES-momo"]);
+const NAME_LOOKUP_SUPPORT = new Set(["NGN-bank", "GHS-bank", "KES-bank", "NGN-momo", "GHS-momo", "KES-momo", "GBP-fps"]);
 
 // Field schema per currency + method combo.
 // Each field: { k: stateKey, label, placeholder, kind: 'text'|'select'|'digits'|'iban', options?, maxLength?, hint? }
@@ -145,6 +146,45 @@ const FIELD_SCHEMA = {
     { k: "iban", label: "IBAN",      kind: "iban", placeholder: "NL00 BANK 0000 0000 00" },
     { k: "bic",  label: "BIC / SWIFT", kind: "text", placeholder: "Optional", optional: true },
   ],
+  // USD rails
+  "USD-wire": [
+    { k: "bank",    label: "Bank name",        kind: "text",   placeholder: "e.g. JPMorgan Chase" },
+    { k: "routing", label: "ABA / Routing",    kind: "digits", placeholder: "9-digit routing number", maxLength: 9 },
+    { k: "accNo",   label: "Account number",   kind: "digits", placeholder: "Account number", maxLength: 17 },
+  ],
+  "USD-ach": [
+    { k: "bank",    label: "Bank name",        kind: "text",   placeholder: "e.g. Wells Fargo" },
+    { k: "routing", label: "ABA / Routing",    kind: "digits", placeholder: "9-digit routing number", maxLength: 9 },
+    { k: "accNo",   label: "Account number",   kind: "digits", placeholder: "Account number", maxLength: 17 },
+  ],
+  "USD-swift": [
+    { k: "bank",    label: "Bank name",        kind: "text",   placeholder: "e.g. Citibank" },
+    { k: "swift",   label: "SWIFT / BIC",      kind: "text",   placeholder: "e.g. CITIUS33XXX" },
+    { k: "accNo",   label: "Account / IBAN",   kind: "text",   placeholder: "Account number or IBAN" },
+    { k: "intBank", label: "Intermediary bank SWIFT", kind: "text", placeholder: "Optional", optional: true },
+  ],
+  // GBP rails
+  "GBP-fps": [
+    { k: "bank",     label: "Bank name",     kind: "text",   placeholder: "e.g. Barclays" },
+    { k: "sortCode", label: "Sort code",     kind: "text",   placeholder: "00-00-00", maxLength: 8 },
+    { k: "accNo",    label: "Account number",kind: "digits", placeholder: "8 digits", maxLength: 8 },
+  ],
+  "GBP-swift": [
+    { k: "bank",  label: "Bank name",   kind: "text", placeholder: "e.g. HSBC" },
+    { k: "swift", label: "SWIFT / BIC", kind: "text", placeholder: "e.g. HBUKGB4BXXX" },
+    { k: "iban",  label: "IBAN",        kind: "iban", placeholder: "GB00 BANK 0000 0000 0000 00" },
+  ],
+  // EUR rails
+  "EUR-sepa": [
+    { k: "bank", label: "Bank name",   kind: "text", placeholder: "e.g. ING" },
+    { k: "iban", label: "IBAN",        kind: "iban", placeholder: "DE00 0000 0000 0000 0000 00" },
+    { k: "bic",  label: "BIC / SWIFT", kind: "text", placeholder: "Optional for SEPA", optional: true },
+  ],
+  "EUR-swift": [
+    { k: "bank",  label: "Bank name",   kind: "text", placeholder: "e.g. Deutsche Bank" },
+    { k: "swift", label: "SWIFT / BIC", kind: "text", placeholder: "e.g. DEUTDEDBXXX" },
+    { k: "iban",  label: "IBAN",        kind: "iban", placeholder: "DE00 0000 0000 0000 0000 00" },
+  ],
 };
 
 // Crypto coin icons (small circle badges)
@@ -170,15 +210,14 @@ function NetworkBadge({ network, size = 14 }) {
   );
 }
 
-// Crypto-specific field schemas
-const CRYPTO_FIELD_SCHEMA = {
-  "USDC-eth":     [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
-  "USDC-base":    [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
-  "USDC-polygon": [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
-  "USDC-solana":  [{ k: "address", label: "Wallet address", kind: "text", placeholder: "Base58 address", maxLength: 44 }],
-  "USDT-eth":     [{ k: "address", label: "Wallet address", kind: "text", placeholder: "0x…", maxLength: 42 }],
-  "USDT-tron":    [{ k: "address", label: "Wallet address", kind: "text", placeholder: "T… address", maxLength: 34 }],
-};
+// All supported payout networks (coin-agnostic — coin is chosen at send time, not recipient-save time)
+const ALL_CRYPTO_NETWORKS = [
+  { id: "eth",     name: "Ethereum", short: "ERC-20",  addressPlaceholder: "0x…",           maxLength: 42, arrival: "~2 min after 12 confirmations" },
+  { id: "base",    name: "Base",     short: "Base",    addressPlaceholder: "0x…",           maxLength: 42, arrival: "~10 sec" },
+  { id: "polygon", name: "Polygon",  short: "Polygon", addressPlaceholder: "0x…",           maxLength: 42, arrival: "~5 sec" },
+  { id: "solana",  name: "Solana",   short: "SPL",     addressPlaceholder: "Base58 address",maxLength: 44, arrival: "~10 sec" },
+  { id: "tron",    name: "Tron",     short: "TRC-20",  addressPlaceholder: "T… address",    maxLength: 34, arrival: "~1 min" },
+];
 
 // "Account identifier complete enough to attempt a name lookup"
 function isLookupReady(railKey, fields) {
@@ -189,9 +228,13 @@ function isLookupReady(railKey, fields) {
     case "GHS-momo":  return !!fields.wallet && (fields.accNo || "").replace(/\D/g, "").length >= 9;
     case "KES-bank":  return !!fields.bank   && (fields.accNo || "").length >= 6;
     case "KES-momo":  return (fields.accNo || "").replace(/\D/g, "").length >= 9;
-    case "GBP-bank":  return !!fields.sortCode && (fields.accNo || "").length === 8;
-    case "EUR-bank":  return (fields.iban || "").replace(/\s/g, "").length >= 15;
-    case "USD-bank":  return (fields.routing || "").length === 9 && (fields.accNo || "").length >= 6;
+    case "GBP-bank":
+    case "GBP-fps":   return !!fields.sortCode && (fields.accNo || "").length === 8;
+    case "EUR-bank":
+    case "EUR-sepa":  return (fields.iban || "").replace(/\s/g, "").length >= 15;
+    case "USD-bank":
+    case "USD-wire":
+    case "USD-ach":   return (fields.routing || "").length === 9 && (fields.accNo || "").length >= 6;
     default:          return false;
   }
 }
@@ -202,7 +245,6 @@ const SELF_BUSINESS_NAME = "Acme Trading Co";
 function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "default" }) {
   const [recipientType, setRecipientType] = useStateR("cash"); // 'cash' | 'crypto'
   const [step, setStep] = useStateR(0); // 0 destination · 1 details · 2 review
-  const [country, setCountry] = useStateR(null);
   const [ccy, setCcy] = useStateR(null);
   const [party, setParty] = useStateR("third"); // 'self' | 'third'
   const [methodId, setMethodId] = useStateR(null);
@@ -212,9 +254,8 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
   const [saving, setSaving] = useStateR(false);
 
-  // Crypto-specific state
-  const [cryptoCoin, setCryptoCoin] = useStateR(null); // 'USDC' | 'USDT'
-  const [cryptoNetwork, setCryptoNetwork] = useStateR(null); // chain id
+  // Crypto-specific state (coin chosen at send time, not saved on the recipient)
+  const [cryptoNetwork, setCryptoNetwork] = useStateR(null); // network id
   const [cryptoAddress, setCryptoAddress] = useStateR("");
   const [cryptoLabel, setCryptoLabel] = useStateR("");
 
@@ -226,10 +267,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const schema  = railKey ? (FIELD_SCHEMA[railKey] || []) : [];
 
   // Crypto-derived values
-  const cryptoChains = cryptoCoin ? (STABLECOIN_CHAINS[cryptoCoin] || []) : [];
-  const cryptoChainMeta = cryptoNetwork ? cryptoChains.find(c => c.id === cryptoNetwork) : null;
-  const cryptoRailKey = cryptoCoin && cryptoNetwork ? `${cryptoCoin}-${cryptoNetwork}` : null;
-  const cryptoSchema = cryptoRailKey ? (CRYPTO_FIELD_SCHEMA[cryptoRailKey] || []) : [];
+  const cryptoChainMeta = cryptoNetwork ? ALL_CRYPTO_NETWORKS.find(c => c.id === cryptoNetwork) : null;
 
   const setField = (k, v) => setFields(prev => ({ ...prev, [k]: v }));
 
@@ -290,7 +328,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
     if (methods.length === 0 && methodId) setMethodId(null);
   }, [ccy]);
 
-  const requireCompliance = country && (COMPLIANCE_REVIEW_COUNTRIES.has(country.cc) || (ccy && COMPLIANCE_REVIEW_CCY.has(ccy)));
+  const requireCompliance = ccy && COMPLIANCE_REVIEW_CCY.has(ccy);
 
   // Computed display name for the recipient strip and review
   const resolvedName = isCrypto
@@ -301,8 +339,8 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const stepLabels = ["Destination", "Details", "Review"];
 
   const canStep1 = isCrypto
-    ? !!cryptoCoin && !!cryptoNetwork
-    : (!!country && !!ccy && !!methodId);
+    ? !!cryptoNetwork
+    : (!!ccy && !!methodId);
 
   // Step 2 validity
   const fieldsComplete = schema.every(f => f.optional || (fields[f.k] && String(fields[f.k]).trim() !== ""));
@@ -314,9 +352,9 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
     : (!!method && fieldsComplete && lookupOk);
 
   const reset = () => {
-    setStep(0); setCountry(null); setCcy(null); setParty("third");
+    setStep(0); setCcy(null); setParty("third");
     setMethodId(null); setFields({}); setThirdName(""); setLookup({ status: "idle", name: null });
-    setCryptoCoin(null); setCryptoNetwork(null); setCryptoAddress(""); setCryptoLabel("");
+    setCryptoNetwork(null); setCryptoAddress(""); setCryptoLabel("");
   };
 
   const switchRecipientType = (t) => {
@@ -327,7 +365,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
   // For the saved recipient strip / review
   const handle = isCrypto
-    ? (cryptoChainMeta ? `${cryptoCoin} · ${cryptoChainMeta.name} · ${cryptoAddress.slice(0, 6)}…${cryptoAddress.slice(-4)}` : "")
+    ? (cryptoChainMeta ? `${cryptoChainMeta.name} · ${cryptoAddress.slice(0, 6)}…${cryptoAddress.slice(-4)}` : "")
     : (method?.id === "bank"
       ? (fields.bank && fields.accNo ? `${fields.bank} · ****${String(fields.accNo).slice(-4)}` :
          fields.iban ? `IBAN · ${fields.iban.replace(/\s/g, "").slice(-4).padStart(4, "•")}` : "")
@@ -356,7 +394,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Where are they receiving money?</div>
-              <div className="pay-panel-sub">{isCrypto ? "Choose the stablecoin and blockchain network." : "Pick the country and the currency they hold an account in."}</div>
+              <div className="pay-panel-sub">{isCrypto ? "Choose the blockchain network they receive on." : "Pick the currency and payment method."}</div>
             </div>
 
             <div className="ar-tabs" role="tablist" style={{marginBottom: 20}}>
@@ -380,81 +418,42 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
         {step === 0 && !isCrypto && (
           <>
+            {(() => {
+              const Combobox = window.OBCombobox;
+              const ccyOpts = Object.keys(PAYOUT_METHODS).map(c => {
+                const meta = RCCY[c];
+                return {
+                  value: c,
+                  label: c,
+                  sub: meta?.name || c,
+                  leading: meta?.flag ? <RFlag cc={meta.flag} size={22} /> : null,
+                  search: `${c} ${meta?.name || ""}`,
+                };
+              });
+              return (
+                <div className="cbox-field">
+                  <div className="cbox-field-lbl">Currency</div>
+                  <Combobox
+                    value={ccy}
+                    onChange={(c) => { setCcy(c); setMethodId(null); }}
+                    options={ccyOpts}
+                    placeholder="Select a currency"
+                    searchPlaceholder="Search currency…"
+                  />
+                </div>
+              );
+            })()}
 
-            <div className="cbox-row">
-              <div className="cbox-field">
-                <div className="cbox-field-lbl">Destination country</div>
-                {(() => {
-                  const Combobox = window.OBCombobox;
-                  const opts = COUNTRY_OPTIONS.map(c => ({
-                    value: c.cc,
-                    label: c.name,
-                    sub: c.currencies.join(" · "),
-                    leading: <RFlag cc={c.cc} size={22} />,
-                    search: `${c.name} ${c.cc} ${c.currencies.join(" ")}`,
-                  }));
-                  return (
-                    <Combobox
-                      value={country?.cc || null}
-                      onChange={(cc) => {
-                        const next = COUNTRY_OPTIONS.find(c => c.cc === cc);
-                        setCountry(next);
-                        setCcy(null);
-                        setMethodId(null);
-                      }}
-                      options={opts}
-                      placeholder="Select a country"
-                      searchPlaceholder="Search country…"
-                    />
-                  );
-                })()}
-              </div>
-
-              <div className="cbox-field">
-                <div className="cbox-field-lbl">Currency</div>
-                {(() => {
-                  const Combobox = window.OBCombobox;
-                  const ccyOpts = country
-                    ? country.currencies.map(c => {
-                        const meta = RCCY[c];
-                        return {
-                          value: c,
-                          label: c,
-                          sub: meta?.name || c,
-                          leading: <RFlag cc={meta?.flag || country.cc} size={22} />,
-                          search: `${c} ${meta?.name || ""}`,
-                        };
-                      })
-                    : [];
-                  return (
-                    <Combobox
-                      value={ccy}
-                      onChange={(c) => { setCcy(c); setMethodId(null); }}
-                      options={ccyOpts}
-                      placeholder={country ? "Select a currency" : "Pick a country first"}
-                      searchPlaceholder="Search currency…"
-                      disabled={!country}
-                    />
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* Method picker — moved to step 1 so the rail is selected up-front */}
             {ccy && methods.length > 0 && (() => {
               const Combobox = window.OBCombobox;
               const opts = methods.map(m => {
                 const Ic = RIcon[m.icon] || RIcon.bank;
-                const desc = methodDescFor(country, ccy, m.id);
+                const desc = m.desc || methodDescFor(ccy, m.id);
                 return {
                   value: m.id,
                   label: m.label,
                   sub: desc,
-                  leading: (
-                    <div className="cbox-method-ic">
-                      <Ic />
-                    </div>
-                  ),
+                  leading: <div className="cbox-method-ic"><Ic /></div>,
                   search: `${m.label} ${desc}`,
                 };
               });
@@ -473,12 +472,12 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
               );
             })()}
 
-            {country && requireCompliance && (
+            {requireCompliance && (
               <div className="ar-compliance" style={{marginTop: 22}}>
                 <div className="ic"><RIcon.shield /></div>
                 <div className="meta">
-                  <div className="t">Extra info needed for this destination</div>
-                  <div className="s">Payments to this country require enhanced due diligence. Submit the short compliance form so we can review and unlock it.</div>
+                  <div className="t">Extra info needed for this currency</div>
+                  <div className="s">Payments in this currency require enhanced due diligence. Submit the short compliance form so we can review and unlock it.</div>
                 </div>
                 <a className="btn btn-soft btn-sm" href="https://tally.so/r/onboard-compliance" target="_blank" rel="noopener noreferrer">
                   Open form <RIcon.external />
@@ -495,68 +494,41 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
           </>
         )}
 
-        {/* STEP 0 — CRYPTO: coin and network */}
+        {/* STEP 0 — CRYPTO: network only (coin chosen at send time) */}
         {step === 0 && isCrypto && (
           <>
-            <div className="cbox-row">
-              <div className="cbox-field">
-                <div className="cbox-field-lbl">Stablecoin</div>
-                {(() => {
-                  const Combobox = window.OBCombobox;
-                  const opts = ["USDC", "USDT"].map(coin => ({
-                    value: coin,
-                    label: coin,
-                    sub: RCCY[coin]?.name || coin,
-                    leading: <CoinBadge coin={coin} size={22} />,
-                    search: `${coin} ${RCCY[coin]?.name || ""}`,
-                  }));
-                  return (
-                    <Combobox
-                      value={cryptoCoin}
-                      onChange={(c) => { setCryptoCoin(c); setCryptoNetwork(null); }}
-                      options={opts}
-                      placeholder="Select a stablecoin"
-                      searchPlaceholder="Search…"
-                    />
-                  );
-                })()}
-              </div>
-
-              <div className="cbox-field">
-                <div className="cbox-field-lbl">Network</div>
-                {(() => {
-                  const Combobox = window.OBCombobox;
-                  const chains = cryptoCoin ? (STABLECOIN_CHAINS[cryptoCoin] || []) : [];
-                  const opts = chains.map(ch => {
-                    const NetIc = RNetworkIcon[ch.id];
-                    return {
-                      value: ch.id,
-                      label: ch.name,
-                      sub: `${ch.short} · ${ch.arrival}`,
-                      leading: NetIc ? <NetIc style={{width: 22, height: 22}} /> : null,
-                      search: `${ch.name} ${ch.short}`,
-                    };
-                  });
-                  return (
-                    <Combobox
-                      value={cryptoNetwork}
-                      onChange={(id) => setCryptoNetwork(id)}
-                      options={opts}
-                      placeholder={cryptoCoin ? "Select a network" : "Pick a coin first"}
-                      searchPlaceholder="Search network…"
-                      disabled={!cryptoCoin}
-                    />
-                  );
-                })()}
-              </div>
-            </div>
+            {(() => {
+              const Combobox = window.OBCombobox;
+              const opts = ALL_CRYPTO_NETWORKS.map(ch => {
+                const NetIc = RNetworkIcon[ch.id];
+                return {
+                  value: ch.id,
+                  label: ch.name,
+                  sub: `${ch.short} · ${ch.arrival}`,
+                  leading: NetIc ? <NetIc style={{width: 22, height: 22}} /> : null,
+                  search: `${ch.name} ${ch.short}`,
+                };
+              });
+              return (
+                <div className="cbox-field" style={{marginTop: 8}}>
+                  <div className="cbox-field-lbl">Network</div>
+                  <Combobox
+                    value={cryptoNetwork}
+                    onChange={(id) => setCryptoNetwork(id)}
+                    options={opts}
+                    placeholder="Select a network"
+                    searchPlaceholder="Search network…"
+                  />
+                </div>
+              );
+            })()}
 
             {cryptoNetwork && cryptoChainMeta && (
               <div className="ar-namecheck idle" style={{marginTop: 16}}>
                 <div className="ic"><RIcon.info /></div>
                 <div className="meta">
-                  <div className="t">{`${cryptoCoin} on ${cryptoChainMeta.name} (${cryptoChainMeta.short})`}</div>
-                  <div className="s">{`Arrival: ${cryptoChainMeta.arrival} · Min withdrawal: ${cryptoChainMeta.min} ${cryptoCoin}`}</div>
+                  <div className="t">{`${cryptoChainMeta.name} (${cryptoChainMeta.short})`}</div>
+                  <div className="s">{`Typical arrival: ${cryptoChainMeta.arrival}`}</div>
                 </div>
               </div>
             )}
@@ -571,11 +543,11 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
         )}
 
         {/* STEP 1 — CRYPTO: wallet address + label */}
-        {step === 1 && isCrypto && cryptoCoin && cryptoNetwork && (
+        {step === 1 && isCrypto && cryptoNetwork && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Wallet details</div>
-              <div className="pay-panel-sub">{`${cryptoCoin} on ${cryptoChainMeta?.name || cryptoNetwork}`}</div>
+              <div className="pay-panel-sub">{cryptoChainMeta?.name || cryptoNetwork}</div>
             </div>
 
             <div className="ar-form">
@@ -585,11 +557,11 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
                   className="inp"
                   value={cryptoAddress}
                   onChange={(e) => setCryptoAddress(e.target.value.trim())}
-                  placeholder={cryptoSchema[0]?.placeholder || "Wallet address"}
-                  maxLength={cryptoSchema[0]?.maxLength || 64}
+                  placeholder={cryptoChainMeta?.addressPlaceholder || "Wallet address"}
+                  maxLength={cryptoChainMeta?.maxLength || 64}
                   style={{fontFamily: "monospace, var(--font-body)", fontSize: 13}}
                 />
-                <div className="help">{`Only send ${cryptoCoin} on the ${cryptoChainMeta?.name} network. Sending on the wrong network will result in permanent loss of funds.`}</div>
+                <div className="help">{`Make sure this is a valid ${cryptoChainMeta?.name} address. Sending on the wrong network will result in permanent loss of funds.`}</div>
               </div>
 
               <div className="field">
@@ -614,11 +586,11 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
         )}
 
         {/* STEP 1 — CASH: details */}
-        {step === 1 && !isCrypto && country && ccy && (
+        {step === 1 && !isCrypto && ccy && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Account details</div>
-              <div className="pay-panel-sub">{`${country.name} · ${ccy}`}</div>
+              <div className="pay-panel-sub">{`${RCCY[ccy]?.name || ccy} · ${method?.label || ""}`}</div>
             </div>
 
             {/* Self vs Third-party tabs */}
@@ -705,7 +677,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
         )}
 
         {/* STEP 2 — CRYPTO review */}
-        {step === 2 && isCrypto && cryptoCoin && cryptoNetwork && (
+        {step === 2 && isCrypto && cryptoNetwork && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Review and save</div>
@@ -721,12 +693,10 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
                 <div className="t">{cryptoLabel || "Recipient"}</div>
                 <div className="s">{handle}</div>
               </div>
-              <div className="rt">{cryptoCoin}</div>
+              <div className="rt">{cryptoChainMeta?.name}</div>
             </div>
 
             <div className="pay-review-list" style={{marginTop: 8}}>
-              <div className="row-item"><div className="k">Type</div><div className="v">Stablecoin transfer</div></div>
-              <div className="row-item"><div className="k">Stablecoin</div><div className="v">{cryptoCoin} · {RCCY[cryptoCoin]?.name || cryptoCoin}</div></div>
               <div className="row-item"><div className="k">Network</div><div className="v">{cryptoChainMeta?.name} ({cryptoChainMeta?.short})</div></div>
               <div className="row-item"><div className="k">Wallet address</div><div className="v" style={{wordBreak: "break-all"}}>{cryptoAddress}</div></div>
               <div className="row-item"><div className="k">Label</div><div className="v">{cryptoLabel}</div></div>
@@ -738,7 +708,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
                 setSaving(true);
                 setTimeout(() => {
                   onToast && onToast(`${cryptoLabel} saved as a crypto recipient`);
-                  if (onSaved) onSaved({ name: cryptoLabel, ccy: cryptoCoin, country: "crypto", handle, type: "Crypto", network: cryptoNetwork, networkLabel: cryptoChainMeta?.name, party: "third" });
+                  if (onSaved) onSaved({ name: cryptoLabel, country: "crypto", handle, type: "Crypto", network: cryptoNetwork, networkLabel: cryptoChainMeta?.name, party: "third" });
                   reset();
                 }, 900);
               }}>
@@ -749,7 +719,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
         )}
 
         {/* STEP 2 — CASH review */}
-        {step === 2 && !isCrypto && country && ccy && method && (
+        {step === 2 && !isCrypto && ccy && method && (
           <>
             <div className="pay-panel-head" style={{paddingBottom: 0}}>
               <div className="pay-panel-title">Review and save</div>
@@ -759,7 +729,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
             <div className="pay-recip-strip" style={{margin: "16px 0 8px"}}>
               <div className="ava">
                 <span>{(resolvedName || "??").split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase()}</span>
-                <RFlag cc={country.cc} size={14} />
+                {RCCY[ccy]?.flag && <RFlag cc={RCCY[ccy].flag} size={14} />}
               </div>
               <div className="meta">
                 <div className="t">{resolvedName || "Recipient"}</div>
@@ -770,7 +740,6 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
             <div className="pay-review-list" style={{marginTop: 8}}>
               <div className="row-item"><div className="k">Type</div><div className="v">{party === "self" ? "Pay myself · 1st party" : "Pay someone else · 3rd party"}</div></div>
-              <div className="row-item"><div className="k">Country</div><div className="v">{country.name}</div></div>
               <div className="row-item"><div className="k">Currency</div><div className="v">{ccy}</div></div>
               <div className="row-item"><div className="k">Method</div><div className="v">{method.label}</div></div>
               <div className="row-item"><div className="k">Account holder</div><div className="v">{resolvedName}</div></div>
@@ -788,7 +757,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
                 setSaving(true);
                 setTimeout(() => {
                   onToast && onToast(`${resolvedName} saved as a recipient`);
-                  if (onSaved) onSaved({ name: resolvedName, ccy, country: country.cc, handle, type: method.id === "bank" ? "Bank" : "Mobile money", party });
+                  if (onSaved) onSaved({ name: resolvedName, ccy, country: RCCY[ccy]?.flag || "us", handle, type: method.id === "bank" ? "Bank" : "Mobile money", party });
                   reset();
                 }, 900);
               }}>
@@ -1441,26 +1410,66 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
 // =====================================================
 // 4. RECIPIENTS LIST PAGE — also lazy-loads
 // =====================================================
+function DeleteRecipientModal({ recipient, onConfirm, onCancel }) {
+  const [confirming, setConfirming] = useStateR(false);
+  const handleConfirm = () => {
+    setConfirming(true);
+    setTimeout(onConfirm, 900);
+  };
+  return (
+    <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,.45)", zIndex:1000,
+      display:"flex", alignItems:"center", justifyContent:"center"}} onClick={onCancel}>
+      <div style={{background:"#fff", borderRadius:16, padding:"28px 28px 24px", maxWidth:400, width:"90%",
+        boxShadow:"0 20px 60px rgba(0,0,0,.2)"}} onClick={e => e.stopPropagation()}>
+        <div style={{width:44, height:44, borderRadius:"50%", background:"#FEF2F2",
+          display:"grid", placeItems:"center", marginBottom:16}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:20,height:20}}>
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </div>
+        <h2 style={{fontSize:17, fontWeight:700, color:"var(--gray-900)", margin:"0 0 8px"}}>Remove recipient?</h2>
+        <p style={{fontSize:13.5, color:"var(--gray-600)", lineHeight:1.55, margin:"0 0 24px"}}>
+          <strong style={{color:"var(--gray-900)"}}>{recipient.name}</strong> will be removed from your saved recipients. You can add them again at any time.
+        </p>
+        <div style={{display:"flex", gap:10, justifyContent:"flex-end"}}>
+          <button className="btn btn-ghost" onClick={onCancel} disabled={confirming}>Cancel</button>
+          <button className="btn" style={{background:"#DC2626", borderColor:"#DC2626", color:"#fff", minWidth:90}}
+            disabled={confirming} onClick={handleConfirm}>
+            {confirming
+              ? <><span className="spin" style={{width:13,height:13,borderWidth:2,borderColor:"rgba(255,255,255,.3)",borderTopColor:"#fff"}} /> Removing…</>
+              : "Remove"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
+  const [tab, setTab]   = useStateR("fiat"); // "fiat" | "crypto"
   const [q, setQ]       = useStateR("");
   const [ccyF, setCcyF] = useStateR("all");
   const [visible, setVisible] = useStateR(PAGE_SIZE_RC);
   const sentinelRef = useRefR(null);
 
+  const fiatCount   = RECIPIENTS_FULL.filter(r => r.country !== "crypto").length;
+  const cryptoCount = RECIPIENTS_FULL.filter(r => r.country === "crypto").length;
+
   const filtered = useMemoR(() => {
     if (dataState === "empty") return [];
-    let res = RECIPIENTS_FULL;
-    if (ccyF !== "all") res = res.filter(r => r.ccy === ccyF);
+    let res = RECIPIENTS_FULL.filter(r => tab === "fiat" ? r.country !== "crypto" : r.country === "crypto");
+    if (tab === "fiat" && ccyF !== "all") res = res.filter(r => r.ccy === ccyF);
     const t = q.trim().toLowerCase();
     if (t) res = res.filter(r =>
       r.name.toLowerCase().includes(t) ||
       r.handle.toLowerCase().includes(t) ||
-      r.ccy.toLowerCase().includes(t)
+      (r.ccy || "").toLowerCase().includes(t) ||
+      (r.networkLabel || "").toLowerCase().includes(t)
     );
     return res;
-  }, [q, ccyF, dataState]);
+  }, [q, ccyF, tab, dataState]);
 
-  useEffectR(() => { setVisible(PAGE_SIZE_RC); }, [q, ccyF]);
+  useEffectR(() => { setVisible(PAGE_SIZE_RC); }, [q, ccyF, tab]);
 
   useEffectR(() => {
     const el = sentinelRef.current;
@@ -1478,26 +1487,49 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
   const [loadingRc, setLoadingRc] = useStateR(true);
   useEffectR(() => { const t = setTimeout(() => setLoadingRc(false), 700); return () => clearTimeout(t); }, []);
 
+  const [deleteTarget, setDeleteTarget] = useStateR(null);
+  const [menuTarget, setMenuTarget]     = useStateR(null);
+
   return (
+    <>
+    {menuTarget && <div style={{position:"fixed", inset:0, zIndex:99}} onClick={() => setMenuTarget(null)} />}
     <div className="page">
       <div className="page-head">
         <div>
           <h1 className="title">Recipients</h1>
-          <p className="subtitle">{dataState === "empty" ? "Save people and businesses you pay regularly so it’s one tap next time." : `${RECIPIENTS_FULL.length} saved recipients across 5 countries`}</p>
+          <p className="subtitle">{dataState === "empty" ? "Save people and businesses you pay regularly so it’s one tap next time." : tab === "fiat" ? `${fiatCount} fiat recipients` : `${cryptoCount} crypto wallets`}</p>
         </div>
         <div className="row" style={{gap: 8}}>
           <button className="btn" onClick={onAddNew}><RIcon.plus /> Add recipient</button>
         </div>
       </div>
 
+      <div style={{display:"inline-flex", background:"var(--gray-100)", borderRadius:10, padding:3, gap:2, marginBottom:16}}>
+        {[["fiat","Fiat", fiatCount],["crypto","Crypto", cryptoCount]].map(([id, label, count]) => (
+          <button key={id} onClick={() => { setTab(id); setQ(""); setCcyF("all"); }}
+            style={{
+              padding:"5px 14px", borderRadius:8, fontSize:13, fontWeight:500,
+              border:"none", cursor:"pointer", transition:"background .12s, box-shadow .12s",
+              background: tab === id ? "#fff" : "transparent",
+              color:       tab === id ? "var(--gray-900)" : "var(--gray-500)",
+              boxShadow:   tab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none",
+            }}>
+            {label}
+            <span style={{marginLeft:6, fontSize:11, fontWeight:600, opacity: tab === id ? .5 : .4}}>{count}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="tx-filterbar">
         <div className="tx-search">
           <RIcon.search />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or bank…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tab === "fiat" ? "Search by name or bank…" : "Search by name or network…"} />
         </div>
-        <FilterSelect label="Currency" value={ccyF} onChange={setCcyF} options={[
-          {v:"all", t:"All currencies"}, {v:"NGN", t:"NGN"}, {v:"GHS", t:"GHS"}, {v:"KES", t:"KES"}, {v:"TZS", t:"TZS"}, {v:"MZN", t:"MZN"}, {v:"USDC", t:"USDC"}, {v:"USDT", t:"USDT"},
-        ]} />
+        {tab === "fiat" && (
+          <FilterSelect label="Currency" value={ccyF} onChange={setCcyF} options={[
+            {v:"all", t:"All currencies"}, {v:"NGN", t:"NGN"}, {v:"GHS", t:"GHS"}, {v:"KES", t:"KES"}, {v:"TZS", t:"TZS"}, {v:"MZN", t:"MZN"},
+          ]} />
+        )}
         {(ccyF !== "all" || q) && (
           <button className="tx-clearfilters" onClick={() => { setCcyF("all"); setQ(""); }}>Clear filters</button>
         )}
@@ -1518,7 +1550,7 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
         </div>
       ) : <div className="tablecard">
         <div className="head">
-          <h2>All recipients</h2>
+          <h2>{tab === "fiat" ? "Fiat recipients" : "Crypto wallets"}</h2>
           <span className="meta">{`${list.length} of ${filtered.length}`}</span>
         </div>
 
@@ -1534,17 +1566,35 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
                 <div className="s">{`${r.handle} · ${r.type}`}</div>
               </div>
               <div className="ccy-cell">
-                {r.country === "crypto" ? <CoinBadge coin={r.ccy} size={18} /> : <RFlag cc={r.country} size={18} />}
-                <span>{r.ccy}</span>
+                {r.country === "crypto" ? <NetworkBadge network={r.network} size={18} /> : <RFlag cc={r.country} size={18} />}
+                <span>{r.country === "crypto" ? r.networkLabel : r.ccy}</span>
               </div>
               <div className="last-cell">{`Last paid ${r.last}`}</div>
               <div className="actions">
                 <button className="rc-pay" onClick={(e) => { e.stopPropagation(); onPay(r); }}>
                   <RIcon.paperplane /> Pay
                 </button>
-                <button className="rc-iconbtn" onClick={(e) => { e.stopPropagation(); onToast && onToast("Recipient menu — phase 2"); }} title="More">
-                  <span className="dots">···</span>
-                </button>
+                <div style={{position:"relative"}}>
+                  <button className="rc-iconbtn" title="More options"
+                    onClick={(e) => { e.stopPropagation(); setMenuTarget(menuTarget?.id === r.id ? null : r); }}>
+                    <span className="dots">···</span>
+                  </button>
+                  {menuTarget?.id === r.id && (
+                    <div style={{position:"absolute", right:0, top:"calc(100% + 4px)", zIndex:100,
+                      background:"#fff", borderRadius:8, padding:"4px 0", minWidth:160,
+                      boxShadow:"0 4px 20px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.06)"}}>
+                      <button style={{display:"flex", alignItems:"center", gap:8, width:"100%",
+                        padding:"8px 14px", background:"none", border:"none", cursor:"pointer",
+                        fontSize:13.5, color:"#DC2626", fontWeight:500, textAlign:"left"}}
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); setMenuTarget(null); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:14,height:14,flexShrink:0}}>
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                        Delete recipient
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -1578,6 +1628,15 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
         )}
       </div>}
     </div>
+
+    {deleteTarget && (
+      <DeleteRecipientModal
+        recipient={deleteTarget}
+        onConfirm={() => { onToast && onToast(`${deleteTarget.name} removed`); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
+    )}
+    </>
   );
 }
 

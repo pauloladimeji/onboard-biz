@@ -169,7 +169,81 @@ function AuthShell({ children, step, totalSteps, layout, variant }) {
 }
 
 // =====================================================
-// Express interest (sign-up)
+// Apply for access — info page (no form; form is on Tally)
+// =====================================================
+const TALLY_URL = "https://tally.so/r/5BMoRP";
+const SUPPORT_WA = "https://wa.me/+2348000000000";
+
+function ApplyForAccessScreen({ onSignIn, layout }) {
+  const steps = [
+    { n: 1, title: "Application review", desc: "We review every application personally — usually within the hour." },
+    { n: 2, title: "KYB verification",   desc: "We'll email you everything you need — a verification link, what to prepare, and next steps." },
+    { n: 3, title: "Account activation", desc: "Your account is ready. We'll email you a link to set your password and sign in." },
+  ];
+
+  return (
+    <AuthShell step={1} totalSteps={1} layout={layout}>
+      <h1>Apply for access</h1>
+      <p className="auth-lede" style={{marginBottom:22}}>
+        Onboard is invite-only. We review every application personally and only work with businesses we can serve well.
+      </p>
+
+      <a href={TALLY_URL} target="_blank" rel="noopener noreferrer"
+         className="btn btn-lg btn-block btn-dark"
+         style={{display:"flex", alignItems:"center", justifyContent:"center", gap:8, textDecoration:"none", marginBottom:26}}>
+        Start your application
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{width:13,height:13}}><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+      </a>
+
+      <div style={{borderTop:"1px solid var(--gray-200)", paddingTop:20, marginBottom:20}}>
+        <div style={{fontSize:13, fontWeight:600, color:"var(--gray-800)", marginBottom:14}}>
+          Already applied? Here&rsquo;s what to expect
+        </div>
+        {steps.map(({n, title, desc}) => (
+          <div key={n} style={{display:"flex", gap:12, marginBottom:14, alignItems:"flex-start"}}>
+            <div style={{
+              width:22, height:22, borderRadius:"50%",
+              background:"var(--gray-100)", color:"var(--gray-600)",
+              display:"grid", placeItems:"center",
+              fontSize:11, fontWeight:700, flexShrink:0, marginTop:1,
+            }}>{n}</div>
+            <div>
+              <div style={{fontSize:13, fontWeight:600, color:"var(--gray-900)", marginBottom:2}}>{title}</div>
+              <div style={{fontSize:12.5, color:"var(--gray-600)", lineHeight:1.55}}>{desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{borderTop:"1px solid var(--gray-200)", paddingTop:18, marginBottom:4}}>
+        <div style={{fontSize:13, fontWeight:600, color:"var(--gray-800)", marginBottom:10}}>
+          Have a question?
+        </div>
+        <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{
+          display:"flex", alignItems:"center", gap:9,
+          padding:"10px 14px", borderRadius:10,
+          border:"1px solid #BBF7D0", background:"#F0FDF4",
+          color:"#16A34A", fontSize:13, fontWeight:500, textDecoration:"none",
+        }}>
+          <svg viewBox="0 0 24 24" fill="currentColor" style={{width:15,height:15,flexShrink:0}}>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          Chat with our team on WhatsApp
+        </a>
+      </div>
+
+      <div className="auth-foot">
+        Already have an account? <a onClick={onSignIn}>Sign in</a>
+      </div>
+    </AuthShell>
+  );
+}
+
+// =====================================================
+// [REFERENCE ONLY] Sign-up / Express interest
+// Sign-up happens off-app via Tally: https://tally.so/r/5BMoRP
+// These screens are preserved for future reference / re-import into Claude Design.
+// They are NOT part of the active sign-in flow.
 // =====================================================
 const SIGNUP_SECTORS = [
   "Fintech & financial services",
@@ -400,7 +474,7 @@ function ExpressInterestScreen({ onSubmit, onSwitchToSignIn, layout }) {
 }
 
 // =====================================================
-// Sign-up confirmation
+// [REFERENCE ONLY] Sign-up confirmation
 // =====================================================
 function SignUpConfirmationScreen({ email, onSignIn, layout }) {
   return (
@@ -434,9 +508,9 @@ function SignUpConfirmationScreen({ email, onSignIn, layout }) {
 }
 
 // =====================================================
-// Sign-in — email + password on one page
+// Sign-in — email entry
 // =====================================================
-function SignInScreen({ onSubmit, onSwitchToSignUp, layout }) {
+function SignInScreen({ onSubmit, onApplyForAccess, layout }) {
   const [email, setEmail] = useState("");
   const valid = email.includes("@") && email.includes(".");
   const submit = (e) => { e.preventDefault(); if (valid) onSubmit({ email }); };
@@ -459,7 +533,7 @@ function SignInScreen({ onSubmit, onSwitchToSignUp, layout }) {
       </form>
 
       <div className="auth-foot">
-        No account yet? <a onClick={onSwitchToSignUp}>Apply for access</a>
+        No account? <a onClick={onApplyForAccess}>Apply for access →</a>
       </div>
     </AuthShell>
   );
@@ -561,7 +635,7 @@ function SignInStatusScreen({ email, status, onSignUp, onChangeEmail, layout }) 
 // =====================================================
 // Sign-in password screen (verified_active path)
 // =====================================================
-function SignInPasswordScreen({ email, onSubmit, onBack, layout, error }) {
+function SignInPasswordScreen({ email, onSubmit, onBack, onForgotPassword, onApplyForAccess, layout, error }) {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const valid = password.length >= 1;
@@ -585,7 +659,7 @@ function SignInPasswordScreen({ email, onSubmit, onBack, layout, error }) {
         <div className="field">
           <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:6}}>
             <label className="lbl" style={{margin:0}}>Password</label>
-            <a style={{fontSize:12.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>Forgot password?</a>
+            <a onClick={onForgotPassword} style={{fontSize:12.5, color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>Forgot password?</a>
           </div>
           <div style={{position:"relative"}}>
             <input className="inp" type={show ? "text" : "password"} placeholder="••••••••" autoFocus
@@ -600,7 +674,7 @@ function SignInPasswordScreen({ email, onSubmit, onBack, layout, error }) {
         {error && (
           <div style={{display:"flex", alignItems:"center", gap:8, background:"var(--danger-50,#FEF2F2)", border:"1px solid #FECACA", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:13, color:"var(--danger-700,#B91C1C)"}}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:15,height:15,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>{error} <a style={{color:"var(--danger-700,#B91C1C)", fontWeight:600, cursor:"pointer", textDecoration:"underline"}}>Reset password</a></span>
+            <span>{error} <a onClick={onForgotPassword} style={{color:"var(--danger-700,#B91C1C)", fontWeight:600, cursor:"pointer", textDecoration:"underline"}}>Reset password</a></span>
           </div>
         )}
 
@@ -608,6 +682,10 @@ function SignInPasswordScreen({ email, onSubmit, onBack, layout, error }) {
           Sign in
         </button>
       </form>
+
+      <div className="auth-foot">
+        No account? <a onClick={onApplyForAccess}>Apply for access</a>
+      </div>
     </AuthShell>
   );
 }
@@ -745,6 +823,124 @@ function OtpScreen({ email, mode, step, totalSteps, onSubmit, onChangeEmail, onR
 }
 
 // =====================================================
+// Forgot password
+// =====================================================
+function ForgotPasswordScreen({ onBack, layout }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const valid = email.includes("@") && email.includes(".");
+  const submit = (e) => { e.preventDefault(); if (valid) setSent(true); };
+
+  if (sent) {
+    return (
+      <AuthShell step={1} totalSteps={1} layout={layout}>
+        <div style={{textAlign:"center", padding:"12px 0 20px"}}>
+          <div style={{
+            width:56, height:56, borderRadius:"50%",
+            background:"#EFF6FF", color:"var(--info-700)",
+            display:"grid", placeItems:"center", margin:"0 auto 22px",
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width:26,height:26}}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <h1 style={{marginBottom:10}}>Check your email</h1>
+          <p className="auth-lede" style={{marginBottom:28}}>
+            If <strong style={{color:"var(--gray-900)"}}>{email}</strong> is registered, you'll find a reset link in your inbox. It expires in 30 minutes.
+          </p>
+          <div style={{background:"var(--gray-50)", border:"1px solid var(--gray-200)", borderRadius:12, padding:"14px 18px", textAlign:"left", fontSize:13, color:"var(--gray-600)", lineHeight:1.6}}>
+            Didn&rsquo;t get it? Check your spam folder, or{" "}
+            <a onClick={() => setSent(false)} style={{color:"var(--info-700)", cursor:"pointer", fontWeight:500}}>try a different email</a>.
+          </div>
+        </div>
+        <div className="auth-foot">
+          <a onClick={onBack} style={{color:"var(--gray-600)"}}>← Back to sign in</a>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell step={1} totalSteps={1} layout={layout}>
+      <h1>Reset your password</h1>
+      <p className="auth-lede">Enter your email and we&rsquo;ll send a reset link.</p>
+      <form onSubmit={submit}>
+        <div className="field">
+          <label className="lbl">Email address</label>
+          <input className="inp" type="email" placeholder="finance@acmetrading.com" autoFocus
+                 value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
+          Send reset link
+        </button>
+      </form>
+      <div className="auth-foot">
+        <a onClick={onBack} style={{color:"var(--gray-600)"}}>← Back to sign in</a>
+      </div>
+    </AuthShell>
+  );
+}
+
+// =====================================================
+// TOTP verify — returning users, 2FA already set up
+// =====================================================
+function TotpVerifyScreen({ onSubmit, onBack, layout }) {
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const refs = useRef([]);
+
+  useEffect(() => {
+    if (refs.current[0]) refs.current[0].focus();
+  }, []);
+
+  const setAt = (i, v) => {
+    const clean = v.replace(/[^0-9]/g, "");
+    if (clean.length > 1) {
+      const arr = clean.slice(0, 6).split("");
+      const next = ["", "", "", "", "", ""];
+      arr.forEach((ch, idx) => { next[idx] = ch; });
+      setCode(next);
+      if (refs.current[Math.min(arr.length, 5)]) refs.current[Math.min(arr.length, 5)].focus();
+      return;
+    }
+    const next = [...code]; next[i] = clean; setCode(next);
+    if (clean && i < 5 && refs.current[i+1]) refs.current[i+1].focus();
+  };
+  const onKey = (i, e) => {
+    if (e.key === "Backspace" && !code[i] && i > 0) refs.current[i-1].focus();
+  };
+
+  const codeStr = code.join("");
+  const valid = codeStr.length === 6;
+  const submit = (e) => { e.preventDefault(); if (valid) onSubmit(codeStr); };
+
+  return (
+    <AuthShell step={1} totalSteps={1} layout={layout}>
+      <h1>Two-factor authentication</h1>
+      <p className="auth-lede">Open your authenticator app and enter the 6-digit code for Onboard.</p>
+
+      <form onSubmit={submit}>
+        <div className="otp-row" style={{margin:"8px 0 20px"}}>
+          {code.map((d, i) => (
+            <input key={i}
+                   ref={(el) => refs.current[i] = el}
+                   className={`otp-cell ${d ? "filled" : ""}`}
+                   inputMode="numeric" maxLength={1}
+                   value={d}
+                   onChange={(e) => setAt(i, e.target.value)}
+                   onKeyDown={(e) => onKey(i, e)} />
+          ))}
+        </div>
+        <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
+          Verify
+        </button>
+      </form>
+
+      <div className="auth-foot">
+        <a onClick={onBack} style={{color:"var(--gray-600)"}}>← Use a different account</a>
+      </div>
+    </AuthShell>
+  );
+}
+
+// =====================================================
 // TOTP setup — first sign-in (or settings)
 // =====================================================
 function TotpSetupScreen({ onSubmit, onSkip, layout }) {
@@ -866,12 +1062,18 @@ function TotpSetupScreen({ onSubmit, onSkip, layout }) {
 }
 
 window.OBOnboarding = {
+  // Active sign-in flow
+  ApplyForAccessScreen,
+  SignInScreen,
+  SignInPasswordScreen,
+  ForgotPasswordScreen,
+  TotpVerifyScreen,
+  TotpSetupScreen,
+  SetPasswordScreen,
+  // Reference only — sign-up is off-app via Tally (https://tally.so/r/5BMoRP)
   ExpressInterestScreen,
   SignUpConfirmationScreen,
-  SignInScreen,
+  // Legacy — kept for reference
   SignInStatusScreen,
-  SignInPasswordScreen,
-  SetPasswordScreen,
   OtpScreen,
-  TotpSetupScreen,
 };

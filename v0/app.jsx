@@ -2,9 +2,10 @@
 const { useState, useEffect } = React;
 const Icon = window.OBIcon;
 const {
+  ApplyForAccessScreen,
+  SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
+  TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
   ExpressInterestScreen, SignUpConfirmationScreen,
-  SignInScreen, SignInStatusScreen, SignInPasswordScreen, SetPasswordScreen,
-  TotpSetupScreen,
 } = window.OBOnboarding;
 const { AccountsDashboard, AddMoneyPage, CurrencyDetailPage, Toast } = window.OBAccounts;
 const { SendPayment } = window.OBSendPayment;
@@ -14,6 +15,33 @@ const { SettingsScreen } = window.OBSettings;
 // =====================================================
 // App shell — Top nav + Sidebar
 // =====================================================
+
+const WaIcon = (p) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+  </svg>
+);
+
+const AM = { name: "Temi Adeyemi", initials: "TA", role: "Account manager", wa: "https://wa.me/+2348000000000" };
+
+function AccountManagerCard() {
+  return (
+    <div className="sb-am-card">
+      <div className="sb-am-top">
+        <div className="sb-am-ava">{AM.initials}</div>
+        <div className="sb-am-meta">
+          <div className="sb-am-name">{AM.name}</div>
+          <div className="sb-am-role">Your {AM.role.toLowerCase()}</div>
+        </div>
+      </div>
+      <a className="sb-am-cta" href={AM.wa} target="_blank" rel="noopener noreferrer">
+        <WaIcon style={{width: 14, height: 14}} />
+        Chat on WhatsApp
+      </a>
+    </div>
+  );
+}
+
 function TopNav() {
   return (
     <header className="topnav">
@@ -22,6 +50,9 @@ function TopNav() {
       </div>
       <div style={{flex: 1}} />
       <div className="right">
+        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" title={`Chat with ${AM.name} · ${AM.role}`}>
+          <WaIcon style={{width: 17, height: 17}} />
+        </a>
         <div className="avatar">JN</div>
       </div>
     </header>
@@ -44,11 +75,9 @@ function Sidebar({ active, onNavigate, mockProps }) {
       <div className="sb-group">Workspace</div>
       {item("settings",  "Settings",     <Icon.cog />)}
       <div style={{flex: 1}} />
+      <AccountManagerCard />
       {mockProps && <MockPanel {...mockProps} />}
-      <div className="sb-foot">
-        Onboard Business · v0.1<br/>
-        <a style={{color: "var(--info-700)", textDecoration: "none", cursor: "pointer"}}>Help & docs</a>
-      </div>
+      <div className="sb-foot">Onboard Business · v0.1</div>
     </aside>
   );
 }
@@ -79,8 +108,10 @@ function PlaceholderScreen({ title, blurb, planned = [] }) {
 // =====================================================
 // Mock-router — lives inside the sidebar so it never overlaps the UI
 // =====================================================
-function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout }) {
+function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout }) {
   const [open, setOpen] = useState(true);
+  const inAuth = flow !== "app";
+  const inSignin = flow.startsWith("signin") || flow === "forgot-password";
   return (
     <div className="mockpanel">
       <button className="mockpanel-toggle" onClick={() => setOpen(!open)}>
@@ -95,13 +126,13 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, p
           <div className="mockpanel-group">
             <div className="mockpanel-label">Flow</div>
             <div className="mockpanel-row wrap">
-              <button className={flow === "signup" ? "on" : ""} onClick={() => onFlow("signup")}>Sign-up</button>
               <button className={flow === "signin" ? "on" : ""} onClick={() => onFlow("signin")}>Sign-in</button>
-              <button className={flow === "signin-set-password" ? "on" : ""} onClick={() => onFlow("signin-set-password")}>Set pw</button>
               <button className={flow === "app"    ? "on" : ""} onClick={() => onFlow("app")}>App</button>
+              <button className={flow === "signup" ? "on" : ""} onClick={() => onFlow("signup")} style={{opacity:.55}} title="Reference only — sign-up is via Tally">Sign-up (ref)</button>
+              <button className={flow === "signin-set-password" ? "on" : ""} onClick={() => onFlow("signin-set-password")} style={{opacity:.55}} title="Password reset landing page — reached via email link in real app">Set pw (ref)</button>
             </div>
           </div>
-          {flow !== "app" && flow !== "signin-set-password" && (
+          {inAuth && (
             <div className="mockpanel-group">
               <div className="mockpanel-label">Auth layout</div>
               <div className="mockpanel-row">
@@ -110,22 +141,23 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, p
               </div>
             </div>
           )}
-          {flow.startsWith("signin") && (
-            <div className="mockpanel-group">
-              <div className="mockpanel-label">Sign-in status</div>
-              <div className="mockpanel-row wrap">
-                {[
-                  ["not_provisioned", "Not provisioned"],
-                  ["rejected",        "Rejected"],
-                  ["wrong_password",  "Wrong password"],
-                  ["verified_active", "Verified"],
-                ].map(([val, label]) => (
-                  <button key={val} className={signinAccountStatus === val ? "on" : ""} onClick={() => onSigninAccountStatus(val)}>
-                    {label}
-                  </button>
-                ))}
+          {inSignin && (
+            <>
+              <div className="mockpanel-group">
+                <div className="mockpanel-label">Password result</div>
+                <div className="mockpanel-row">
+                  <button className={signinAccountStatus === "verified_active" ? "on" : ""} onClick={() => onSigninAccountStatus("verified_active")}>Correct</button>
+                  <button className={signinAccountStatus === "wrong_password"  ? "on" : ""} onClick={() => onSigninAccountStatus("wrong_password")}>Wrong</button>
+                </div>
               </div>
-            </div>
+              <div className="mockpanel-group">
+                <div className="mockpanel-label">After password</div>
+                <div className="mockpanel-row">
+                  <button className={totpState === "setup"  ? "on" : ""} onClick={() => onTotpState("setup")}>Setup 2FA</button>
+                  <button className={totpState === "verify" ? "on" : ""} onClick={() => onTotpState("verify")}>Verify 2FA</button>
+                </div>
+              </div>
+            </>
           )}
           {flow === "app" && (
             <>
@@ -190,7 +222,8 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, p
 // App
 // =====================================================
 function App() {
-  // Top-level flow: signup | signup-confirm | signin | signin-status | signin-password | signin-totp-setup | signin-set-password | app
+  // Top-level flow: signin | signin-password | forgot-password | signin-totp-setup | signin-totp-verify | signin-set-password | app
+  // Sign-up is off-app via Tally (https://tally.so/r/5BMoRP); signup/signup-confirm kept for reference only.
   const [flow, setFlow] = useState("app"); // start in app for review
   const [authEmail, setAuthEmail] = useState("finance@acmetrading.com");
 
@@ -208,9 +241,10 @@ function App() {
   // Send payment flow toggle
   const [payMode, setPayMode] = useState("recipient"); // "recipient" | "amount" — default order
 
-  // Sign-in account status (drives the sign-in gate screens)
-  // "unknown" | "pending_review" | "rejected" | "sumsub_pending" | "verified_no_password" | "verified_active"
+  // Sign-in mock state: "verified_active" | "wrong_password"
   const [signinAccountStatus, setSigninAccountStatus] = useState("verified_active");
+  // TOTP mock: "setup" = first-time (show QR), "verify" = returning (enter code)
+  const [totpState, setTotpState] = useState("verify");
 
   // Mock toggle: name-lookup behaviour for Add Recipient
   // "default" = rail decides, "on" = force-available, "off" = force-unsupported
@@ -237,9 +271,11 @@ function App() {
     if (f === "app") { setRoute("dashboard"); setOpenCcy(null); }
   };
 
-  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout };
+  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout };
 
   // ---------- AUTH FLOWS ----------
+
+  // [Reference] Sign-up is off-app via Tally — these flows kept for design review only
   if (flow === "signup") {
     return (
       <>
@@ -262,18 +298,27 @@ function App() {
       </>
     );
   }
+
+  if (flow === "apply-for-access") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <ApplyForAccessScreen
+          layout={authLayout}
+          onSignIn={() => setFlow("signin")} />
+      </>
+    );
+  }
+
+  // Active sign-in flow: email → password → TOTP (setup or verify)
   if (flow === "signin") {
     return (
       <>
         <FloatingMockPanel mockProps={mockProps} />
         <SignInScreen
           layout={authLayout}
-          onSubmit={({ email }) => {
-            setAuthEmail(email);
-            if (signinAccountStatus === "verified_active" || signinAccountStatus === "wrong_password") setFlow("signin-password");
-            else setFlow("signin-status");
-          }}
-          onSwitchToSignUp={() => setFlow("signup")} />
+          onSubmit={({ email }) => { setAuthEmail(email); setFlow("signin-password"); }}
+          onApplyForAccess={() => setFlow("apply-for-access")} />
       </>
     );
   }
@@ -285,21 +330,35 @@ function App() {
           layout={authLayout}
           email={authEmail}
           error={signinAccountStatus === "wrong_password" ? "Incorrect password." : null}
-          onSubmit={() => { if (signinAccountStatus === "verified_active") setFlow("app"); }}
-          onBack={() => setFlow("signin")} />
+          onSubmit={() => {
+            if (signinAccountStatus !== "wrong_password") {
+              setFlow(totpState === "setup" ? "signin-totp-setup" : "signin-totp-verify");
+            }
+          }}
+          onBack={() => setFlow("signin")}
+          onForgotPassword={() => setFlow("forgot-password")}
+          onApplyForAccess={() => setFlow("apply-for-access")} />
       </>
     );
   }
-  if (flow === "signin-status") {
+  if (flow === "forgot-password") {
     return (
       <>
         <FloatingMockPanel mockProps={mockProps} />
-        <SignInStatusScreen
+        <ForgotPasswordScreen
           layout={authLayout}
-          email={authEmail}
-          status={signinAccountStatus}
-          onSignUp={() => setFlow("signup")}
-          onChangeEmail={() => setFlow("signin")} />
+          onBack={() => setFlow("signin-password")} />
+      </>
+    );
+  }
+  if (flow === "signin-totp-verify") {
+    return (
+      <>
+        <FloatingMockPanel mockProps={mockProps} />
+        <TotpVerifyScreen
+          layout={authLayout}
+          onSubmit={() => setFlow("app")}
+          onBack={() => setFlow("signin")} />
       </>
     );
   }
@@ -309,11 +368,11 @@ function App() {
         <FloatingMockPanel mockProps={mockProps} />
         <TotpSetupScreen
           layout={authLayout}
-          onSubmit={() => setFlow("app")}
-          onSkip={() => setFlow("app")} />
+          onSubmit={() => setFlow("app")} />
       </>
     );
   }
+  // Password reset — reached via email link in real app; accessible here for design review
   if (flow === "signin-set-password") {
     return (
       <>
@@ -383,7 +442,7 @@ function App() {
           : route === "add-recipient" ? "recipients"
           : route
         } onNavigate={(r) => { setRoute(r); setOpenCcy(null); setOpenTx(null); }} mockProps={mockProps} />
-        <div style={{flex:1, minWidth:0, display:"flex", flexDirection:"column"}}>
+        <div style={{flex:1, minWidth:0, minHeight:0, display:"flex", flexDirection:"column", overflowY:"auto"}}>
           {complianceHold && route !== "activity" && <ComplianceBanner onView={() => setRoute("activity")} />}
           {screen}
         </div>

@@ -1,5 +1,53 @@
 /* New screens: add recipient, transactions, transaction detail, recipients list */
 
+/* ---- Account manager card (sidebar) ---- */
+.sb-am-card {
+  margin: 0 10px 8px;
+  padding: 12px 14px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 12px;
+}
+.sb-am-top {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.sb-am-ava {
+  width: 32px; height: 32px; border-radius: 999px;
+  background: #16A34A; color: #fff;
+  display: grid; place-items: center;
+  font-size: 11.5px; font-weight: 700; flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.sb-am-name {
+  font-size: 12.5px; font-weight: 600; color: var(--gray-900); line-height: 1.3;
+}
+.sb-am-role {
+  font-size: 11px; color: var(--gray-600); margin-top: 1px;
+}
+.sb-am-cta {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%;
+  padding: 7px 10px;
+  background: #16A34A; color: #fff;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+  text-decoration: none;
+  transition: background-color .12s;
+}
+.sb-am-cta:hover { background: #15803D; }
+
+/* ---- TopNav WhatsApp button ---- */
+.topnav-wa {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 8px;
+  color: #16A34A;
+  text-decoration: none;
+  transition: background-color .12s;
+  flex-shrink: 0;
+}
+.topnav-wa:hover { background: #F0FDF4; }
+
 /* ---- Send payment: over-balance error state ---- */
 .amt-box-err {
   border-color: var(--danger-600, #DC2626) !important;
