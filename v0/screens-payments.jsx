@@ -2,7 +2,7 @@
 const { useState: useStateP, useMemo: useMemoP, useRef: useRefP, useEffect: useEffectP } = React;
 const PIcon = window.OBIcon;
 const PNetworkIcon = window.OBNetworkIcon;
-const { CURRENCIES: PCCY, RECIPIENTS_FULL, V0_USD_BALANCE } = window.OBData;
+const { CURRENCIES: PCCY, RECIPIENTS_FULL, V0_USD_BALANCE, NETWORK_TOKENS } = window.OBData;
 
 // =====================================================
 // Recipient data
@@ -18,7 +18,7 @@ const REASONS = [
 ];
 
 const FX = { USD: 1, GBP: 0.79, EUR: 0.92, NGN: 1485.5, GHS: 14.2, KES: 129.4, TZS: 2640.0, MZN: 63.8, USDC: 1, USDT: 1 };
-const FEE = { USD: 4.5, GBP: 3.6, EUR: 4.1 };
+const FEE = { USD: 4.5, GBP: 3.6, EUR: 4.1, USDC: 2.0, USDT: 2.0 };
 const SOURCES = ["USD"];
 const DEST_OPTIONS = ["NGN", "GHS", "KES", "TZS", "MZN", "USDC", "USDT"];
 
@@ -147,20 +147,26 @@ function CcyDropdown({ value, options, onChange }) {
 // =====================================================
 function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipient", subtitle = "Select a saved recipient or add a new one" }) {
   const [q, setQ] = useStateP("");
+  const [tab, setTab] = useStateP("fiat");
   const [visible, setVisible] = useStateP(PAGE_SIZE);
   const sentinelRef = useRefP(null);
 
+  const fiatRecipients = useMemoP(() => RECIPIENTS.filter(r => r.country !== "crypto"), []);
+  const cryptoRecipients = useMemoP(() => RECIPIENTS.filter(r => r.country === "crypto"), []);
+
   const filtered = useMemoP(() => {
+    const base = tab === "fiat" ? fiatRecipients : cryptoRecipients;
     const t = q.trim().toLowerCase();
-    if (!t) return RECIPIENTS;
-    return RECIPIENTS.filter(r =>
+    if (!t) return base;
+    return base.filter(r =>
       r.name.toLowerCase().includes(t) ||
       r.handle.toLowerCase().includes(t) ||
-      r.ccy.toLowerCase().includes(t)
+      (r.ccy || "").toLowerCase().includes(t) ||
+      (r.networkLabel || "").toLowerCase().includes(t)
     );
-  }, [q]);
+  }, [q, tab, fiatRecipients, cryptoRecipients]);
 
-  useEffectP(() => { setVisible(PAGE_SIZE); }, [q]);
+  useEffectP(() => { setVisible(PAGE_SIZE); }, [q, tab]);
 
   useEffectP(() => {
     const el = sentinelRef.current;
@@ -184,14 +190,30 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
         <div className="pay-panel-sub">{subtitle}</div>
       </div>
 
+      <div style={{display:"inline-flex", alignSelf:"flex-start", background:"var(--gray-100)", borderRadius:10, padding:3, gap:2, margin:"12px 0 12px"}}>
+        {[["fiat","Fiat", fiatRecipients.length],["crypto","Crypto", cryptoRecipients.length]].map(([id, label, count]) => (
+          <button key={id} onClick={() => { setTab(id); setQ(""); }}
+            style={{
+              padding:"5px 14px", borderRadius:8, fontSize:13, fontWeight:500,
+              border:"none", cursor:"pointer", transition:"background .12s, box-shadow .12s",
+              background: tab === id ? "#fff" : "transparent",
+              color:       tab === id ? "var(--gray-900)" : "var(--gray-500)",
+              boxShadow:   tab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none",
+            }}>
+            {label}
+            <span style={{marginLeft:6, fontSize:11, fontWeight:600, opacity: tab === id ? .5 : .4}}>{count}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="pay-search">
         <PIcon.search />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, bank, or currency…" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tab === "fiat" ? "Search by name, bank, or currency…" : "Search by name or network…"} />
       </div>
 
       <button className="recip-add" onClick={onAddNew}>
         <span className="ic"><PIcon.plus /></span>
-        <span className="t">Add new recipient</span>
+        <span className="t">{tab === "fiat" ? "Add new recipient" : "Add crypto wallet"}</span>
         <PIcon.arrowRight />
       </button>
 
@@ -205,6 +227,7 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
         <div className="recip-list" style={{maxHeight: 420, overflowY: "auto"}}>
           {list.map((r) => {
             const sel = r.id === selectedId;
+            const isCrypto = r.country === "crypto";
             return (
               <button key={r.id} className={`recip-row ${sel ? "on" : ""}`} onClick={() => onSelect(r)}>
                 <div className="ava">
@@ -216,7 +239,7 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
                   <div className="s">{`${r.handle} · ${r.type}`}</div>
                 </div>
                 <div className="rt">
-                  <div className="ccy">{r.ccy}</div>
+                  <div className="ccy">{isCrypto ? (r.networkLabel || r.network) : r.ccy}</div>
                   <div className="last">{`Last: ${r.last}`}</div>
                 </div>
                 {sel
@@ -243,9 +266,10 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
 // Amount panel (full or compact)
 // =====================================================
 function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, recipient, showDstPicker = false, availBalance }) {
-  const dst = recipient ? recipient.ccy : dstCcy;
+  const isCryptoRecipient = recipient && recipient.country === "crypto";
+  const dst = isCryptoRecipient ? dstCcy : (recipient ? recipient.ccy : dstCcy);
   const rate = FX[dst] / FX[srcCcy];
-  const fee = FEE[srcCcy] || 0;
+  const fee = FEE[isCryptoRecipient ? dst : srcCcy] || 0;
   const [driver, setDriver] = useStateP("send");
   const [recvAmt, setRecvAmt] = useStateP("");
 
@@ -294,7 +318,9 @@ function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, s
         <div className="lb">They will receive</div>
         <div className="amt-box">
           <input className="amt-inp" inputMode="decimal" value={displayRecv} onChange={(e) => onRecvType(e.target.value)} placeholder="0.00" />
-          {recipient ? (
+          {isCryptoRecipient ? (
+            <CcyDropdown value={dstCcy} options={NETWORK_TOKENS[recipient.network] || ["USDC"]} onChange={setDstCcy} />
+          ) : recipient ? (
             <div className="ccy-locked">
               <RecipientBadge recipient={recipient} size={18} /> {dst}
             </div>
@@ -453,10 +479,11 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
     );
   }
 
-  const dstFinal = recipient ? recipient.ccy : dstCcy;
+  const isCryptoRecip = recipient && recipient.country === "crypto";
+  const dstFinal = isCryptoRecip ? dstCcy : (recipient ? recipient.ccy : dstCcy);
   const amtNum = parseFloat(String(amount).replace(/,/g,"")) || 0;
   const availBalance = V0_USD_BALANCE;
-  const fee = FEE[srcCcy] || 0;
+  const fee = FEE[isCryptoRecip ? dstFinal : srcCcy] || 0;
   const overBalance = amtNum > 0 && (amtNum + fee) > availBalance;
   const canReview = !!recipient && amtNum > 0 && !!reason && !overBalance;
 
@@ -512,7 +539,16 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
         {step === 0 && mode === "recipient" && (
           <RecipientPanel
             selectedId={recipient?.id}
-            onSelect={(r) => { setRecipient(r); setDstCcy(r.ccy); setStep(1); }}
+            onSelect={(r) => {
+              setRecipient(r);
+              if (r.country === "crypto") {
+                const tokens = NETWORK_TOKENS[r.network] || ["USDC"];
+                setDstCcy(tokens[0]);
+              } else {
+                setDstCcy(r.ccy);
+              }
+              setStep(1);
+            }}
             onAddNew={onAddRecipient}
             title="Choose recipient"
             subtitle="Pick a saved recipient or add a new one" />
@@ -534,6 +570,7 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
         {step === 1 && mode === "recipient" && (
           <AmountPanelRight
             recipient={recipient} srcCcy={srcCcy} setSrcCcy={setSrcCcy}
+            dstCcy={dstCcy} setDstCcy={setDstCcy}
             amount={amount} setAmount={setAmount}
             reason={reason} setReason={setReason}
             memo={memo} setMemo={setMemo}
@@ -583,7 +620,8 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
 }
 
 // Amount step: amount + reason + memo (recipient already chosen)
-function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, reason, setReason, memo, setMemo, onBack, onReview, canReview, availBalance }) {
+function AmountPanelRight({ recipient, srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, setAmount, reason, setReason, memo, setMemo, onBack, onReview, canReview, availBalance }) {
+  const isCrypto = recipient.country === "crypto";
   return (
     <div className="pay-panel">
       <div className="pay-panel-head">
@@ -601,12 +639,12 @@ function AmountPanelRight({ recipient, srcCcy, setSrcCcy, amount, setAmount, rea
           <div className="s">{recipient.handle}</div>
         </div>
         <div className="rt" style={{display: "flex", alignItems: "center", gap: 10}}>
-          <span>{recipient.ccy}</span>
+          <span>{isCrypto ? (recipient.networkLabel || recipient.network) : recipient.ccy}</span>
           <button className="btn btn-ghost btn-sm" style={{padding: "4px 10px", fontSize: 12}} onClick={onBack}>Change</button>
         </div>
       </div>
 
-      <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} amount={amount} setAmount={setAmount} recipient={recipient} availBalance={availBalance} />
+      <SwappableAmountFields srcCcy={srcCcy} setSrcCcy={setSrcCcy} dstCcy={dstCcy} setDstCcy={setDstCcy} amount={amount} setAmount={setAmount} recipient={recipient} availBalance={availBalance} />
 
       <ReasonMemoFields reason={reason} setReason={setReason} memo={memo} setMemo={setMemo} />
 
@@ -645,7 +683,13 @@ function RecipientPanelFiltered({ destCcy, selectedId, onSelect, onAddNew, onBac
   const sentinelRef = useRefP(null);
 
   const filtered = useMemoP(() => {
-    let res = RECIPIENTS.filter(r => r.ccy === destCcy);
+    const isStablecoin = destCcy === "USDC" || destCcy === "USDT";
+    let res;
+    if (isStablecoin) {
+      res = RECIPIENTS.filter(r => r.country === "crypto" && (NETWORK_TOKENS[r.network] || []).includes(destCcy));
+    } else {
+      res = RECIPIENTS.filter(r => r.ccy === destCcy);
+    }
     const t = q.trim().toLowerCase();
     if (t) res = res.filter(r => r.name.toLowerCase().includes(t) || r.handle.toLowerCase().includes(t));
     return res;

@@ -499,14 +499,16 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
           <>
             {(() => {
               const Combobox = window.OBCombobox;
+              const NT = window.OBData.NETWORK_TOKENS || {};
               const opts = ALL_CRYPTO_NETWORKS.map(ch => {
                 const NetIc = RNetworkIcon[ch.id];
+                const tokens = (NT[ch.id] || []).join(", ");
                 return {
                   value: ch.id,
                   label: ch.name,
-                  sub: `${ch.short} · ${ch.arrival}`,
+                  sub: `${ch.short} · ${tokens}`,
                   leading: NetIc ? <NetIc style={{width: 22, height: 22}} /> : null,
-                  search: `${ch.name} ${ch.short}`,
+                  search: `${ch.name} ${ch.short} ${tokens}`,
                 };
               });
               return (
@@ -523,15 +525,18 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
               );
             })()}
 
-            {cryptoNetwork && cryptoChainMeta && (
-              <div className="ar-namecheck idle" style={{marginTop: 16}}>
-                <div className="ic"><RIcon.info /></div>
-                <div className="meta">
-                  <div className="t">{`${cryptoChainMeta.name} (${cryptoChainMeta.short})`}</div>
-                  <div className="s">{`Typical arrival: ${cryptoChainMeta.arrival}`}</div>
+            {cryptoNetwork && cryptoChainMeta && (() => {
+              const tokens = (window.OBData.NETWORK_TOKENS || {})[cryptoNetwork] || [];
+              return (
+                <div className="ar-namecheck idle" style={{marginTop: 16}}>
+                  <div className="ic"><RIcon.info /></div>
+                  <div className="meta">
+                    <div className="t">{`${cryptoChainMeta.name} (${cryptoChainMeta.short})`}</div>
+                    <div className="s">{`Supports ${tokens.join(" and ")}`}</div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="pay-review-foot" style={{marginTop: 24}}>
               <button className="btn btn-ghost" onClick={onBack}>Cancel</button>

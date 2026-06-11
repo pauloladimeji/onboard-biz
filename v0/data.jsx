@@ -245,5 +245,14 @@ const WAITLIST_CURRENCIES = [
 // v0 mock balances — USD only (all funds held as a single USD balance)
 const V0_USD_BALANCE = 84231.50;
 
-window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE };
+// Tokens supported per crypto network (derived from STABLECOIN_CHAINS)
+const NETWORK_TOKENS = {
+  eth:     ["USDC", "USDT"],
+  base:    ["USDC"],
+  polygon: ["USDC"],
+  solana:  ["USDC"],
+  tron:    ["USDT"],
+};
+
+window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS };
 window.OBNetworkIcon = NetworkIcon;
