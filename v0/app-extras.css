@@ -1626,3 +1626,65 @@
 .set-support-note > svg { width: 18px; height: 18px; color: var(--gray-600); flex-shrink: 0; margin-top: 1px; }
 .set-support-note a { color: var(--info-700); font-weight: 500; text-decoration: none; }
 .set-support-note a:hover { text-decoration: underline; }
+
+/* ----- Developer · API key cards ----- */
+.set-apikey-card {
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #fff;
+}
+.set-apikey-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.set-apikey-label {
+  font-size: 13px; font-weight: 600; color: var(--gray-900);
+  padding: 2px 10px;
+  background: var(--gray-100);
+  border-radius: 6px;
+}
+.set-apikey-field {
+  padding: 8px 0;
+  border-top: 1px solid var(--gray-100);
+}
+.set-apikey-field:first-of-type { border-top: 1px solid var(--gray-200); }
+.set-apikey-field-label {
+  font-size: 11px; font-weight: 500; color: var(--gray-500);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.set-apikey-field-value {
+  display: flex; align-items: center; gap: 8px;
+}
+.set-apikey-field-value code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; color: var(--gray-900);
+  flex: 1; min-width: 0; word-break: break-all;
+}
+.set-apikey-copy {
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--gray-500); padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.set-apikey-copy:hover { background: var(--gray-100); color: var(--gray-700); }
+.set-apikey-copy svg { width: 14px; height: 14px; }
+.set-apikey-toggle {
+  background: transparent; border: 1px solid var(--gray-200);
+  cursor: pointer; padding: 2px 10px; border-radius: 6px;
+  font-size: 11.5px; font-weight: 500; color: var(--gray-600);
+  font-family: inherit; flex-shrink: 0;
+}
+.set-apikey-toggle:hover { background: var(--gray-100); color: var(--gray-900); }
+.set-apikey-action {
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--gray-500); padding: 5px; border-radius: 6px;
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.set-apikey-action:hover { background: var(--danger-100, #FEE2E2); color: var(--danger-600, #DC2626); }
+.set-apikey-action svg { width: 14px; height: 14px; }
+.set-apikey-meta {
+  font-size: 11.5px; color: var(--gray-500);
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--gray-100);
+}

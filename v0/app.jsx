@@ -108,7 +108,7 @@ function PlaceholderScreen({ title, blurb, planned = [] }) {
 // =====================================================
 // Mock-router — lives inside the sidebar so it never overlaps the UI
 // =====================================================
-function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout }) {
+function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout, apiAccess, onApiAccess }) {
   const [open, setOpen] = useState(true);
   const inAuth = flow !== "app";
   const inSignin = flow.startsWith("signin") || flow === "forgot-password";
@@ -210,6 +210,14 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, t
                   <button className={complianceHold ? "on" : ""}  onClick={() => onComplianceHold(true)}>Txn on hold</button>
                 </div>
               </div>
+              <div className="mockpanel-group">
+                <div className="mockpanel-label">API access</div>
+                <div className="mockpanel-row">
+                  <button className={apiAccess === "granted" ? "on" : ""} onClick={() => onApiAccess("granted")}>Granted</button>
+                  <button className={apiAccess === "pending" ? "on" : ""} onClick={() => onApiAccess("pending")}>Pending</button>
+                  <button className={apiAccess === "none" ? "on" : ""}    onClick={() => onApiAccess("none")}>Not requested</button>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -255,6 +263,7 @@ function App() {
   const [dataState, setDataState] = useState("full");   // "full" | "empty"
   const [accountStatus, setAccountStatus] = useState("active"); // "active" | "suspended"
   const [complianceHold, setComplianceHold] = useState(false);  // boolean — injects a held txn
+  const [apiAccess, setApiAccess] = useState("granted"); // "granted" | "none" | "pending"
 
   // Active transaction (for detail page)
   const [openTx, setOpenTx] = useState(null);
@@ -271,7 +280,7 @@ function App() {
     if (f === "app") { setRoute("dashboard"); setOpenCcy(null); }
   };
 
-  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout };
+  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout, apiAccess, onApiAccess: setApiAccess };
 
   // ---------- AUTH FLOWS ----------
 
@@ -428,7 +437,7 @@ function App() {
   } else if (route === "activity") {
     screen = <TransactionsScreen dataState={dataState} complianceHold={complianceHold} onOpenTx={setOpenTx} onToast={showToast} />;
   } else if (route === "settings") {
-    screen = <SettingsScreen onToast={showToast} />;
+    screen = <SettingsScreen onToast={showToast} apiAccess={apiAccess} />;
   } else {
     screen = <PlaceholderScreen title="Settings" blurb="Business profile, statements, FX preferences." />;
   }
