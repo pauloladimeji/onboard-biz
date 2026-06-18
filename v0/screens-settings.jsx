@@ -10,7 +10,6 @@ const { BUSINESS_PROFILE } = window.OBData;
 const SECTIONS = [
   { id: "profile",   label: "Business profile", icon: "bank",   blurb: "Business name, contact, verification" },
   { id: "security",  label: "Security",         icon: "shield", blurb: "Authenticator app for 2FA" },
-  { id: "developer", label: "Developer",        icon: "doc",    blurb: "API keys and webhooks" },
 ];
 
 const SUPPORT_EMAIL = "support@onboard.xyz";
@@ -77,7 +76,6 @@ function SettingsScreen({ onToast, apiAccess = "granted" }) {
             <>
               {active === "profile"   && <ProfileSection onToast={onToast} />}
               {active === "security"  && <SecuritySection onToast={onToast} />}
-              {active === "developer" && <DeveloperSection onToast={onToast} apiAccess={apiAccess} />}
             </>
           )}
         </div>
@@ -737,4 +735,4 @@ function RevokeApiKeyModal({ keyLabel, onClose, onConfirm }) {
   );
 }
 
-window.OBSettings = { SettingsScreen };
+window.OBSettings = { SettingsScreen, DeveloperSection };

@@ -74,6 +74,7 @@ function Sidebar({ active, onNavigate, mockProps }) {
       {item("activity",  "Transactions", <Icon.list />)}
       <div className="sb-group">Workspace</div>
       {item("settings",  "Settings",     <Icon.cog />)}
+      {item("developer", "Developer",    <Icon.doc />)}
       <div style={{flex: 1}} />
       <AccountManagerCard />
       {mockProps && <MockPanel {...mockProps} />}
@@ -436,8 +437,23 @@ function App() {
     screen = <TransactionDetailScreen tx={openTx} onBack={() => setOpenTx(null)} onToast={showToast} />;
   } else if (route === "activity") {
     screen = <TransactionsScreen dataState={dataState} complianceHold={complianceHold} onOpenTx={setOpenTx} onToast={showToast} />;
+  } else if (route === "developer") {
+    const { DeveloperSection } = window.OBSettings;
+    screen = (
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <h1 className="title">Developer</h1>
+            <p className="subtitle">API keys, webhooks, and integration settings.</p>
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:20}}>
+          <DeveloperSection onToast={showToast} apiAccess={apiAccess} />
+        </div>
+      </div>
+    );
   } else if (route === "settings") {
-    screen = <SettingsScreen onToast={showToast} apiAccess={apiAccess} />;
+    screen = <SettingsScreen onToast={showToast} />;
   } else {
     screen = <PlaceholderScreen title="Settings" blurb="Business profile, statements, FX preferences." />;
   }
