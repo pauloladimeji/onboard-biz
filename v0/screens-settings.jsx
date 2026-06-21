@@ -360,6 +360,61 @@ function FakeQR() {
   );
 }
 
+// ---------- Verify TOTP modal (reusable for sensitive actions) ----------
+function VerifyTotpModal({ title, description, onClose, onVerified }) {
+  const [code, setCode] = useStateS("");
+  const [busy, setBusy] = useStateS(false);
+  const [error, setError] = useStateS("");
+
+  const handleSubmit = () => {
+    setBusy(true);
+    setError("");
+    setTimeout(() => {
+      if (code === "123456" || (/^\d{6}$/.test(code) && parseInt(code[5], 10) % 2 === 0)) {
+        setBusy(false);
+        onVerified();
+      } else {
+        setBusy(false);
+        setError("Invalid code. Try again.");
+        setCode("");
+      }
+    }, 600);
+  };
+
+  return (
+    <div className="set-modal-bg" onClick={onClose}>
+      <div className="set-modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: 400}}>
+        <div className="set-modal-head">
+          <h3>{title || "Verify your identity"}</h3>
+          <button className="set-modal-x" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div style={{fontSize: 13, color: "var(--gray-700)", lineHeight: 1.55, marginBottom: 16}}>
+          {description || "Enter the 6-digit code from your authenticator app to continue."}
+        </div>
+        <div className="field">
+          <div className="lbl">Code</div>
+          <input
+            className="inp"
+            value={code}
+            onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 6)); setError(""); }}
+            placeholder="000000"
+            inputMode="numeric"
+            maxLength={6}
+            style={{textAlign: "center", fontSize: 18, letterSpacing: "0.2em", fontWeight: 600}}
+          />
+        </div>
+        {error && <div style={{fontSize: 12, color: "var(--danger-600, #DC2626)", marginTop: 8}}>{error}</div>}
+        <div className="set-modal-foot">
+          <button className="btn btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
+          <button className="btn btn-lg" onClick={handleSubmit} disabled={busy || code.length < 6}>
+            {busy ? "Verifying…" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Section · Developer ----------
 function DeveloperSection({ onToast, apiAccess = "granted" }) {
   if (apiAccess !== "granted") {
@@ -424,8 +479,23 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
   const [webhookSecret, setWebhookSecret] = useStateS("whsec_k9Xp2mRvL4nT8qYbA3wJcE6fH0dG5sU7");
   const [secretVisible, setSecretVisible] = useStateS(false);
 
+  // 2FA gate: stores { title, description, onVerified } when a sensitive action needs TOTP
+  const [totpChallenge, setTotpChallenge] = useStateS(null);
+
+  const requireTotp = (title, description, onVerified) => {
+    setTotpChallenge({ title, description, onVerified });
+  };
+
   const toggleKeySecret = (id) => {
-    setApiKeys(prev => prev.map(k => k.id === id ? { ...k, secretVisible: !k.secretVisible } : k));
+    const key = apiKeys.find(k => k.id === id);
+    if (key && key.secretVisible) {
+      setApiKeys(prev => prev.map(k => k.id === id ? { ...k, secretVisible: false } : k));
+    } else {
+      requireTotp("Reveal API secret", "Verify your identity to view this secret.", () => {
+        setApiKeys(prev => prev.map(k => k.id === id ? { ...k, secretVisible: true } : k));
+        setTotpChallenge(null);
+      });
+    }
   };
 
   const copyText = (text, label) => {
@@ -448,26 +518,48 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
     onToast && onToast("API key created");
   };
 
-  const handleDelete = (id) => {
-    setApiKeys(prev => prev.filter(k => k.id !== id));
-    setDeleteTarget(null);
-    onToast && onToast("API key revoked");
+  const handleRevoke = (id) => {
+    requireTotp("Revoke API key", "Verify your identity to revoke this key. This action cannot be undone.", () => {
+      setApiKeys(prev => prev.filter(k => k.id !== id));
+      setDeleteTarget(null);
+      setTotpChallenge(null);
+      onToast && onToast("API key revoked");
+    });
+  };
+
+  const toggleWebhookSecret = () => {
+    if (secretVisible) {
+      setSecretVisible(false);
+    } else {
+      requireTotp("Reveal webhook secret", "Verify your identity to view the webhook secret.", () => {
+        setSecretVisible(true);
+        setTotpChallenge(null);
+      });
+    }
   };
 
   const regenerateSecret = () => {
-    setWebhookSecret("whsec_" + Array.from({length: 30}, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random()*62)]).join(""));
-    onToast && onToast("Webhook secret regenerated");
+    requireTotp("Regenerate webhook secret", "Verify your identity to regenerate the webhook secret. The current secret will stop working immediately.", () => {
+      setWebhookSecret("whsec_" + Array.from({length: 30}, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random()*62)]).join(""));
+      setTotpChallenge(null);
+      onToast && onToast("Webhook secret regenerated");
+    });
   };
 
   return (
     <>
-      {/* Overview */}
+      {/* Environment + Overview */}
       <div className="set-banner info">
         <div className="ic"><SIcon.doc /></div>
         <div className="meta">
-          <div className="t">Onboard API</div>
+          <div className="t" style={{display: "flex", alignItems: "center", gap: 8}}>
+            Onboard API
+            <span style={{display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px", background: "var(--success-100, #DCFCE7)", color: "var(--success-700, #15803D)", borderRadius: 6, fontSize: 11, fontWeight: 600, letterSpacing: "0.02em"}}>
+              <span style={{width: 6, height: 6, borderRadius: "50%", background: "currentColor"}} /> PRODUCTION
+            </span>
+          </div>
           <div className="s">
-            Programmatic access to cross-border payouts, stablecoin wallet infrastructure, and multi-currency deposits — everything you need to embed payments into your product.
+            Programmatic access to cross-border payouts, stablecoin wallet infrastructure, and multi-currency deposits — everything you need to embed payments into your product. This is your live environment — contact <a href="mailto:support@onboard.xyz" style={{color: "var(--info-700)", fontWeight: 500, textDecoration: "none"}}>support@onboard.xyz</a> to provision a sandbox for development.
           </div>
           <div style={{marginTop: 10}}>
             <a href="https://docs.onboard.xyz" target="_blank" rel="noopener" style={{fontSize: 13, fontWeight: 500, color: "var(--info-700)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4}}>
@@ -518,7 +610,7 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
                   <div className="set-apikey-field-label">Secret</div>
                   <div className="set-apikey-field-value">
                     <code>{k.secretVisible ? k.secret : "••••••••••••••••••••••••••••••••"}</code>
-                    <button className="set-apikey-copy" onClick={() => copyText(k.secret, "Secret")}><SIcon.copy /></button>
+                    {k.secretVisible && <button className="set-apikey-copy" onClick={() => copyText(k.secret, "Secret")}><SIcon.copy /></button>}
                     <button className="set-apikey-toggle" onClick={() => toggleKeySecret(k.id)}>
                       {k.secretVisible ? "Hide" : "Show"}
                     </button>
@@ -595,8 +687,8 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
               <code style={{flex: 1, fontSize: 12, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", wordBreak: "break-all", color: "var(--gray-900)"}}>
                 {secretVisible ? webhookSecret : "••••••••••••••••••••••••••••••••••••••••"}
               </code>
-              <button className="set-apikey-copy" onClick={() => copyText(webhookSecret, "Webhook secret")}><SIcon.copy /></button>
-              <button className="set-apikey-toggle" onClick={() => setSecretVisible(!secretVisible)}>
+              {secretVisible && <button className="set-apikey-copy" onClick={() => copyText(webhookSecret, "Webhook secret")}><SIcon.copy /></button>}
+              <button className="set-apikey-toggle" onClick={toggleWebhookSecret}>
                 {secretVisible ? "Hide" : "Show"}
               </button>
               <button className="set-apikey-action" title="Regenerate" onClick={regenerateSecret}>
@@ -618,7 +710,16 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
         <RevokeApiKeyModal
           keyLabel={apiKeys.find(k => k.id === deleteTarget)?.label}
           onClose={() => setDeleteTarget(null)}
-          onConfirm={() => handleDelete(deleteTarget)}
+          onConfirm={() => handleRevoke(deleteTarget)}
+        />
+      )}
+
+      {totpChallenge && (
+        <VerifyTotpModal
+          title={totpChallenge.title}
+          description={totpChallenge.description}
+          onClose={() => setTotpChallenge(null)}
+          onVerified={totpChallenge.onVerified}
         />
       )}
     </>
