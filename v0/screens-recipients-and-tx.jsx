@@ -247,6 +247,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const [step, setStep] = useStateR(0); // 0 destination · 1 details · 2 review
   const [ccy, setCcy] = useStateR(null);
   const [party, setParty] = useStateR("third"); // 'self' | 'third'
+  const [entityType, setEntityType] = useStateR("business"); // 'individual' | 'business'
   const [methodId, setMethodId] = useStateR(null);
   const [fields, setFields] = useStateR({}); // dynamic form
   const [thirdName, setThirdName] = useStateR(""); // 3rd-party fallback name (when lookup not supported)
@@ -616,7 +617,17 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
               </button>
             </div>
 
-            {/* If only one method available, auto-selected via effect */}
+            {party === "third" && (
+              <div className="ar-form" style={{paddingBottom: 0}}>
+                <div className="field">
+                  <div className="lbl">Recipient type <span className="req">· required</span></div>
+                  <select className="inp pay-select" value={entityType} onChange={(e) => setEntityType(e.target.value)}>
+                    <option value="individual">Individual — A personal account</option>
+                    <option value="business">Business — A company or organisation</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             {method && (
               <div className="ar-form">
@@ -745,6 +756,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
             <div className="pay-review-list" style={{marginTop: 8}}>
               <div className="row-item"><div className="k">Type</div><div className="v">{party === "self" ? "Pay myself · 1st party" : "Pay someone else · 3rd party"}</div></div>
+              {party === "third" && <div className="row-item"><div className="k">Recipient type</div><div className="v">{entityType === "business" ? "Business" : "Individual"}</div></div>}
               <div className="row-item"><div className="k">Currency</div><div className="v">{ccy}</div></div>
               <div className="row-item"><div className="k">Method</div><div className="v">{method.label}</div></div>
               <div className="row-item"><div className="k">Account holder</div><div className="v">{resolvedName}</div></div>
