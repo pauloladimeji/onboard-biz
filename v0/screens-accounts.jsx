@@ -698,8 +698,8 @@ function RequestCurrenciesModal({ onClose, onDone }) {
 // NGN convert-on-deposit rail panel
 // =====================================================
 const NGN_ACCOUNT = {
-  bank:   "Providus Bank",
-  name:   "Onboard / Acme Trading Co",
+  bank:   "Aella Microfinance Bank",
+  name:   "GFS / Acme Trading Co",
   number: "5200 0443 12",
 };
 
