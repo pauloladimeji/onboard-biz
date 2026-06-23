@@ -296,7 +296,7 @@ function RecentTransactions({ txns, title = "Recent activity", onRowClick, dense
 // =====================================================
 // Per-currency detail page (USD only in v0)
 // =====================================================
-function CurrencyDetailPage({ code, onBack, onToast, fiatIssuance = "ready", accountSuspended = false }) {
+function CurrencyDetailPage({ code, onBack, onToast, fiatIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false }) {
   const meta = CURRENCIES[code];
   const balance = V0_ACCOUNTS.find(a => a.code === "USD")?.balance || "0.00";
   const ccyTxns = TXNS.filter(t => t.ccy === code || t.from === code).slice(0, 8);
@@ -389,7 +389,7 @@ function CurrencyDetailPage({ code, onBack, onToast, fiatIssuance = "ready", acc
 
         {tabLoading ? <PanelSkeleton /> : activeTab && (
           activeTab.type === "stablecoin"
-            ? <StablecoinRailPanel coin={activeTab.coin} onCopy={(v) => onToast(`Copied`)} />
+            ? <StablecoinRailPanel coin={activeTab.coin} onCopy={(v) => onToast(`Copied`)} issuance={stablecoinIssuance} />
             : activeTab.type === "fiat-pending"
               ? <FiatPendingPanel rail={activeTab} />
               : <FiatRailPanel rail={activeTab} ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
@@ -486,10 +486,34 @@ function CurrencyPendingState({ code, onBack, hint }) {
 // =====================================================
 // Stablecoin rail panel
 // =====================================================
-function StablecoinRailPanel({ coin, onCopy }) {
+function StablecoinRailPanel({ coin, onCopy, issuance = "ready", onIssuanceChange }) {
   const chains = STABLECOIN_CHAINS[coin] || [];
   const [activeChain, setActiveChain] = useState(0);
   const chain = chains[activeChain];
+
+  const [localState, setLocalState] = useState(issuance);
+  useEffect(() => { setLocalState(issuance); }, [issuance]);
+
+  const handleGenerate = () => {
+    setLocalState("processing");
+    setTimeout(() => {
+      setLocalState("ready");
+      if (onIssuanceChange) onIssuanceChange("ready");
+    }, 2000);
+  };
+
+  if (localState === "not_generated") {
+    return <GenerateDetailsPanel
+      title={`Generate ${coin} deposit address`}
+      description={`We'll provision a dedicated ${coin} wallet address for your business. Deposits are credited as USD at a 1:1 rate.`}
+      buttonLabel={`Generate ${coin} address`}
+      onGenerate={handleGenerate}
+    />;
+  }
+
+  if (localState === "processing") {
+    return <GeneratingPanel label={`Creating your ${coin} deposit address…`} />;
+  }
 
   return (
     <div style={{padding: "24px 28px 28px"}}>
@@ -703,7 +727,70 @@ const NGN_ACCOUNT = {
   number: "5200 0443 12",
 };
 
-function NgnRailPanel({ onCopy }) {
+function GenerateDetailsPanel({ title, description, buttonLabel, onGenerate }) {
+  return (
+    <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14,
+        background: "var(--info-100)", color: "var(--info-700)",
+        display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+      }}>
+        <Icon.plus style={{width: 24, height: 24}} />
+      </div>
+      <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+        {title}
+      </div>
+      <div style={{fontSize: 13, color: "var(--gray-600)", maxWidth: 380, margin: "0 auto 20px", lineHeight: 1.6}}>
+        {description}
+      </div>
+      <button className="btn" onClick={onGenerate}>{buttonLabel || "Generate details"}</button>
+    </div>
+  );
+}
+
+function GeneratingPanel({ label }) {
+  return (
+    <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+      <div className="addccy-success" style={{padding: 0}}>
+        <div className="ic processing" style={{width: 56, height: 56}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{width: 26, height: 26}}><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"/></svg>
+        </div>
+        <h3 style={{fontSize: 16, marginBottom: 6}}>{label || "Generating account details…"}</h3>
+        <div className="addccy-progress"><span></span></div>
+        <div style={{fontSize: 12, color: "var(--gray-500)", marginTop: 14}}>
+          This usually takes a few seconds
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NgnRailPanel({ onCopy, issuance = "ready", onIssuanceChange }) {
+  const [localState, setLocalState] = useState(issuance);
+
+  useEffect(() => { setLocalState(issuance); }, [issuance]);
+
+  const handleGenerate = () => {
+    setLocalState("processing");
+    setTimeout(() => {
+      setLocalState("ready");
+      if (onIssuanceChange) onIssuanceChange("ready");
+    }, 2500);
+  };
+
+  if (localState === "not_generated") {
+    return <GenerateDetailsPanel
+      title="Generate NGN account details"
+      description="We'll create a dedicated Naira virtual account for your business. NGN deposits are converted to USD at the live rate when they clear."
+      buttonLabel="Generate NGN account"
+      onGenerate={handleGenerate}
+    />;
+  }
+
+  if (localState === "processing") {
+    return <GeneratingPanel label="Setting up your NGN account…" />;
+  }
+
   return (
     <div style={{padding: "24px 28px 28px"}}>
       <div className="row between" style={{marginBottom: 18, gap: 12, flexWrap: "wrap"}}>
@@ -753,7 +840,7 @@ function NgnRailPanel({ onCopy }) {
 // =====================================================
 // Deposit page
 // =====================================================
-function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", accountSuspended = false }) {
+function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false }) {
   const fiatRailsWithLabels = FIAT_RAILS.map(r => ({
     ...r,
     name: r.id === "usd-wire" ? "Wire (USD)" : r.id === "usd-ach" ? "ACH (USD)" : r.name,
@@ -817,11 +904,11 @@ function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", accountSuspende
 
         {tabLoading ? <PanelSkeleton /> : activeTab && (
           activeTab.type === "stablecoin"
-            ? <StablecoinRailPanel coin={activeTab.coin} onCopy={() => onToast("Copied")} />
+            ? <StablecoinRailPanel coin={activeTab.coin} onCopy={() => onToast("Copied")} issuance={stablecoinIssuance} />
             : activeTab.type === "fiat-pending"
               ? <FiatPendingPanel rail={activeTab} />
               : activeTab.type === "ngn"
-                ? <NgnRailPanel onCopy={(v) => onToast("Copied")} />
+                ? <NgnRailPanel onCopy={(v) => onToast("Copied")} issuance={ngnIssuance} />
                 : <FiatRailPanel rail={activeTab} ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
         )}
       </div>
