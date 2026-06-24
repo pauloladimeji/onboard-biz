@@ -109,7 +109,7 @@ function PlaceholderScreen({ title, blurb, planned = [] }) {
 // =====================================================
 // Mock-router — lives inside the sidebar so it never overlaps the UI
 // =====================================================
-function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, fiatIssuance, onFiatIssuance, authLayout, onAuthLayout, apiAccess, onApiAccess, ngnIssuance, onNgnIssuance, stablecoinIssuance, onStablecoinIssuance }) {
+function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, usdAccountStatus, onUsdAccountStatus, authLayout, onAuthLayout, apiAccess, onApiAccess, ngnIssuance, onNgnIssuance, stablecoinIssuance, onStablecoinIssuance }) {
   const [open, setOpen] = useState(true);
   const inAuth = flow !== "app";
   const inSignin = flow.startsWith("signin") || flow === "forgot-password";
@@ -163,10 +163,13 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, t
           {flow === "app" && (
             <>
               <div className="mockpanel-group">
-                <div className="mockpanel-label">Fiat funding details</div>
-                <div className="mockpanel-row">
-                  <button className={fiatIssuance === "in_progress" ? "on" : ""} onClick={() => onFiatIssuance("in_progress")}>Provisioning</button>
-                  <button className={fiatIssuance === "ready"       ? "on" : ""} onClick={() => onFiatIssuance("ready")}>Ready</button>
+                <div className="mockpanel-label">USD account status</div>
+                <div className="mockpanel-row wrap">
+                  <button className={usdAccountStatus === "not_applied"   ? "on" : ""} onClick={() => onUsdAccountStatus("not_applied")}>Not applied</button>
+                  <button className={usdAccountStatus === "incomplete"    ? "on" : ""} onClick={() => onUsdAccountStatus("incomplete")}>Incomplete</button>
+                  <button className={usdAccountStatus === "under_review"  ? "on" : ""} onClick={() => onUsdAccountStatus("under_review")}>Under review</button>
+                  <button className={usdAccountStatus === "approved"      ? "on" : ""} onClick={() => onUsdAccountStatus("approved")}>Approved</button>
+                  <button className={usdAccountStatus === "declined"      ? "on" : ""} onClick={() => onUsdAccountStatus("declined")}>Declined</button>
                 </div>
               </div>
               <div className="mockpanel-group">
@@ -245,8 +248,7 @@ function App() {
   // 'dashboard' | 'currency'
   const [openCcy, setOpenCcy] = useState(null);
 
-  // Fiat issuance state (v0 only): not_requested | in_progress | ready
-  const [fiatIssuance, setFiatIssuance] = useState("ready");
+  const [usdAccountStatus, setUsdAccountStatus] = useState("approved");
 
   // Auth layout toggle
   const [authLayout, setAuthLayout] = useState("centered"); // "centered" | "split"
@@ -287,7 +289,7 @@ function App() {
     if (f === "app") { setRoute("dashboard"); setOpenCcy(null); }
   };
 
-  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, fiatIssuance, onFiatIssuance: setFiatIssuance, authLayout, onAuthLayout: setAuthLayout, apiAccess, onApiAccess: setApiAccess, ngnIssuance, onNgnIssuance: setNgnIssuance, stablecoinIssuance, onStablecoinIssuance: setStablecoinIssuance };
+  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, usdAccountStatus, onUsdAccountStatus: setUsdAccountStatus, authLayout, onAuthLayout: setAuthLayout, apiAccess, onApiAccess: setApiAccess, ngnIssuance, onNgnIssuance: setNgnIssuance, stablecoinIssuance, onStablecoinIssuance: setStablecoinIssuance };
 
   // ---------- AUTH FLOWS ----------
 
@@ -414,9 +416,9 @@ function App() {
         onToast={showToast} />
     );
   } else if (route === "add-money") {
-    screen = <AddMoneyPage onBack={() => setRoute("dashboard")} onToast={showToast} fiatIssuance={fiatIssuance} ngnIssuance={ngnIssuance} stablecoinIssuance={stablecoinIssuance} accountSuspended={accountStatus === "suspended"} />;
+    screen = <AddMoneyPage onBack={() => setRoute("dashboard")} onToast={showToast} usdAccountStatus={usdAccountStatus} ngnIssuance={ngnIssuance} stablecoinIssuance={stablecoinIssuance} accountSuspended={accountStatus === "suspended"} />;
   } else if (route === "currency" && openCcy) {
-    screen = <CurrencyDetailPage code={openCcy} onBack={backToAccounts} onToast={showToast} fiatIssuance={fiatIssuance} stablecoinIssuance={stablecoinIssuance} accountSuspended={accountStatus === "suspended"} />;
+    screen = <CurrencyDetailPage code={openCcy} onBack={backToAccounts} onToast={showToast} usdAccountStatus={usdAccountStatus} stablecoinIssuance={stablecoinIssuance} accountSuspended={accountStatus === "suspended"} />;
   } else if (route === "payments") {
     screen = <SendPayment
       key={payMode}

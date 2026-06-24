@@ -296,18 +296,17 @@ function RecentTransactions({ txns, title = "Recent activity", onRowClick, dense
 // =====================================================
 // Per-currency detail page (USD only in v0)
 // =====================================================
-function CurrencyDetailPage({ code, onBack, onToast, fiatIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false }) {
+function CurrencyDetailPage({ code, onBack, onToast, usdAccountStatus = "approved", stablecoinIssuance = "ready", accountSuspended = false }) {
   const meta = CURRENCIES[code];
   const balance = V0_ACCOUNTS.find(a => a.code === "USD")?.balance || "0.00";
   const ccyTxns = TXNS.filter(t => t.ccy === code || t.from === code).slice(0, 8);
 
+  const usdApproved = usdAccountStatus === "approved";
+
   const tabs = [
     { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
     { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
-    ...(fiatIssuance === "in_progress"
-      ? FIAT_RAILS.map(r => ({ ...r, type: "fiat-pending" }))
-      : FIAT_RAILS.map(r => ({ ...r, type: "fiat" }))
-    ),
+    { id: "usd-bank", name: "Bank transfer", type: usdApproved ? "fiat-group" : "usd-apply" },
   ];
 
   const [activeRail, setActiveRail] = useState(0);
@@ -390,9 +389,11 @@ function CurrencyDetailPage({ code, onBack, onToast, fiatIssuance = "ready", sta
         {tabLoading ? <PanelSkeleton /> : activeTab && (
           activeTab.type === "stablecoin"
             ? <StablecoinRailPanel coin={activeTab.coin} onCopy={(v) => onToast(`Copied`)} issuance={stablecoinIssuance} />
-            : activeTab.type === "fiat-pending"
-              ? <FiatPendingPanel rail={activeTab} />
-              : <FiatRailPanel rail={activeTab} ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
+            : activeTab.type === "usd-apply"
+              ? <UsdAccountApplyPanel status={usdAccountStatus} />
+              : activeTab.type === "fiat-group"
+                ? <FiatGroupPanel ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
+                : null
         )}
       </div>
       )}
@@ -597,6 +598,68 @@ function StablecoinRailPanel({ coin, onCopy, issuance = "ready", onIssuanceChang
   );
 }
 
+const USD_BANK_DETAILS = {
+  desc: "Receive USD via ACH, domestic wire (Fedwire), or international SWIFT transfer — all to the same account.",
+  fields: [
+    { k: "Account holder",       v: "Acme Trading Co" },
+    { k: "Bank name",            v: "SSB Bank" },
+    { k: "ABA / Routing number", v: "101019644" },
+    { k: "Account number",       v: "8841 0029 4471" },
+    { k: "Account type",         v: "Checking · Business" },
+    { k: "SWIFT / BIC",          v: "LEADUSAA" },
+    { k: "Bank address",         v: "1801 Main Street, Kansas City, MO 64108, USA" },
+  ],
+};
+
+function FiatGroupPanel({ ccy, onCopy }) {
+  const d = USD_BANK_DETAILS;
+  return (
+    <div style={{padding: "24px 28px 28px"}}>
+      <div style={{fontSize: 12.5, color: "var(--gray-700)", lineHeight: 1.55, marginBottom: 18}}>
+        {d.desc}
+      </div>
+
+      <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px", marginBottom: 20}}>
+        {d.fields.map((f, i) => (
+          <div key={i} style={{minWidth: 0}}>
+            <div style={{fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", color: "var(--gray-500)", textTransform: "uppercase", marginBottom: 5}}>{f.k}</div>
+            <div style={{fontSize: 13.5, color: "var(--gray-900)", fontWeight: 500, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 6}}>
+              <span style={{overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{f.v}</span>
+              <CopyInline value={f.v} onCopy={onCopy} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{borderTop: "1px solid var(--gray-200)", paddingTop: 18, marginBottom: 20}}>
+        <div style={{fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", color: "var(--gray-500)", textTransform: "uppercase", marginBottom: 12}}>Fees & timelines by payment method</div>
+        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10}}>
+          {[
+            { rail: "ACH", fee: "0.5% + $1", timing: "1–3 business days", tone: "med" },
+            { rail: "Domestic Fedwire", fee: "0.5% + $20", timing: "Same day", tone: "fast" },
+            { rail: "International SWIFT", fee: "0.5% + $25", timing: "1–2 business days", tone: "med" },
+          ].map(r => (
+            <div key={r.rail} style={{padding: "12px 14px", background: "var(--gray-50)", borderRadius: 10, border: "1px solid var(--gray-200)"}}>
+              <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>{r.rail}</div>
+              <div style={{fontSize: 12, color: "var(--gray-600)", marginBottom: 4}}>Fee: <span style={{fontWeight: 500, color: "var(--gray-900)"}}>{r.fee}</span></div>
+              <div style={{fontSize: 12, color: "var(--gray-600)"}}>Timeline: <span style={{fontWeight: 500, color: "var(--gray-900)"}}>{r.timing}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="row" style={{gap: 8}}>
+        <button className="btn btn-soft btn-sm" onClick={() => {
+          const lines = d.fields.map(f => `${f.k}: ${f.v}`).join("\n");
+          if (navigator.clipboard) navigator.clipboard.writeText(lines).catch(()=>{});
+          onCopy("all account details");
+        }}><Icon.copy /> Copy all details</button>
+        <button className="btn btn-ghost btn-sm"><Icon.doc /> Download as PDF</button>
+      </div>
+    </div>
+  );
+}
+
 function FiatPendingPanel({ rail }) {
   return (
     <div style={{padding: "32px 28px 36px", textAlign: "center"}}>
@@ -616,6 +679,226 @@ function FiatPendingPanel({ rail }) {
       <TimingChip tone="slow" label="1–2 business days" />
     </div>
   );
+}
+
+// =====================================================
+// USD Account Application states
+// =====================================================
+const USD_RAILS_BADGES = () => (
+  <div style={{display: "flex", justifyContent: "center", gap: 8, marginBottom: 20}}>
+    {["ACH", "Domestic Fedwire", "SWIFT"].map(r => (
+      <span key={r} style={{
+        padding: "5px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+        background: "var(--gray-100)", color: "var(--gray-700)", letterSpacing: "0.02em",
+      }}>{r}</span>
+    ))}
+  </div>
+);
+
+function UsdApplyStepper({ step }) {
+  const steps = ["Initiate application", "Verify with partner", "Review"];
+  return (
+    <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 48}}>
+      {steps.map((label, i) => {
+        const done = i < step;
+        const active = i === step;
+        return (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{flex: "0 1 32px", height: 1, background: done || active ? "var(--gray-400)" : "var(--gray-200)", margin: "0 10px"}} />}
+            <div style={{display: "flex", alignItems: "center", gap: 6, flexShrink: 0}}>
+              <div style={{
+                width: 24, height: 24, borderRadius: 99, fontSize: 12, fontWeight: 600,
+                display: "grid", placeItems: "center",
+                background: done ? "var(--gray-900)" : active ? "var(--gray-900)" : "transparent",
+                border: done || active ? "none" : "1.5px solid var(--gray-300)",
+                color: done || active ? "#fff" : "var(--gray-400)",
+              }}>
+                {done
+                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{width: 14, height: 14}}><polyline points="20 6 9 17 4 12"/></svg>
+                  : i + 1}
+              </div>
+              <span style={{fontSize: 13, fontWeight: active ? 600 : 400, color: done || active ? "var(--gray-900)" : "var(--gray-400)"}}>{label}</span>
+            </div>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function UsdAccountApplyPanel({ status }) {
+  const [localStep, setLocalStep] = useState(null); // null | "submitting" | "ready" | "opened"
+
+  useEffect(() => { setLocalStep(null); }, [status]);
+
+  if (status === "not_applied" && localStep === "submitting") {
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={0} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "var(--info-100)", color: "var(--info-700)",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <span className="spin" style={{width: 24, height: 24, borderWidth: 2.5}} />
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          Submitting your details
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 16px", lineHeight: 1.6}}>
+          We're sending your business information to our banking partner. This only takes a moment.
+        </div>
+        <div className="addccy-progress"><span></span></div>
+      </div>
+    );
+  }
+
+  if (status === "not_applied" && localStep === "ready") {
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={1} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "var(--info-100)", color: "var(--info-700)",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: 24, height: 24}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          One more step
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+          Complete a short verification with our banking partner to activate your USD account. This opens in a new tab.
+        </div>
+        <button className="btn btn-lg" onClick={() => setLocalStep("opened")}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: 16, height: 16}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open verification
+        </button>
+      </div>
+    );
+  }
+
+  if (status === "not_applied" && localStep === "opened") {
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={1} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "#FFF6E5", color: "#A16207",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <Icon.clock style={{width: 24, height: 24}} />
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          Verification incomplete
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+          You started the verification process but didn't finish. Pick up where you left off — our banking partner still needs a few details from you.
+        </div>
+        <button className="btn btn-lg" onClick={() => {}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: 16, height: 16}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Continue verification
+        </button>
+      </div>
+    );
+  }
+
+  if (status === "not_applied") {
+    const handleApply = () => {
+      setLocalStep("submitting");
+      setTimeout(() => setLocalStep("ready"), 2000);
+    };
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={0} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "var(--info-100)", color: "var(--info-700)",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <Icon.bank style={{width: 24, height: 24}} />
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          Apply for USD banking
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+          Receive USD deposits into your Onboard account. We'll submit your business details to our banking partner — you'll then complete a short verification with them.
+        </div>
+        <USD_RAILS_BADGES />
+        <button className="btn btn-lg" onClick={handleApply}>Apply for USD account</button>
+      </div>
+    );
+  }
+
+  if (status === "incomplete") {
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={1} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "#FFF6E5", color: "#A16207",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <Icon.clock style={{width: 24, height: 24}} />
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          Verification incomplete
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+          You started the verification process but didn't finish. Pick up where you left off — our banking partner still needs a few details from you.
+        </div>
+        <button className="btn btn-lg" onClick={() => {}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: 16, height: 16}}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Continue verification
+        </button>
+      </div>
+    );
+  }
+
+  if (status === "under_review") {
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={2} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "var(--info-100)", color: "var(--info-700)",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{width: 24, height: 24}}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          Application under review
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+          Your application is being reviewed — this usually takes 1–2 business days. We'll email you when your account is ready, or if we need any additional info. Keep an eye on your email, including spam.
+        </div>
+        <TimingChip tone="slow" label="1–2 business days" />
+      </div>
+    );
+  }
+
+  if (status === "declined") {
+    return (
+      <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+        <UsdApplyStepper step={2} />
+        <div style={{
+          width: 52, height: 52, borderRadius: 14,
+          background: "var(--danger-100)", color: "var(--danger-700)",
+          display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+        }}>
+          <Icon.alert style={{width: 24, height: 24}} />
+        </div>
+        <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+          Application declined
+        </div>
+        <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+          Unfortunately, our banking partner was unable to approve your USD account at this time. Contact <strong>support@onboard.xyz</strong> for more information.
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 // =====================================================
@@ -840,18 +1123,14 @@ function NgnRailPanel({ onCopy, issuance = "ready", onIssuanceChange }) {
 // =====================================================
 // Deposit page
 // =====================================================
-function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false }) {
-  const fiatRailsWithLabels = FIAT_RAILS.map(r => ({
-    ...r,
-    name: r.id === "usd-wire" ? "Wire (USD)" : r.id === "usd-ach" ? "ACH (USD)" : r.name,
-    type: fiatIssuance === "in_progress" ? "fiat-pending" : "fiat",
-  }));
+function AddMoneyPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false }) {
+  const usdApproved = usdAccountStatus === "approved";
 
   const tabs = [
     { id: "ngn",  name: "NGN",  type: "ngn" },
     { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
     { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
-    ...fiatRailsWithLabels,
+    { id: "usd-bank", name: "USD bank transfer", type: usdApproved ? "fiat-group" : "usd-apply" },
   ];
 
   const [activeRail, setActiveRail] = useState(0);
@@ -905,11 +1184,13 @@ function AddMoneyPage({ onBack, onToast, fiatIssuance = "ready", ngnIssuance = "
         {tabLoading ? <PanelSkeleton /> : activeTab && (
           activeTab.type === "stablecoin"
             ? <StablecoinRailPanel coin={activeTab.coin} onCopy={() => onToast("Copied")} issuance={stablecoinIssuance} />
-            : activeTab.type === "fiat-pending"
-              ? <FiatPendingPanel rail={activeTab} />
+            : activeTab.type === "usd-apply"
+              ? <UsdAccountApplyPanel status={usdAccountStatus} />
               : activeTab.type === "ngn"
                 ? <NgnRailPanel onCopy={(v) => onToast("Copied")} issuance={ngnIssuance} />
-                : <FiatRailPanel rail={activeTab} ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
+                : activeTab.type === "fiat-group"
+                  ? <FiatGroupPanel ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
+                  : null
         )}
       </div>
       )}
