@@ -183,17 +183,7 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, t
                   <button className={stablecoinIssuance === "ready"         ? "on" : ""} onClick={() => onStablecoinIssuance("ready")}>Ready</button>
                 </div>
               </div>
-              {route === "payments" && (
-                <div className="mockpanel-group">
-                  <div className="mockpanel-label">Send payment default order</div>
-                  <div className="mockpanel-row wrap">
-                    <button className={payMode === "recipient" ? "on" : ""} onClick={() => onPayMode("recipient")}>Recipient first</button>
-                    <button className={payMode === "amount"    ? "on" : ""} onClick={() => onPayMode("amount")}>Amount first</button>
-                  </div>
-
-                </div>
-              )}
-              {route === "add-recipient" && (
+{route === "add-recipient" && (
                 <div className="mockpanel-group">
                   <div className="mockpanel-label">Name lookup</div>
                   <div className="mockpanel-row wrap">

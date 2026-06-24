@@ -1514,15 +1514,15 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
       <div className="page-head">
         <div>
           <h1 className="title">Recipients</h1>
-          <p className="subtitle">{dataState === "empty" ? "Save people and businesses you pay regularly so it’s one tap next time." : tab === "fiat" ? `${fiatCount} fiat recipients` : `${cryptoCount} crypto wallets`}</p>
+          <p className="subtitle">{dataState === "empty" ? "Save people and businesses you pay regularly so it’s one tap next time." : tab === "fiat" ? `${fiatCount} recipients` : `${cryptoCount} crypto wallets`}</p>
         </div>
         <div className="row" style={{gap: 8}}>
           <button className="btn" onClick={onAddNew}><RIcon.plus /> Add recipient</button>
         </div>
       </div>
 
-      <div style={{display:"inline-flex", background:"var(--gray-100)", borderRadius:10, padding:3, gap:2, marginBottom:16}}>
-        {[["fiat","Fiat", fiatCount],["crypto","Crypto", cryptoCount]].map(([id, label, count]) => (
+      <div style={{display:"inline-flex", background:"var(--gray-200)", borderRadius:10, padding:3, gap:2, marginBottom:16}}>
+        {[["fiat","Bank or mobile money", fiatCount],["crypto","Crypto wallet", cryptoCount]].map(([id, label, count]) => (
           <button key={id} onClick={() => { setTab(id); setQ(""); setCcyF("all"); }}
             style={{
               padding:"5px 14px", borderRadius:8, fontSize:13, fontWeight:500,
@@ -1567,7 +1567,7 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
         </div>
       ) : <div className="tablecard">
         <div className="head">
-          <h2>{tab === "fiat" ? "Fiat recipients" : "Crypto wallets"}</h2>
+          <h2>{tab === "fiat" ? "Recipients" : "Crypto wallets"}</h2>
           <span className="meta">{`${list.length} of ${filtered.length}`}</span>
         </div>
 

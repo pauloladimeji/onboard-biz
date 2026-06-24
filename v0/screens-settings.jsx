@@ -9,7 +9,7 @@ const { BUSINESS_PROFILE } = window.OBData;
 
 const SECTIONS = [
   { id: "profile",   label: "Business profile", icon: "bank",   blurb: "Business name, contact, verification" },
-  { id: "security",  label: "Security",         icon: "shield", blurb: "Authenticator app for 2FA" },
+  { id: "security",  label: "Security",         icon: "shield", blurb: "Authentication and password" },
 ];
 
 const SUPPORT_EMAIL = "support@onboard.xyz";
@@ -184,24 +184,26 @@ function ReadOnlyRow({ label, value, sub }) {
 
 // ---------- Section · Security ----------
 function SecuritySection({ onToast }) {
-  // Mock state for the prototype: whether the user has set up an authenticator
-  const [totpSetUp, setTotpSetUp] = useStateS(true);
-  const [setupOpen, setSetupOpen] = useStateS(false);
-  const [confirmRevoke, setConfirmRevoke] = useStateS(false);
+  const totpSetUp = true;
+
+  const [pwFields, setPwFields] = useStateS({ current: "", next: "", confirm: "" });
+  const [pwVisible, setPwVisible] = useStateS({});
+  const togglePwVis = (k) => setPwVisible(prev => ({ ...prev, [k]: !prev[k] }));
+  const setPw = (k, v) => setPwFields(prev => ({ ...prev, [k]: v }));
+  const pwValid = pwFields.current.length > 0 && pwFields.next.length >= 8 && pwFields.next === pwFields.confirm;
+
+  const EyeBtn = ({ field }) => (
+    <button onClick={() => togglePwVis(field)} style={{position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--gray-400)", padding: 4, display: "grid", placeItems: "center"}}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{width: 16, height: 16}}>
+        {pwVisible[field]
+          ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
+          : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>}
+      </svg>
+    </button>
+  );
 
   return (
     <>
-      <div className="set-banner info">
-        <div className="ic"><SIcon.shield /></div>
-        <div className="meta">
-          <div className="t">Two-factor authentication is required</div>
-          <div className="s">
-            Onboard prompts you for a 6-digit code on sign-in and on every outbound payment.
-            Set up your authenticator app for the smoothest experience — we&rsquo;ll fall back to email codes if you can&rsquo;t access it.
-          </div>
-        </div>
-      </div>
-
       <div className="set-card">
         <div className="set-card-head">
           <div>
@@ -212,55 +214,55 @@ function SecuritySection({ onToast }) {
               </span>
             </h2>
             <p className="set-card-sub">
-              Use Google Authenticator, 1Password, Authy, or any TOTP-compatible app to generate 6-digit codes.
+              Two-factor authentication is required for sign-in and outbound payments. Use Google Authenticator, 1Password, Authy, or any TOTP-compatible app to generate 6-digit codes.
             </p>
           </div>
         </div>
 
         <div className="set-totp-status">
           <div className="ic"><SIcon.shield /></div>
-          {totpSetUp ? (
-            <div className="meta">
-              <div className="t">Authenticator app connected</div>
-              <div className="s">Set up · last used 2 hours ago</div>
-            </div>
-          ) : (
-            <div className="meta">
-              <div className="t">No authenticator app set up</div>
-              <div className="s">You&rsquo;re currently falling back to email codes for every sign-in and payment.</div>
-            </div>
-          )}
-          <div style={{display: "flex", gap: 8}}>
-            {totpSetUp ? (
-              <button className="btn btn-soft btn-sm" onClick={() => setConfirmRevoke(true)}>
-                Revoke
-              </button>
-            ) : (
-              <button className="btn btn-sm" onClick={() => setSetupOpen(true)}>
-                <SIcon.shield /> Set up app
-              </button>
-            )}
+          <div className="meta">
+            <div className="t">Authenticator app connected</div>
+            <div className="s">Set up on Jun 5, 2024</div>
           </div>
         </div>
       </div>
 
-      {setupOpen && (
-        <TotpSetupModal
-          onClose={() => setSetupOpen(false)}
-          onDone={() => { setSetupOpen(false); setTotpSetUp(true); onToast && onToast("Authenticator app set up"); }}
-        />
-      )}
+      <div className="set-card">
+        <div className="set-card-head">
+          <div>
+            <h2 className="set-card-title">Change password</h2>
+            <p className="set-card-sub">Use a strong password you don&rsquo;t reuse on other sites.</p>
+          </div>
+        </div>
+        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px", maxWidth: 520}}>
+          <div className="field" style={{gridColumn: "1 / -1"}}>
+            <div className="lbl">Current password</div>
+            <div style={{position: "relative"}}>
+              <input className="inp" type={pwVisible.current ? "text" : "password"} value={pwFields.current} onChange={(e) => setPw("current", e.target.value)} placeholder="Enter current password" style={{paddingRight: 40}} />
+              <EyeBtn field="current" />
+            </div>
+          </div>
+          <div className="field">
+            <div className="lbl">New password</div>
+            <div style={{position: "relative"}}>
+              <input className="inp" type={pwVisible.next ? "text" : "password"} value={pwFields.next} onChange={(e) => setPw("next", e.target.value)} placeholder="At least 8 characters" style={{paddingRight: 40}} />
+              <EyeBtn field="next" />
+            </div>
+          </div>
+          <div className="field">
+            <div className="lbl">Confirm new password</div>
+            <div style={{position: "relative"}}>
+              <input className="inp" type={pwVisible.confirm ? "text" : "password"} value={pwFields.confirm} onChange={(e) => setPw("confirm", e.target.value)} placeholder="Re-enter new password" style={{paddingRight: 40}} />
+              <EyeBtn field="confirm" />
+            </div>
+          </div>
+        </div>
+        <div style={{marginTop: 16}}>
+          <button className="btn" disabled={!pwValid} onClick={() => { setPwFields({ current: "", next: "", confirm: "" }); onToast && onToast("Password updated"); }}>Update password</button>
+        </div>
+      </div>
 
-      {confirmRevoke && (
-        <RevokeTotpModal
-          onClose={() => setConfirmRevoke(false)}
-          onConfirm={() => {
-            setConfirmRevoke(false);
-            setTotpSetUp(false);
-            onToast && onToast("Authenticator revoked. You’ll receive email codes until you set it up again.");
-          }}
-        />
-      )}
     </>
   );
 }

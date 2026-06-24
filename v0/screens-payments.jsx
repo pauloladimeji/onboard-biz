@@ -191,7 +191,7 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
       </div>
 
       <div style={{display:"inline-flex", alignSelf:"flex-start", background:"var(--gray-100)", borderRadius:10, padding:3, gap:2, margin:"12px 0 12px"}}>
-        {[["fiat","Fiat", fiatRecipients.length],["crypto","Crypto", cryptoRecipients.length]].map(([id, label, count]) => (
+        {[["fiat","Bank or mobile money", fiatRecipients.length],["crypto","Crypto wallet", cryptoRecipients.length]].map(([id, label, count]) => (
           <button key={id} onClick={() => { setTab(id); setQ(""); }}
             style={{
               padding:"5px 14px", borderRadius:8, fontSize:13, fontWeight:500,
@@ -213,7 +213,7 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
 
       <button className="recip-add" onClick={onAddNew}>
         <span className="ic"><PIcon.plus /></span>
-        <span className="t">{tab === "fiat" ? "Add new recipient" : "Add crypto wallet"}</span>
+        <span className="t">{tab === "fiat" ? "Add new recipient" : "Add wallet"}</span>
         <PIcon.arrowRight />
       </button>
 
@@ -831,7 +831,11 @@ function ReviewPayment({ payment, onBack, onConfirm, requiresApproval = false })
         <div className="pay-review-list">
           <div className="row-item">
             <div className="k">Recipient</div>
-            <div className="v">{`${recipient.name} · ${recipient.type}`}<br/><span className="muted">{recipient.handle}</span></div>
+            <div className="v">{recipient.name}</div>
+          </div>
+          <div className="row-item">
+            <div className="k">Account</div>
+            <div className="v">{`${recipient.type} · ${recipient.handle}`}</div>
           </div>
           <div className="row-item">
             <div className="k">FX rate</div>
@@ -981,7 +985,11 @@ function PaymentApprovalStep({ method: defaultMethod, payment, onBack, onApprove
           </div>
           <div className="row">
             <div className="lb">To</div>
-            <div className="vl">{`${recipient.name} · ${dstCcy} ${fmt(receive)}`}</div>
+            <div className="vl">{recipient.name}</div>
+          </div>
+          <div className="row">
+            <div className="lb">They receive</div>
+            <div className="vl">{`${dstCcy} ${fmt(receive)}`}</div>
           </div>
         </div>
 
