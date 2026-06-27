@@ -307,6 +307,8 @@ function CurrencyDetailPage({ code, onBack, onToast, usdAccountStatus = "approve
     { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
     { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
     { id: "usd-bank", name: "Bank transfer", type: usdApproved ? "fiat-group" : "usd-apply" },
+    { id: "eur-bank", name: "EUR bank transfer", type: "ccy-request", ccy: "EUR" },
+    { id: "gbp-bank", name: "GBP bank transfer", type: "ccy-request", ccy: "GBP" },
   ];
 
   const [activeRail, setActiveRail] = useState(0);
@@ -393,7 +395,9 @@ function CurrencyDetailPage({ code, onBack, onToast, usdAccountStatus = "approve
               ? <UsdAccountApplyPanel status={usdAccountStatus} />
               : activeTab.type === "fiat-group"
                 ? <FiatGroupPanel ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
-                : null
+                : activeTab.type === "ccy-request"
+                  ? <CcyRequestPanel ccy={activeTab.ccy} onToast={onToast} />
+                  : null
         )}
       </div>
       )}
@@ -656,6 +660,29 @@ function FiatGroupPanel({ ccy, onCopy }) {
         }}><Icon.copy /> Copy all details</button>
         <button className="btn btn-ghost btn-sm"><Icon.doc /> Download as PDF</button>
       </div>
+    </div>
+  );
+}
+
+function CcyRequestPanel({ ccy }) {
+  return (
+    <div style={{padding: "40px 28px 44px", textAlign: "center"}}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 14,
+        background: "var(--info-100)", color: "var(--info-700)",
+        display: "grid", placeItems: "center", marginBottom: 16, marginInline: "auto",
+      }}>
+        <Icon.bank style={{width: 24, height: 24}} />
+      </div>
+      <div style={{fontSize: 16, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>
+        {ccy} bank transfers
+      </div>
+      <div style={{fontSize: 13.5, color: "var(--gray-600)", maxWidth: 420, margin: "0 auto 20px", lineHeight: 1.6}}>
+        Receive {ccy} deposits via bank transfer. To get started, email <strong>support@onboard.xyz</strong> with your expected monthly volume and we'll set you up.
+      </div>
+      <a href={`mailto:support@onboard.xyz?subject=Request for ${ccy} bank account for Acme Trading Co&body=Business name: Acme Trading Co%0D%0AExpected monthly volume (${ccy}): `} className="btn btn-lg" style={{textDecoration: "none"}}>
+        Email support@onboard.xyz
+      </a>
     </div>
   );
 }
@@ -1131,6 +1158,8 @@ function AddMoneyPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssua
     { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
     { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
     { id: "usd-bank", name: "USD bank transfer", type: usdApproved ? "fiat-group" : "usd-apply" },
+    { id: "eur-bank", name: "EUR bank transfer", type: "ccy-request", ccy: "EUR" },
+    { id: "gbp-bank", name: "GBP bank transfer", type: "ccy-request", ccy: "GBP" },
   ];
 
   const [activeRail, setActiveRail] = useState(0);
@@ -1190,7 +1219,9 @@ function AddMoneyPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssua
                 ? <NgnRailPanel onCopy={(v) => onToast("Copied")} issuance={ngnIssuance} />
                 : activeTab.type === "fiat-group"
                   ? <FiatGroupPanel ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
-                  : null
+                  : activeTab.type === "ccy-request"
+                    ? <CcyRequestPanel ccy={activeTab.ccy} onToast={onToast} />
+                    : null
         )}
       </div>
       )}
