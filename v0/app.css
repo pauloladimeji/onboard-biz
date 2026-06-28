@@ -128,6 +128,7 @@ button { font-family: var(--font-sans); }
   color: var(--gray-700) !important;
   text-decoration: none !important;
   font-size: 13px; font-weight: 500;
+  cursor: pointer;
   transition: background-color .12s, color .12s;
 }
 .crumb-back:hover { background: var(--gray-100); color: var(--gray-900) !important; text-decoration: none !important; }

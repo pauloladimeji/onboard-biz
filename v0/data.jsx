@@ -34,6 +34,13 @@ const Icon = {
   email:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
   shield:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"/></svg>,
   inbox:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 13l2-8h14l2 8M3 13v6a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6M3 13h6l1 2h4l1-2h6"/></svg>,
+  card:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>,
+  snowflake:(p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2v20M17 7l-5 5-5-5M7 17l5-5 5 5M2 12h20M7 7l-5 5 5 5M17 7l5 5-5 5"/></svg>,
+  eye:     (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  eyeOff:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+  pencil:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>,
+  trash:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>,
+  applePay:(p) => <svg viewBox="0 0 24 24" {...p}><path d="M7.28 4.28c.66-.78.96-1.76.86-2.78A3.95 3.95 0 005.6 3.05c-.7.76-1.01 1.72-.89 2.72.96.08 1.9-.4 2.57-1.49zM8.14 5.78c-1.42-.08-2.63.8-3.3.8s-1.73-.76-2.86-.74A4.22 4.22 0 00.42 7.07c-1.53 2.64-.39 6.56 1.08 8.72.73 1.06 1.6 2.24 2.74 2.2 1.1-.04 1.51-.7 2.84-.7 1.33 0 1.7.7 2.86.68 1.18-.02 1.93-1.08 2.66-2.14.83-1.22 1.18-2.4 1.2-2.46-.02-.02-2.3-.88-2.32-3.5-.02-2.18 1.78-3.22 1.86-3.28-1.02-1.5-2.6-1.68-3.16-1.72l-.04-.1z" fill="currentColor"/><path d="M17.78 2.02h3.46c2.4 0 4.06 1.65 4.06 4.07 0 2.42-1.7 4.1-4.13 4.1h-2.26v4.24h-1.86V2.02h.73zm1.13 1.51v5.13h1.87c1.64 0 2.58-.88 2.58-2.57 0-1.69-.94-2.56-2.57-2.56h-1.88z" fill="currentColor" transform="scale(0.75) translate(4.5, 3)"/></svg>,
 };
 
 const NetworkIcon = {
@@ -242,6 +249,13 @@ const WAITLIST_CURRENCIES = [
   { code: "MZN", name: "Mozambican Metical", flag: "mz" },
 ];
 
+// ---------- Cards mock data ----------
+const CARDS = [
+  { id: "card-1", name: "Marketing spend", last4: "4821", type: "virtual", status: "active", number: "4539 1201 8847 4821", expiry: "09/28", cvv: "314", limit: { perTransaction: 5000, daily: 10000, monthly: 50000 }, created: "Mar 12, 2026", balance: 2450.00 },
+  { id: "card-2", name: "Operations", last4: "7733", type: "virtual", status: "active", number: "4539 1201 6620 7733", expiry: "09/28", cvv: "528", limit: { perTransaction: 10000, daily: 25000, monthly: 100000 }, created: "Apr 3, 2026", balance: 8120.50 },
+  { id: "card-3", name: "Travel & expenses", last4: "0159", type: "virtual", status: "frozen", number: "4539 1201 3390 0159", expiry: "09/28", cvv: "961", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "May 18, 2026", balance: 340.00 },
+];
+
 // v0 mock balances — USD only (all funds held as a single USD balance)
 const V0_USD_BALANCE = 84231.50;
 
@@ -254,5 +268,5 @@ const NETWORK_TOKENS = {
   tron:    ["USDT"],
 };
 
-window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS };
+window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS, CARDS };
 window.OBNetworkIcon = NetworkIcon;

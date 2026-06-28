@@ -1688,3 +1688,7 @@
   margin-top: 10px; padding-top: 10px;
   border-top: 1px solid var(--gray-100);
 }
+
+/* Input error state — overrides .inp:focus blue border */
+.inp.inp-error { border-color: var(--error-500) !important; }
+.inp.inp-error:focus { border-color: var(--error-500) !important; box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
