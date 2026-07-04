@@ -146,9 +146,11 @@ function DashboardSkeleton() {
   );
 }
 
-function AccountsDashboard({ onOpenCurrency, onSendPayment, onAddMoney, onToast, dataState = "full", accountSuspended = false }) {
+function AccountsDashboard({ onOpenCurrency, onSendPayment, onAddMoney, onGoToCards, onToast, dataState = "full", accountSuspended = false, dashLayout = "default" }) {
   const isEmpty = dataState === "empty";
   const balance = isEmpty ? "0.00" : "84,231.50";
+  const cardBalance = isEmpty ? "0.00" : "1,347.50";
+  const activeCards = isEmpty ? 0 : 2;
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
   const [loading, setLoading] = useState(true);
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 900); return () => clearTimeout(t); }, []);
@@ -167,35 +169,70 @@ function AccountsDashboard({ onOpenCurrency, onSendPayment, onAddMoney, onToast,
         </div>
       )}
 
-      <div className="home-hero">
-        <div className="home-hero-top">
-          <div className="home-acct-label">
-            <CcyFlag code="USD" size={22} />
-            <span className="t">Global USD Account</span>
+      <div style={dashLayout === "cards-split" ? { display: "flex", gap: 20, marginBottom: 22 } : {}}>
+        <div className="home-hero" style={dashLayout === "cards-split" ? { flex: 1, marginBottom: 0 } : {}}>
+          <div className="home-hero-top">
+            <div className="home-acct-label">
+              <CcyFlag code="USD" size={22} />
+              <span className="t">Global USD Account</span>
+            </div>
+            <div className="home-status">
+              <span className="dot" />
+              Active · Updated 2 min ago
+            </div>
           </div>
-          <div className="home-status">
-            <span className="dot" />
-            Active · Updated 2 min ago
+
+          <div className="home-balance">
+            <span className="home-balance-num">${balance}</span>
+            <span className="home-balance-ccy">USD</span>
           </div>
+
+          <div className="home-actions">
+            <button className="btn btn-lg" onClick={onAddMoney}>
+              <Icon.plus /> Deposit
+            </button>
+            <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}>
+              <Icon.paperplane /> Send money
+            </button>
+          </div>
+
+          <div className="home-divider" />
+
+          <div className="home-rails-note">Fund with USD, NGN, or stablecoins — all deposits are held as USD</div>
         </div>
 
-        <div className="home-balance">
-          <span className="home-balance-num">${balance}</span>
-          <span className="home-balance-ccy">USD</span>
-        </div>
+        {dashLayout === "cards-split" && (
+          <div className="home-hero" style={{ flex: 1, marginBottom: 0 }}>
+            <div className="home-hero-top">
+              <div className="home-acct-label">
+                <Icon.card style={{ width: 20, height: 20, color: "var(--purple-600)" }} />
+                <span className="t">Flex Cards</span>
+              </div>
+              <div className="home-status">
+                <span className="dot" style={{ background: activeCards > 0 ? "#22C55E" : "var(--gray-400)" }} />
+                {activeCards > 0 ? `${activeCards} active` : "No active cards"}
+              </div>
+            </div>
 
-        <div className="home-actions">
-          <button className="btn btn-lg" onClick={onAddMoney}>
-            <Icon.plus /> Deposit
-          </button>
-          <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}>
-            <Icon.paperplane /> Send money
-          </button>
-        </div>
+            <div className="home-balance">
+              <span className="home-balance-num">${cardBalance}</span>
+              <span className="home-balance-ccy">USD</span>
+            </div>
 
-        <div className="home-divider" />
+            <div className="home-actions">
+              <button className="btn btn-lg" onClick={onGoToCards}>
+                <Icon.card /> View cards
+              </button>
+              <button className="btn btn-soft btn-lg" onClick={onGoToCards}>
+                <Icon.plus /> New card
+              </button>
+            </div>
 
-        <div className="home-rails-note">Fund with USD, NGN, or stablecoins — all deposits are held as USD</div>
+            <div className="home-divider" />
+
+            <div className="home-rails-note">Virtual cards funded directly from your USD balance</div>
+          </div>
+        )}
       </div>
 
       <RecentTransactions

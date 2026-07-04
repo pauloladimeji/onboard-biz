@@ -111,7 +111,7 @@ function PlaceholderScreen({ title, blurb, planned = [] }) {
 // =====================================================
 // Mock-router — lives inside the sidebar so it never overlaps the UI
 // =====================================================
-function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, usdAccountStatus, onUsdAccountStatus, authLayout, onAuthLayout, apiAccess, onApiAccess, ngnIssuance, onNgnIssuance, stablecoinIssuance, onStablecoinIssuance, cardsAccess, onCardsAccess }) {
+function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState, payMode, onPayMode, route, nameLookupMock, onNameLookupMock, dataState, onDataState, accountStatus, onAccountStatus, complianceHold, onComplianceHold, usdAccountStatus, onUsdAccountStatus, authLayout, onAuthLayout, apiAccess, onApiAccess, ngnIssuance, onNgnIssuance, stablecoinIssuance, onStablecoinIssuance, cardsAccess, onCardsAccess, dashLayout, onDashLayout }) {
   const [open, setOpen] = useState(true);
   const inAuth = flow !== "app";
   const inSignin = flow.startsWith("signin") || flow === "forgot-password";
@@ -193,6 +193,13 @@ function MockPanel({ flow, onFlow, signinAccountStatus, onSigninAccountStatus, t
                 <div className="mockpanel-row">
                   <button className={cardsAccess === "not_applied" ? "on" : ""} onClick={() => onCardsAccess("not_applied")}>Not applied</button>
                   <button className={cardsAccess === "active"      ? "on" : ""} onClick={() => onCardsAccess("active")}>Active</button>
+                </div>
+              </div>
+              <div className="mockpanel-group">
+                <div className="mockpanel-label">Homepage layout</div>
+                <div className="mockpanel-row">
+                  <button className={dashLayout === "default"      ? "on" : ""} onClick={() => onDashLayout("default")}>Default</button>
+                  <button className={dashLayout === "cards-split"  ? "on" : ""} onClick={() => onDashLayout("cards-split")}>Cards split</button>
                 </div>
               </div>
 {route === "add-recipient" && (
@@ -283,6 +290,7 @@ function App() {
   const [ngnIssuance, setNgnIssuance] = useState("ready"); // "not_generated" | "ready"
   const [stablecoinIssuance, setStablecoinIssuance] = useState("ready"); // "not_generated" | "ready"
   const [cardsAccess, setCardsAccess] = useState("active"); // "not_applied" | "active"
+  const [dashLayout, setDashLayout] = useState("default"); // "default" | "cards-split"
 
   // Active transaction (for detail page)
   const [openTx, setOpenTx] = useState(null);
@@ -299,7 +307,7 @@ function App() {
     if (f === "app") { setRoute("dashboard"); setOpenCcy(null); }
   };
 
-  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, usdAccountStatus, onUsdAccountStatus: setUsdAccountStatus, authLayout, onAuthLayout: setAuthLayout, apiAccess, onApiAccess: setApiAccess, ngnIssuance, onNgnIssuance: setNgnIssuance, stablecoinIssuance, onStablecoinIssuance: setStablecoinIssuance, cardsAccess, onCardsAccess: setCardsAccess };
+  const mockProps = { flow, onFlow: setFlowAndReset, signinAccountStatus, onSigninAccountStatus: setSigninAccountStatus, totpState, onTotpState: setTotpState, payMode, onPayMode: setPayMode, route, nameLookupMock, onNameLookupMock: setNameLookupMock, dataState, onDataState: setDataState, accountStatus, onAccountStatus: setAccountStatus, complianceHold, onComplianceHold: setComplianceHold, usdAccountStatus, onUsdAccountStatus: setUsdAccountStatus, authLayout, onAuthLayout: setAuthLayout, apiAccess, onApiAccess: setApiAccess, ngnIssuance, onNgnIssuance: setNgnIssuance, stablecoinIssuance, onStablecoinIssuance: setStablecoinIssuance, cardsAccess, onCardsAccess: setCardsAccess, dashLayout, onDashLayout: setDashLayout };
 
   // ---------- AUTH FLOWS ----------
 
@@ -423,6 +431,8 @@ function App() {
         onOpenCurrency={goCurrency}
         onAddMoney={() => setRoute("add-money")}
         onSendPayment={() => setRoute("payments")}
+        onGoToCards={() => setRoute("cards")}
+        dashLayout={dashLayout}
         onToast={showToast} />
     );
   } else if (route === "add-money") {

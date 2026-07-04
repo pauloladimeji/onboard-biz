@@ -23,7 +23,7 @@ function AuthShellCentered({ children, step, totalSteps }) {
       </div>
 
       <div className="auth-centered-legal">
-        Onboard Payments Inc. is registered with FinCEN as an MSB (Rn: 31000231722151). Onboard Payments Ltd. is authorised by the FCA as an EMI under FRN 931425.
+        Gopay Financial Services Inc. (dba Onboard Pay) is registered with FINTRAC as an MSB (RN: C100000565). Onboard Digital is registered with FinCEN as an MSB (RN: 31000293152346).
       </div>
     </div>
   );
@@ -34,9 +34,8 @@ function AuthShellCentered({ children, step, totalSteps }) {
 // =====================================================
 function AuthInfoPanel() {
   const badges = [
-    { label: "FinCEN MSB" },
-    { label: "FCA EMI" },
-    { label: "EU VASP" },
+    { flag: "🇺🇸", label: "FinCEN MSB" },
+    { flag: "🇨🇦", label: "FINTRAC MSB" },
   ];
   return (
     <div className="auth-info-panel">
@@ -51,13 +50,22 @@ function AuthInfoPanel() {
             The modern way to move <span>money</span> across borders.
           </h2>
           <p className="auth-info-sub" style={{margin: 0, textAlign: "center"}}>
-            Receive money globally, pay out anywhere — built for businesses that move money across borders.
+            Fund in USD, GBP, EUR, NGN, or stablecoins. Pay out globally.
           </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 4 }}>
+            {["USD", "GBP", "EUR", "USDC", "USDT", "NGN", "GHS", "KES"].map(code => (
+              <span key={code} style={{
+                fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.55)",
+                background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.13)",
+                borderRadius: 4, padding: "3px 7px", letterSpacing: "0.02em",
+              }}>{code}</span>
+            ))}
+          </div>
         </div>
-        <div className="auth-info-licenses" style={{justifyContent: "center"}}>
-          {badges.map(({ label }) => (
-            <div key={label} className="auth-info-license">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
+          {badges.map(({ flag, label }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
+              <span style={{ fontSize: 15, lineHeight: 1 }}>{flag}</span>
               {label}
             </div>
           ))}
@@ -69,14 +77,18 @@ function AuthInfoPanel() {
 
 function AuthInfoPanelSignUp() {
   const steps = [
-    { n: 1, title: "Apply", desc: "Fill in your details. We'll review within the hour." },
-    { n: 2, title: "Verify", desc: "We'll send you a KYB link to confirm your business — typically done within a day." },
-    { n: 3, title: "Access", desc: "Your Onboard account is ready. Fund in USD and pay out across borders." },
+    { n: 1, title: "Apply",  desc: "Complete the KYB form with your business details and UBO information." },
+    { n: 2, title: "Verify", desc: "We review every application personally. Each UBO receives a KYC verification link." },
+    { n: 3, title: "Access", desc: "Account provisioned and ready. Fund in USD and pay out across borders." },
+  ];
+  const badges = [
+    { flag: "🇺🇸", label: "FinCEN MSB" },
+    { flag: "🇨🇦", label: "FINTRAC MSB" },
   ];
   return (
     <div className="auth-info-panel">
       <div className="auth-info-logo">
-        <img src="design-system/assets/onboard-logo-lockup-purple.png?v=1778066455523" alt="Onboard Business" />
+        <img src="design-system/assets/onboard-logo-lockup-purple.png" alt="Onboard Business" />
       </div>
       <h2 className="auth-info-tagline">
         Built for businesses moving money <span>across borders</span>.
@@ -95,11 +107,11 @@ function AuthInfoPanelSignUp() {
           </div>
         ))}
       </div>
-      <div className="auth-info-licenses" style={{marginTop: "auto"}}>
-        {["FinCEN MSB", "FCA EMI", "EU VASP"].map(name => (
-          <div key={name} className="auth-info-license">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            {name}
+      <div style={{ marginTop: "auto", display: "flex", gap: 20, flexWrap: "wrap" }}>
+        {badges.map(({ flag, label }) => (
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{flag}</span>
+            {label}
           </div>
         ))}
       </div>
@@ -121,11 +133,11 @@ function AuthShellSplit({ children, step, totalSteps, variant }) {
         </div>
 
         <div className="auth-centered-legal">
-          Onboard Payments Inc. is registered with FinCEN as an MSB (Rn: 31000231722151). Onboard Payments Ltd. is authorised by the FCA as an EMI under FRN 931425.
+          Gopay Financial Services Inc. (dba Onboard Pay) is registered with FINTRAC as an MSB (RN: C100000565). Onboard Digital is registered with FinCEN as an MSB (RN: 31000293152346).
         </div>
       </div>
       <div className="auth-split-right">
-        {variant === "signup" ? <AuthInfoPanelSignUp /> : <AuthInfoPanel />}
+        <AuthInfoPanel />
       </div>
     </div>
   );
@@ -172,32 +184,80 @@ function AuthShell({ children, step, totalSteps, layout, variant }) {
 // Apply for access — info page (no form; form is on Tally)
 // =====================================================
 const TALLY_URL = "https://tally.so/r/5BMoRP";
-const SUPPORT_WA = "https://wa.me/+2348000000000";
+const SUPPORT_WA = "https://wa.me/14313404484";
+const TOS_URL = "https://www.onboard.xyz/terms";
+const PP_URL  = "https://www.onboard.xyz/privacy-policy";
+
+function LegalConsent({ action = "continuing" }) {
+  const link = (href, label) => (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+       style={{ color: "var(--gray-500)", textDecoration: "underline" }}>{label}</a>
+  );
+  return (
+    <p style={{ fontSize: 11.5, color: "var(--gray-500)", textAlign: "center", lineHeight: 1.55, margin: "10px 0 0" }}>
+      By {action}, you agree to our {link(TOS_URL, "Terms of Service")} and {link(PP_URL, "Privacy Policy")}.
+    </p>
+  );
+}
 
 function ApplyForAccessScreen({ onSignIn, layout }) {
+  const [showForm, setShowForm] = useState(false);
   const steps = [
-    { n: 1, title: "Application review", desc: "We review every application personally — usually within the hour." },
-    { n: 2, title: "KYB verification",   desc: "We'll email you everything you need — a verification link, what to prepare, and next steps." },
-    { n: 3, title: "Account activation", desc: "Your account is ready. We'll email you a link to set your password and sign in." },
+    { n: 1, title: "Complete the KYB form", desc: "Tell us about your business and use case. Takes about 5 minutes." },
+    { n: 2, title: "Review & verification",  desc: "We review your application and send KYC links to each UBO." },
+    { n: 3, title: "Account provisioned",    desc: "Once approved, your account is ready. Sign-in credentials arrive by email." },
   ];
 
+  if (showForm) {
+    return (
+      <div className="auth-split">
+        <div className="auth-split-left" style={{ padding: 0, overflow: "hidden", display: "block", position: "relative" }}>
+          <button
+            onClick={() => setShowForm(false)}
+            style={{
+              position: "absolute", top: 16, left: 16, zIndex: 10,
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(255,255,255,0.9)", backdropFilter: "blur(6px)",
+              border: "1px solid var(--gray-200)", borderRadius: 8,
+              padding: "7px 12px", fontSize: 12.5, fontWeight: 500,
+              color: "var(--gray-700)", cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            }}>
+            ✕  Close form
+          </button>
+          <iframe
+            src={`${TALLY_URL}?transparentBackground=1`}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", display: "block" }}
+            title="Onboard Business KYB Onboarding"
+          />
+        </div>
+        <div className="auth-split-right">
+          <AuthInfoPanel />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <AuthShell step={1} totalSteps={1} layout={layout}>
+    <AuthShell step={1} totalSteps={1} layout={layout} variant="signup">
       <h1>Apply for access</h1>
       <p className="auth-lede" style={{marginBottom:22}}>
-        Onboard is invite-only. We review every application personally and only work with businesses we can serve well.
+        Onboard Business is invite only. Apply to get started.
       </p>
 
-      <a href={TALLY_URL} target="_blank" rel="noopener noreferrer"
-         className="btn btn-lg btn-block btn-dark"
-         style={{display:"flex", alignItems:"center", justifyContent:"center", gap:8, textDecoration:"none", marginBottom:26}}>
+      <button
+        onClick={() => setShowForm(true)}
+        className="btn btn-lg btn-block btn-dark"
+        style={{display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%"}}>
         Start your application
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{width:13,height:13}}><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-      </a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{width:13,height:13}}><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <LegalConsent action="starting your application" />
+      <div style={{marginBottom:26}} />
 
       <div style={{borderTop:"1px solid var(--gray-200)", paddingTop:20, marginBottom:20}}>
         <div style={{fontSize:13, fontWeight:600, color:"var(--gray-800)", marginBottom:14}}>
-          Already applied? Here&rsquo;s what to expect
+          Here&rsquo;s how it works
         </div>
         {steps.map(({n, title, desc}) => (
           <div key={n} style={{display:"flex", gap:12, marginBottom:14, alignItems:"flex-start"}}>
@@ -208,7 +268,7 @@ function ApplyForAccessScreen({ onSignIn, layout }) {
               fontSize:11, fontWeight:700, flexShrink:0, marginTop:1,
             }}>{n}</div>
             <div>
-              <div style={{fontSize:13, fontWeight:600, color:"var(--gray-900)", marginBottom:2}}>{title}</div>
+              <div style={{fontSize:13, fontWeight:500, color:"var(--gray-900)", marginBottom:2}}>{title}</div>
               <div style={{fontSize:12.5, color:"var(--gray-600)", lineHeight:1.55}}>{desc}</div>
             </div>
           </div>
@@ -530,6 +590,7 @@ function SignInScreen({ onSubmit, onApplyForAccess, layout }) {
         <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>
           Continue
         </button>
+        <LegalConsent action="continuing" />
       </form>
 
       <div className="auth-foot">
