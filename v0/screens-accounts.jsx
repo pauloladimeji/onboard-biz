@@ -1,6 +1,7 @@
 /* global React */
 const { useState, useMemo, useEffect } = React;
 const Icon = window.OBIcon;
+const shortRef = r => r.length > 22 ? r.slice(0, 22) + '…' : r;
 const NetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES, TXNS, FIAT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES } = window.OBData;
 
@@ -317,7 +318,7 @@ function RecentTransactions({ txns, title = "Recent activity", onRowClick, dense
             {txns.map((tx) => (
               <tr key={tx.id} onClick={onRowClick}>
                 <td><TxRowDir tx={tx} /></td>
-                <td className="mono">{tx.ref}</td>
+                <td title={tx.ref}>{shortRef(tx.ref)}</td>
                 <td style={{color:"var(--gray-600)", fontSize: 12.5}}>{tx.date}</td>
                 <td><Pill tone={tx.pillTone}>{tx.status}</Pill></td>
                 <td className="num"><TxAmount tx={tx} /></td>
@@ -333,19 +334,20 @@ function RecentTransactions({ txns, title = "Recent activity", onRowClick, dense
 // =====================================================
 // Per-currency detail page (USD only in v0)
 // =====================================================
-function CurrencyDetailPage({ code, onBack, onToast, usdAccountStatus = "approved", stablecoinIssuance = "ready", accountSuspended = false }) {
+function CurrencyDetailPage({ code, onBack, onToast, usdAccountStatus = "approved", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "available" }) {
   const meta = CURRENCIES[code];
   const balance = V0_ACCOUNTS.find(a => a.code === "USD")?.balance || "0.00";
   const ccyTxns = TXNS.filter(t => t.ccy === code || t.from === code).slice(0, 8);
 
   const usdApproved = usdAccountStatus === "approved";
 
+  const eurGbpType = fiatConvert === "available" ? "fiat-convert" : "ccy-request";
   const tabs = [
     { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
     { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
     { id: "usd-bank", name: "Bank transfer", type: usdApproved ? "fiat-group" : "usd-apply" },
-    { id: "eur-bank", name: "EUR bank transfer", type: "ccy-request", ccy: "EUR" },
-    { id: "gbp-bank", name: "GBP bank transfer", type: "ccy-request", ccy: "GBP" },
+    { id: "eur-bank", name: "EUR bank transfer", type: eurGbpType, ccy: "EUR" },
+    { id: "gbp-bank", name: "GBP bank transfer", type: eurGbpType, ccy: "GBP" },
   ];
 
   const [activeRail, setActiveRail] = useState(0);
@@ -432,9 +434,11 @@ function CurrencyDetailPage({ code, onBack, onToast, usdAccountStatus = "approve
               ? <UsdAccountApplyPanel status={usdAccountStatus} />
               : activeTab.type === "fiat-group"
                 ? <FiatGroupPanel ccy={code} onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0, 18) + "…" : v}`)} />
-                : activeTab.type === "ccy-request"
-                  ? <CcyRequestPanel ccy={activeTab.ccy} onToast={onToast} />
-                  : null
+                : activeTab.type === "fiat-convert"
+                  ? <FiatConvertPanel ccy={activeTab.ccy} onCopy={() => onToast("Copied")} />
+                  : activeTab.type === "ccy-request"
+                    ? <CcyRequestPanel ccy={activeTab.ccy} onToast={onToast} />
+                    : null
         )}
       </div>
       )}
@@ -692,6 +696,103 @@ function FiatGroupPanel({ ccy, onCopy }) {
       <div className="row" style={{gap: 8}}>
         <button className="btn btn-soft btn-sm" onClick={() => {
           const lines = d.fields.map(f => `${f.k}: ${f.v}`).join("\n");
+          if (navigator.clipboard) navigator.clipboard.writeText(lines).catch(()=>{});
+          onCopy("all account details");
+        }}><Icon.copy /> Copy all details</button>
+        <button className="btn btn-ghost btn-sm"><Icon.doc /> Download as PDF</button>
+      </div>
+    </div>
+  );
+}
+
+const FIAT_CONVERT_DATA = {
+  EUR: {
+    // fields in pairs — renders as 2-col grid with no orphaned cells
+    fields: [
+      { k: "Account name",    v: "Acme Trading Co",                                              copy: true },
+      { k: "IBAN",            v: "GB11CLJU04130742056386",                                       copy: true },
+      { k: "Account type",    v: "Checking",                                                     copy: true },
+      { k: "Bank name",       v: "Clear Junction Limited",                                       copy: true },
+      { k: "Bank address",    v: "85 Great Portland Street, London, United Kingdom, W1W 7LT",    copy: true },
+      { k: "Conversion rate", v: "$1 = €0.88",                                                   copy: false },
+    ],
+    desc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
+    timingTone: "med",
+    timing: "1–2 business days",
+    banner: "The exchange rate is locked when your EUR deposit is received — not when you initiate the transfer. Rate shown on your transaction receipt.",
+    fees: [
+      { rail: "SEPA", fee: "€0.50", timing: "1–2 business days" },
+    ],
+  },
+  GBP: {
+    fields: [
+      { k: "Account name",    v: "Acme Trading Co",                                              copy: true },
+      { k: "Account number",  v: "42056386",                                                     copy: true },
+      { k: "IBAN",            v: "GB11CLJU04130742056386",                                       copy: true },
+      { k: "Sort code",       v: "041307",                                                       copy: true },
+      { k: "Account type",    v: "Checking",                                                     copy: true },
+      { k: "Bank name",       v: "Clear Junction Limited",                                       copy: true },
+      { k: "Bank address",    v: "85 Great Portland Street, London, United Kingdom, W1W 7LT",    copy: true },
+      { k: "Conversion rate", v: "$1 = £0.75",                                                   copy: false },
+    ],
+    desc: "Send GBP from any UK bank via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
+    timingTone: null,
+    timing: null,
+    banner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer. Rate shown on your transaction receipt.",
+    fees: [
+      { rail: "SEPA",            fee: "£0.50 – £1.00", timing: "1–2 business days" },
+      { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "Under 2 hours" },
+    ],
+  },
+};
+
+function FiatConvertPanel({ ccy, onCopy }) {
+  const data = FIAT_CONVERT_DATA[ccy];
+  if (!data) return null;
+  const copyableFields = data.fields.filter(f => f.copy);
+
+  return (
+    <div style={{padding: "24px 28px 28px"}}>
+      <div className="row between" style={{marginBottom: 18, gap: 12, flexWrap: "wrap"}}>
+        <div style={{fontSize: 12.5, color: "var(--gray-700)", lineHeight: 1.55, flex: "1 1 auto", minWidth: 0, paddingRight: data.timing ? 16 : 0}}>
+          {data.desc}
+        </div>
+        {data.timing && <TimingChip tone={data.timingTone} label={data.timing} />}
+      </div>
+
+      <div className="banner info" style={{borderRadius: 8, padding: "12px 16px", marginBottom: 20}}>
+        <Icon.info style={{width: 16, height: 16, flexShrink: 0, color: "var(--info-600)"}} />
+        <div className="body" style={{fontSize: 12.5}}>{data.banner}</div>
+      </div>
+
+      <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px", marginBottom: 20}}>
+        {data.fields.map((f) => (
+          <div key={f.k} style={{minWidth: 0}}>
+            <div style={{fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", color: "var(--gray-500)", textTransform: "uppercase", marginBottom: 5}}>{f.k}</div>
+            <div style={{fontSize: 13.5, color: "var(--gray-900)", fontWeight: 500, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 6}}>
+              <span style={{overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{f.v}</span>
+              {f.copy && <CopyInline value={f.v} onCopy={onCopy} />}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{borderTop: "1px solid var(--gray-200)", paddingTop: 18, marginBottom: 20}}>
+        <div style={{fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", color: "var(--gray-500)", textTransform: "uppercase", marginBottom: 12}}>Fees & timelines by payment method</div>
+        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10}}>
+          {data.fees.map(r => (
+            <div key={r.rail} style={{padding: "12px 14px", background: "var(--gray-50)", borderRadius: 10, border: "1px solid var(--gray-200)"}}>
+              <div style={{fontSize: 12.5, fontWeight: 600, color: "var(--gray-900)", marginBottom: 8}}>{r.rail}</div>
+              <div style={{fontSize: 12, color: "var(--gray-600)", marginBottom: 4}}>Fee: <span style={{fontWeight: 500, color: "var(--gray-900)"}}>{r.fee}</span></div>
+              <div style={{fontSize: 12, color: "var(--gray-600)"}}>Timeline: <span style={{fontWeight: 500, color: "var(--gray-900)"}}>{r.timing}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="row" style={{gap: 8}}>
+        <button className="btn btn-soft btn-sm" onClick={() => {
+          const lines = copyableFields.map(f => `${f.k}: ${f.v}`).join("\n");
           if (navigator.clipboard) navigator.clipboard.writeText(lines).catch(()=>{});
           onCopy("all account details");
         }}><Icon.copy /> Copy all details</button>
@@ -1187,16 +1288,17 @@ function NgnRailPanel({ onCopy, issuance = "ready", onIssuanceChange }) {
 // =====================================================
 // Deposit page
 // =====================================================
-function AddMoneyPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false }) {
+function AddMoneyPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "available" }) {
   const usdApproved = usdAccountStatus === "approved";
+  const eurGbpType = fiatConvert === "available" ? "fiat-convert" : "ccy-request";
 
   const tabs = [
     { id: "ngn",  name: "NGN",  type: "ngn" },
     { id: "usdc", name: "USDC", type: "stablecoin", coin: "USDC" },
     { id: "usdt", name: "USDT", type: "stablecoin", coin: "USDT" },
-    { id: "usd-bank", name: "USD bank transfer", type: usdApproved ? "fiat-group" : "usd-apply" },
-    { id: "eur-bank", name: "EUR bank transfer", type: "ccy-request", ccy: "EUR" },
-    { id: "gbp-bank", name: "GBP bank transfer", type: "ccy-request", ccy: "GBP" },
+    { id: "usd-bank", name: "USD", type: usdApproved ? "fiat-group" : "usd-apply" },
+    { id: "eur-bank", name: "EUR", type: eurGbpType, ccy: "EUR" },
+    { id: "gbp-bank", name: "GBP", type: eurGbpType, ccy: "GBP" },
   ];
 
   const [activeRail, setActiveRail] = useState(0);
@@ -1256,9 +1358,11 @@ function AddMoneyPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssua
                 ? <NgnRailPanel onCopy={(v) => onToast("Copied")} issuance={ngnIssuance} />
                 : activeTab.type === "fiat-group"
                   ? <FiatGroupPanel ccy="USD" onCopy={(v) => onToast(`Copied ${v.length > 18 ? v.slice(0,18)+"…" : v}`)} />
-                  : activeTab.type === "ccy-request"
-                    ? <CcyRequestPanel ccy={activeTab.ccy} onToast={onToast} />
-                    : null
+                  : activeTab.type === "fiat-convert"
+                    ? <FiatConvertPanel ccy={activeTab.ccy} onCopy={() => onToast("Copied")} />
+                    : activeTab.type === "ccy-request"
+                      ? <CcyRequestPanel ccy={activeTab.ccy} onToast={onToast} />
+                      : null
         )}
       </div>
       )}

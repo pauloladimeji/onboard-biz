@@ -1,5 +1,6 @@
 /* global React */
 const { useState: useStateR, useMemo: useMemoR, useRef: useRefR, useEffect: useEffectR } = React;
+const shortRef = r => r.length > 22 ? r.slice(0, 22) + '…' : r;
 const RIcon = window.OBIcon;
 const RNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: RCCY, RECIPIENTS_FULL, TXNS_FULL, PAYOUT_RAILS } = window.OBData;
@@ -1068,7 +1069,7 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
                 {list.map(tx => (
                   <tr key={tx.id} onClick={() => onOpenTx(tx)}>
                     <td><RTxRowDir tx={tx} /></td>
-                    <td className="mono">{tx.ref}</td>
+                    <td title={tx.ref}>{shortRef(tx.ref)}</td>
                     <td style={{color:"var(--gray-600)", fontSize: 12.5}}>{tx.date}</td>
                     <td><RPill tone={tx.pillTone}>{tx.status}</RPill></td>
                     <td className="num"><RTxAmount tx={tx} /></td>
@@ -1150,7 +1151,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
       <div className="crumbs">
         <a className="crumb-back" onClick={onBack}><RIcon.arrowLeft /> Back to Transactions</a>
         <span className="crumb-sep">/</span>
-        <span className="crumb-current">{tx.ref}</span>
+        <span className="crumb-current">Transaction details</span>
       </div>
       <div className="page-head" style={{alignItems: "flex-start"}}>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -1194,7 +1195,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
       <div className="crumbs">
         <a className="crumb-back" onClick={onBack}><RIcon.arrowLeft /> Back to Transactions</a>
         <span className="crumb-sep">/</span>
-        <span className="crumb-current">{tx.ref}</span>
+        <span className="crumb-current">Transaction details</span>
       </div>
 
       <div className="page-head" style={{alignItems: "flex-start"}}>
@@ -1203,7 +1204,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
             {isOut ? "Payout" : "Funding"}
             <span style={{marginLeft: 12}}><RPill tone={tx.pillTone}>{tx.status}</RPill></span>
           </h1>
-          <p className="subtitle">{`${tx.ref} · ${tx.date.replace(/,/, ", 2026,")}`}</p>
+          <p className="subtitle">{tx.date.replace(/,/, ", 2026,")}</p>
         </div>
         <div className="row" style={{gap: 8}}>
           {tx.status === "FAILED" && (
@@ -1271,7 +1272,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
           <div className="card" style={{padding: "24px 28px"}}>
             <h2 style={{margin: "0 0 18px", fontSize: 15, fontWeight: 600, color: "var(--gray-900)"}}>Payment details</h2>
             <div className="pay-review-list" style={{paddingTop: 0, paddingBottom: 0}}>
-              <div className="row-item"><div className="k">Reference</div><div className="v"><span>{tx.ref}</span><button className="copy-inline" onClick={() => copy(tx.ref, "reference")}><RIcon.copy /></button></div></div>
+              <div className="row-item"><div className="k">Reference</div><div className="v"><span title={tx.ref}>{shortRef(tx.ref)}</span><button className="copy-inline" onClick={() => copy(tx.ref, "reference")}><RIcon.copy /></button></div></div>
               <div className="row-item"><div className="k">Type</div><div className="v">{tx.type}{tx.chain ? " · Stablecoin" : !isOut && tx.party && tx.party.includes(" — ") ? ` · ${tx.party.split(" — ")[0]}` : ""}</div></div>
               <div className="row-item"><div className="k">Counterparty</div><div className="v" style={tx.chain ? {wordBreak: "break-all"} : {}}>{tx.chain ? tx.txHash : !isOut && tx.party && tx.party.includes(" — ") ? tx.party.split(" — ")[1] : tx.party}</div></div>
               {tx.chain && (
