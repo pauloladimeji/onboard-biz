@@ -356,6 +356,21 @@ table.records-table th.num { text-align: right; }
 .banner .body { flex: 1; min-width: 0; }
 .banner .ttl { font-size: 14px; font-weight: 600; color: var(--gray-900); margin: 0 0 2px; }
 .banner .copy { font-size: 13px; color: var(--gray-700); line-height: 1.5; }
+
+/* Title-less notices (single-line rate/conversion/warning copy) read as oversized at the full
+   titled-banner size — trim padding/icon/type for that case only. Titled banners (e.g. "Deposits
+   disabled") keep the larger treatment on both breakpoints. Desktop gets the biggest trim (more
+   dead space at that width); mobile gets a lighter touch. */
+@media (min-width: 768px) {
+  .banner.banner-notitle { padding: 11px 16px; gap: 10px; }
+  .banner.banner-notitle .icw { flex-basis: 26px; height: 26px; border-radius: 7px; }
+  .banner.banner-notitle .icw svg { width: 13px; height: 13px; }
+  .banner.banner-notitle .copy { font-size: 12.5px; }
+}
+.page-mobile .banner.banner-notitle { padding: 13px 16px; gap: 12px; }
+.page-mobile .banner.banner-notitle .icw { flex-basis: 30px; height: 30px; border-radius: 7px; }
+.page-mobile .banner.banner-notitle .icw svg { width: 15px; height: 15px; }
+.page-mobile .banner.banner-notitle .copy { font-size: 12.5px; }
 .banner.info    { background: #EFF6FF; border-color: #BFDBFE; }
 .banner.info    .icw { background: var(--info-100); color: var(--info-700); }
 .banner.warn    { background: #FFFBEB; border-color: #FDE68A; }
