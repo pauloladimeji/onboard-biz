@@ -31,7 +31,7 @@ function AccountManagerCard() {
       <div className="sb-am-top">
         <div className="sb-am-ava"><Icon.people style={{width: 16, height: 16}} /></div>
         <div className="sb-am-meta">
-          <div className="sb-am-name">Your account manager</div>
+          <div className="sb-am-name">Your Account Manager</div>
           <div className="sb-am-role">Here for your business</div>
         </div>
       </div>
@@ -51,7 +51,7 @@ function TopNav() {
       </div>
       <div style={{flex: 1}} />
       <div className="right">
-        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" title="Chat with your account manager">
+        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" title="Chat with your Account Manager">
           <WaIcon style={{width: 17, height: 17}} />
         </a>
         <div className="avatar">JN</div>

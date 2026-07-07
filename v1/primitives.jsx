@@ -132,13 +132,16 @@ function Pill({ tone = "neutral", children }) {
 }
 
 // Table on desktop, card list on mobile — one dataset, two renderings.
-function Records({ title, txns, onRowClick, emptyHint }) {
+function Records({ title, txns, onRowClick, emptyHint, onViewAll }) {
   const isDesktop = useIsDesktop();
   return (
     <div className="records-card">
       <div className="records-head">
         <h2>{title}</h2>
-        <span className="meta">Showing {txns.length}</span>
+        <div className="records-head-right">
+          <span className="meta">Showing {txns.length}</span>
+          {onViewAll && <a className="records-viewall" onClick={onViewAll}>View all →</a>}
+        </div>
       </div>
       {txns.length === 0 ? (
         <div className="empty">

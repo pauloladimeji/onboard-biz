@@ -295,7 +295,8 @@ function App() {
         accountSuspended={accountStatus === "suspended"}
         onAddMoney={() => setRoute("add-money")}
         onSendPayment={() => setRoute("payments")}
-        onOpenTx={() => {}} />
+        onOpenTx={() => {}}
+        onViewAll={() => setRoute("activity")} />
     );
   } else if (route === "add-money") {
     screen = (

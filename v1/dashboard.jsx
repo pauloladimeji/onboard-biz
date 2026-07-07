@@ -3,7 +3,7 @@ const Icon = window.OBIcon;
 const { TXNS } = window.OBData;
 const { CcyFlag, Page, Records } = window.OBPrimitives;
 
-function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx }) {
+function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll }) {
   const isEmpty = dataState === "empty";
   const balance = isEmpty ? "0.00" : "84,231.50";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
@@ -41,6 +41,7 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
         title="Recent activity"
         txns={recentTxns}
         onRowClick={onOpenTx}
+        onViewAll={onViewAll}
         emptyHint="Money movements will appear here once your first payment lands or settles." />
     </Page>
   );

@@ -87,6 +87,7 @@ At the breakpoint, these concerns flip:
 | **List filters** | Inline dropdowns | Filter icon → Sheet of tappable pills |
 | **Multi-step progress** | Vertical step sidebar | Horizontal dot bar + current-step label |
 | **Deposit method picker** | Tab strip | Currency selector (dropdown) |
+| **Stablecoin network picker** | Chip row (`.chan-picker`) | Plain dropdown (`.net-select`) — deliberately lighter than the currency selector (no card/avatar/search); a real backend can list ~10 networks, too many to lay out as wrapping chips |
 | **2-column detail grids** | 2-col | Stacked |
 | **Auth shell** | Split two-column (form + marketing panel) | Single centered column, no marketing panel |
 
@@ -133,7 +134,7 @@ These are the reusable pieces. Where behaviour differs by breakpoint it's called
 - **Mobile:** sticky top bar (logo, gear, WhatsApp icon, avatar) + a fixed **bottom tab bar**: the 5
   primary items plus a **"More"** tab that opens a Sheet containing Cards / Settings / Developer.
 - **Account team / WhatsApp** is a support-relationship entry point (`wa.me` deep link), copy is
-  generic ("Your account manager · Here for your business") — intentionally **not** tied to a named
+  generic ("Your Account Manager · Here for your business") — intentionally **not** tied to a named
   person so it doesn't go stale.
 
 The Shell only wraps the **post-login app** (`flow === "app"` in `app.jsx`). The auth screens in §7
@@ -259,6 +260,10 @@ All the below are built. (Cards is **not** in v1 — see §12.)
   two implementations. Same for filters, lists, and the stepper.
 - **Native `<select>` was deliberately avoided inside bottom sheets** (its popup mispositions in a
   fixed sheet); mobile filters use tappable pills instead. Worth preserving.
+- **Wallet/deposit addresses are middle-truncated, never wrapped** (`truncateMiddle` in
+  `deposit.jsx` — keeps the start and end, elides a chunk from the middle; full value is in the
+  `title` tooltip and always copyable in full). This is a real display convention, not a prototype
+  stub — reproduce it wherever a raw address/hash is shown, on both breakpoints.
 - **Tokens & type** come from the design system (`colors_and_type.css`) — use those variables, not
   the literal hexes scattered for prototype speed.
 

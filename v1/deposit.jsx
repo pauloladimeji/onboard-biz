@@ -16,6 +16,13 @@ function CoinBadge({ coin, size = 26 }) {
   );
 }
 
+// Shows most of the string — only elides a small chunk in the middle — so an address
+// never wraps but is still recognizable/eyeball-checkable at both ends.
+function truncateMiddle(str, front = 16, back = 10) {
+  if (!str || str.length <= front + back + 1) return str;
+  return `${str.slice(0, front)}…${str.slice(-back)}`;
+}
+
 function PanelActions({ fields, onCopy, showPdf = true }) {
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -86,6 +93,7 @@ function StablecoinPanel({ coin, issuance = "ready", onCopy }) {
   const chain = chains[activeChain];
   const [state, setState] = useState(issuance);
   useEffect(() => setState(issuance), [issuance]);
+  const isDesktop = useIsDesktop();
 
   const generate = () => { setState("processing"); setTimeout(() => setState("ready"), 2000); };
 
@@ -129,19 +137,32 @@ function StablecoinPanel({ coin, issuance = "ready", onCopy }) {
 
       <div style={{ marginBottom: 14 }}>
         <div className="field-k" style={{ marginBottom: 8 }}>Network</div>
-        <div className="chan-picker">
-          {chains.map((c, i) => {
-            const on = i === activeChain;
-            const NIcon = NetworkIcon[c.id];
-            return (
-              <button key={c.id} className={`chan-btn ${on ? "on" : ""}`} onClick={() => setActiveChain(i)}>
-                {NIcon && <NIcon />}
-                {c.name}
-                <span style={{ fontSize: 11, opacity: .65, fontWeight: 400 }}>({c.short})</span>
-              </button>
-            );
-          })}
-        </div>
+        {isDesktop ? (
+          <div className="chan-picker">
+            {chains.map((c, i) => {
+              const on = i === activeChain;
+              const NIcon = NetworkIcon[c.id];
+              return (
+                <button key={c.id} className={`chan-btn ${on ? "on" : ""}`} onClick={() => setActiveChain(i)}>
+                  {NIcon && <NIcon />}
+                  {c.name}
+                  <span style={{ fontSize: 11, opacity: .65, fontWeight: 400 }}>({c.short})</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          // Lighter-weight than the currency selector (no card/avatar/search) — this is a
+          // secondary choice nested under the coin, and a real backend can have ~10 networks,
+          // too many to lay out as wrapping chips at phone width.
+          <div className="net-select-wrap">
+            {(() => { const NIcon = NetworkIcon[chain?.id]; return NIcon ? <span className="net-select-icon"><NIcon /></span> : null; })()}
+            <select className="net-select" value={activeChain} onChange={(e) => setActiveChain(Number(e.target.value))}>
+              {chains.map((c, i) => <option key={c.id} value={i}>{c.name} ({c.short})</option>)}
+            </select>
+            <Icon.arrowDown />
+          </div>
+        )}
       </div>
 
       {chain && (
@@ -153,7 +174,7 @@ function StablecoinPanel({ coin, issuance = "ready", onCopy }) {
             <div className="qr-frame"><QrCode value={chain.address} /></div>
             <div className="qr-side">
               <div className="qr-side-lbl">Deposit address · {chain.name}</div>
-              <div className="qr-side-addr">{chain.address}</div>
+              <div className="qr-side-addr" title={chain.address}>{truncateMiddle(chain.address)}</div>
               <button className="btn btn-soft btn-sm" onClick={copyAddr}><Icon.copy /> Copy address</button>
               <div className="qr-side-hint">Scan the code with your wallet app, or copy the address to send {coin} on {chain.name}.</div>
             </div>

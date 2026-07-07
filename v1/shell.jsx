@@ -44,7 +44,7 @@ function AccountManagerCard() {
       <div className="sb-am-top">
         <div className="sb-am-ava"><Icon.people style={{ width: 16, height: 16 }} /></div>
         <div className="sb-am-meta">
-          <div className="sb-am-name">Your account manager</div>
+          <div className="sb-am-name">Your Account Manager</div>
           <div className="sb-am-role">Here for your business</div>
         </div>
       </div>
@@ -94,7 +94,7 @@ function TopBarMobile({ onOpenMock }) {
       <div className="brand"><img src="../v0/design-system/assets/onboard-logo-lockup-purple.png" alt="Onboard Business" /></div>
       <div className="right">
         <button className="gear" onClick={onOpenMock} aria-label="Mock controls"><Icon.cog style={{ width: 15, height: 15 }} /></button>
-        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" aria-label="Chat with your account manager">
+        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" aria-label="Chat with your Account Manager">
           <WaIcon style={{ width: 15, height: 15 }} />
         </a>
         <div className="avatar">JN</div>
