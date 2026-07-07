@@ -23,16 +23,16 @@ const WaIcon = (p) => (
   </svg>
 );
 
-const AM = { name: "Temi Adeyemi", initials: "TA", role: "Account manager", wa: "https://wa.me/+2348000000000" };
+const AM = { wa: "https://wa.me/+2348000000000" };
 
 function AccountManagerCard() {
   return (
     <div className="sb-am-card">
       <div className="sb-am-top">
-        <div className="sb-am-ava">{AM.initials}</div>
+        <div className="sb-am-ava"><Icon.people style={{width: 16, height: 16}} /></div>
         <div className="sb-am-meta">
-          <div className="sb-am-name">{AM.name}</div>
-          <div className="sb-am-role">Your {AM.role.toLowerCase()}</div>
+          <div className="sb-am-name">Your account manager</div>
+          <div className="sb-am-role">Here for your business</div>
         </div>
       </div>
       <a className="sb-am-cta" href={AM.wa} target="_blank" rel="noopener noreferrer">
@@ -51,7 +51,7 @@ function TopNav() {
       </div>
       <div style={{flex: 1}} />
       <div className="right">
-        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" title={`Chat with ${AM.name} · ${AM.role}`}>
+        <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" title="Chat with your account manager">
           <WaIcon style={{width: 17, height: 17}} />
         </a>
         <div className="avatar">JN</div>

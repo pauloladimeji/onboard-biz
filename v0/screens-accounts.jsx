@@ -719,7 +719,7 @@ const FIAT_CONVERT_DATA = {
     desc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
     timingTone: "med",
     timing: "1–2 business days",
-    banner: "The exchange rate is locked when your EUR deposit is received — not when you initiate the transfer. Rate shown on your transaction receipt.",
+    banner: "The exchange rate is locked when your EUR deposit is received — not when you initiate the transfer.",
     fees: [
       { rail: "SEPA", fee: "€0.50", timing: "1–2 business days" },
     ],
@@ -735,10 +735,10 @@ const FIAT_CONVERT_DATA = {
       { k: "Bank address",    v: "85 Great Portland Street, London, United Kingdom, W1W 7LT",    copy: true },
       { k: "Conversion rate", v: "$1 = £0.75",                                                   copy: false },
     ],
-    desc: "Send GBP from any UK bank via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
+    desc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     timingTone: null,
     timing: null,
-    banner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer. Rate shown on your transaction receipt.",
+    banner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
     fees: [
       { rail: "SEPA",            fee: "£0.50 – £1.00", timing: "1–2 business days" },
       { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "Under 2 hours" },
@@ -1251,7 +1251,7 @@ function NgnRailPanel({ onCopy, issuance = "ready", onIssuanceChange }) {
       <div className="banner info" style={{borderRadius: 8, padding: "12px 16px", marginBottom: 20}}>
         <Icon.info style={{width: 16, height: 16, flexShrink: 0, color: "var(--info-600)"}} />
         <div className="body" style={{fontSize: 12.5}}>
-          The exchange rate is locked at the moment your NGN deposit clears — not when you initiate the transfer. Rate shown on transaction receipt.
+          The exchange rate is locked at the moment your NGN deposit clears — not when you initiate the transfer.
         </div>
       </div>
 
