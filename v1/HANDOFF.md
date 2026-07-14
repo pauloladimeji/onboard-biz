@@ -5,7 +5,7 @@ This document describes the **v1 adaptive prototype** for engineering implementa
 two separate builds.
 
 **v1 is the single canonical reference — for both desktop and mobile.** `v0/` is frozen/legacy;
-read it only for the one thing not yet ported to v1 (see §12). This resolves the "two references"
+read it only for the one thing not yet ported to v1 (see §13). This resolves the "two references"
 problem — when v0 and v1 disagree, **v1 wins.**
 
 > ⚠️ **This is a design prototype, not production code.** It runs React + Babel-standalone in the
@@ -40,7 +40,7 @@ v1 does **not** duplicate data or design tokens — it loads them from `v0/` by 
 | `../v0/design-system/` | Design tokens (`colors_and_type.css`), Euclid Circular A fonts, flag SVGs, logo |
 
 Everything else is v1-owned. `v0/` is otherwise **frozen** — kept only to serve the shared files
-above and the not-yet-ported screen in §12. Don't build new work into it.
+above and the not-yet-ported screen in §13. Don't build new work into it.
 
 ---
 
@@ -148,7 +148,7 @@ Covers the **active real sign-in flow**, plus the **Apply-for-access** entry poi
 no account yet. The KYB application itself is Tally's hosted form — `ApplyForAccessScreen` embeds
 it via iframe (§ table below) so the applicant never leaves the app; Tally owns the form logic and
 hosting, not the surrounding UI. What's excluded is v0's *older*, superseded sign-up screens — see
-§12 for what and why.
+§13 for what and why.
 
 **Screens** (`window.OBAuth`):
 
@@ -223,12 +223,99 @@ So nobody mistakes a stub for intended behaviour:
 - **Stubbed actions** (toast only, no real behaviour): Download PDF / receipt, Export CSV, Retry
   payment, "phase 2" toasts.
 - **All amounts, addresses, bank details, API keys** are fixtures from `../v0/data.jsx`.
+- **Crypto counterparty addresses** (the "from"/"to" on the blockchain block) are fabricated —
+  this account's own side reuses the real deposit addresses already shown on the Deposit screen,
+  but the external counterparty address is a plausible placeholder, not a real one.
 
 ---
 
-## 10. Screens (status + key behaviours)
+## 10. Activity taxonomy (ledger's Account Activity API)
 
-All the below are built. (Cards is **not** in v1 — see §12.)
+The real backend is moving Transactions off a flat transactions endpoint onto an aggregated,
+typed **Account Activity** feed — 7 activity types in the real API. **Only 5 are in scope for
+the web app right now**; internal transfers and offramp deposits are deferred (nuanced,
+multi-leg/hybrid shapes not needed for this launch) — don't build UI for those two.
+
+| Activity type | Fixture shape (`activityData`) | Where it shows up |
+|---|---|---|
+| `ACCOUNT_NUMBER_DEPOSIT` | `senderAccountDetails` (name/number/bank), `channel`, `fee`, `settlementAmount`, `settlementAssetCode`, `settlementExchangeRate` | Payment details: Sender / "Sender bank / platform" (bank + masked account combined into one row) / Channel |
+| `CASH_DEPOSIT` | `payinCurrency`, `payinAmount`, `providerReference` | Payment details: Provider reference row |
+| `CASH_PAYMENT` | `payoutCurrency`, `payoutAmount`, `providerReference`, `channel`, `recipient` (name/bank/country) | Payment details: Beneficiary / Beneficiary bank / Channel rows |
+| `CRYPTO_DEPOSIT` | `feeAmount`, `feeInclusive`, `blockchainInfo` (network, txHash, senderAddress, recipientAddress, tokenSymbol) | Payment details: Network / From / To / Tx hash rows; `feeAmount` drives Money breakdown |
+| `CRYPTO_WITHDRAWAL` | same as above, sender/recipient roles flipped | Payment details: Network / From / To / Tx hash rows; `feeAmount` drives Money breakdown |
+
+**`channel`** (on `ACCOUNT_NUMBER_DEPOSIT` and `CASH_PAYMENT`) names the actual rail — Domestic
+wire (Fedwire), ACH, Faster Payments, SEPA, SWIFT, NIBSS Instant Payment, GhIPSS, Pesalink, TIPS,
+RTGS Mozambique, or Stablecoin transfer — mirroring the ledger's `CashAccountDetails.accountInfoType`
+discriminator (`CashLocalBankAccount`/`CashACHBankAccount`/`CashSepaBankAccount`/
+`CashSwiftBankAccount`/`CashMobileWalletAccount`/`CashMultiRailBankAccount`) for deposits and
+`BasicBeneficiaryInfo.paymentChannelId` for payouts. **"Sender bank / platform" is deliberately not
+"Sender bank"** — it also needs to read naturally for non-bank senders (Payoneer, Upwork, etc.).
+Two SWIFT samples exist for exactly this reason: `FND-2026-00323` (inbound, international wire in)
+and `PAY-2026-04815` (outbound, same-currency international wire out) — the latter also previews
+the hard-currency payout direction "Variation B" would need (see business context in the root
+`CLAUDE.md`).
+
+**Payout channel is derived from the recipient, not the currency alone** — `RECIPIENTS_FULL`
+already tags each recipient `Bank` or `Mobile money`; mobile-money recipients get their actual
+network (`M-Pesa`, `Vodafone Cash`, `Airtel Money`, `OPay`, etc., parsed from the recipient's
+`handle`), everyone else falls back to the currency's bank rail (`PAYOUT_RAILS`). Don't
+regress this to a pure currency→channel lookup — a Vodafone Cash payout doesn't travel over
+GhIPSS, and 5 of the 19 `CASH_PAYMENT` fixtures are mobile-money recipients.
+
+**Known remaining gap:** no deposit fixture uses a mobile-wallet inbound channel
+(`CashMobileWalletAccount` in the ledger spec) or the generic `CashMultiRailBankAccount` — funding
+via mobile money is less central to this launch, so it wasn't worth a dedicated sample, but flag it
+if the real inflow mix turns out to need it.
+
+**One "Payment details" card for every type, not a type-specific card swap.** It always shows
+Reference/Type/Initiated, plus whichever extra rows the active type adds (sender/beneficiary
+details for the 3 fiat types, network/addresses/hash for the 2 crypto types). **Money breakdown**
+(the second card) is likewise one component for every type — crypto's `feeAmount` (mirrors the
+ledger's `AccountTransaction.feeAmount`/`feeInclusive`) feeds the exact same amount-minus-fee
+arithmetic as the fiat types, just labelled "Network fee" instead of "Onboard fee" and in the
+token unit instead of a fiat currency. There's no separate "blockchain details" card — don't
+reintroduce one.
+
+**`ACCOUNT_NUMBER_DEPOSIT` is deliberately the dominant deposit type in the fixtures** (7 of 8
+deposit rows, spanning USD/GBP/EUR/NGN) — a dedicated account number per currency (USD Wire/ACH,
+GBP FPS, EUR SEPA, NGN NUBAN) is what the app actually supports today. `CASH_DEPOSIT` gets a
+single, deliberately minority NGN sample (`FND-2026-00322`) — it previews the future **one-time
+accounts (OTA)** model (no persistent account, reconciled by reference) that NGN, and eventually
+other currencies, are expected to move to. Don't read `CASH_DEPOSIT` as "the normal NGN flow" —
+`ACCOUNT_NUMBER_DEPOSIT` is.
+
+`ACTIVITY_TYPE_LABELS` (`../v0/data.jsx`, exported on `window.OBData`) maps each type to its
+display label. Every `TXNS`/`TXNS_FULL` fixture is annotated with `activityType` + `activityData`
+by a `deriveActivity()` pass at the bottom of `data.jsx` — the raw fixture rows themselves keep
+their original loose fields (`chain`, `txHash`, `from`, etc.) untouched, since `v0`'s own (frozen)
+screens still read those directly; `activityType`/`activityData` are additive, not a replacement
+of the old shape.
+
+**`ACCOUNT_NUMBER_DEPOSIT` and `CASH_DEPOSIT` are deliberately *not* visually distinguished** in
+the Transactions list subtitle, the **Type** filter, or the detail screen's `<h1>` — all three read
+"Cash deposit" for both. This is `displayActivityType()`/`displayActivityLabel()` in `data.jsx` — a
+small `ACTIVITY_DISPLAY_GROUP` map collapses `ACCOUNT_NUMBER_DEPOSIT` onto `CASH_DEPOSIT`'s label
+wherever a screen calls `displayActivityLabel(tx.activityType)` instead of indexing
+`ACTIVITY_TYPE_LABELS` directly. **Only those three surfaces use it.**
+
+The detail screen's **"Type" row stays precise on purpose** — it's the one place that still says
+"Deposit via account number" vs "Cash deposit" outright, indexing `ACTIVITY_TYPE_LABELS` directly
+rather than going through `displayActivityLabel`. Don't collapse that row too. The **Channel** row
+(`NIBSS Instant Payment` / `SWIFT` / `One-time account (OTA)` / etc.) adds a second, even more
+specific layer below it. If a future activity type needs the title/list/filter treatment, add it
+to `ACTIVITY_DISPLAY_GROUP` rather than hand-rolling another collapse — but leave the "Type" row
+alone.
+
+Status also gained a 4th value: **`PENDING`** (neutral pill tone) — distinct from `PROCESSING`.
+`PENDING` means queued/not-yet-started (the `CASH_DEPOSIT`/OTA sample above is awaiting its
+reference match); `PROCESSING` means actively in flight.
+
+---
+
+## 11. Screens (status + key behaviours)
+
+All the below are built. (Cards is **not** in v1 — see §13.)
 
 - **Auth** — see §7.
 - **Home** — Global USD balance hero, Deposit / Send actions, Recent activity (`Records`). Mobile rows
@@ -244,14 +331,16 @@ All the below are built. (Cards is **not** in v1 — see §12.)
   (desktop) or show an always-visible ⋯ (mobile, since touch has no hover); delete via confirm Sheet.
 - **Add recipient** — 3-step wizard (Destination → Details → Review) via `FlowShell`; cash vs crypto;
   currency/method/network pickers (`Combobox`); simulated account-name verification states.
-- **Transactions** — Stats strip, search + filters, list (table/cards); detail screen with
-  sender/receiver hero, settlement timeline (payouts), money breakdown, actions.
+- **Transactions** — Stats strip, search + filters (including a **Type** filter), list
+  (table/cards); detail screen with sender/receiver hero, settlement timeline (payouts), a
+  type-aware Payment details card (network/addresses/hash rows for crypto, sender/beneficiary rows
+  for fiat), a Money breakdown card that works for all 5 types, and actions. See §10.
 - **Settings** — Business profile + Security sections (section rail). **Developer** — API keys +
   webhooks, every sensitive action gated behind a 2FA Sheet; not-granted / pending states.
 
 ---
 
-## 11. Implementation guidance
+## 12. Implementation guidance
 
 - **Don't fork the layouts.** The desktop/mobile split is presentational — one state model, two
   renderings behind a breakpoint check. Mirror that: shared logic/state, adaptive view layer.
@@ -260,8 +349,8 @@ All the below are built. (Cards is **not** in v1 — see §12.)
   two implementations. Same for filters, lists, and the stepper.
 - **Native `<select>` was deliberately avoided inside bottom sheets** (its popup mispositions in a
   fixed sheet); mobile filters use tappable pills instead. Worth preserving.
-- **Wallet/deposit addresses are middle-truncated, never wrapped** (`truncateMiddle` in
-  `deposit.jsx` — keeps the start and end, elides a chunk from the middle; full value is in the
+- **Wallet/deposit addresses are middle-truncated, never wrapped** (`truncateMiddle`, a shared
+  primitive — keeps the start and end, elides a chunk from the middle; full value is in the
   `title` tooltip and always copyable in full). This is a real display convention, not a prototype
   stub — reproduce it wherever a raw address/hash is shown, on both breakpoints.
 - **Tokens & type** come from the design system (`colors_and_type.css`) — use those variables, not
@@ -269,7 +358,7 @@ All the below are built. (Cards is **not** in v1 — see §12.)
 
 ---
 
-## 12. Not yet in v1 (known gaps)
+## 13. Not yet in v1 (known gaps)
 
 **Gap — still needs building:**
 
@@ -287,5 +376,10 @@ All the below are built. (Cards is **not** in v1 — see §12.)
   the real backend).
 
 All four exist in v0 only as design-review reference.
+
+- **`INTERNAL_TRANSFER` and `OFFRAMP_DEPOSIT` activity types** (§10) — real types in the ledger's
+  Account Activity API, but not part of this web app launch. Both have real nuance (paired-leg
+  linking via `groupId`, the offramp's crypto-in/bank-out hybrid) that wasn't worth designing until
+  there's an actual need — don't add UI for them without a fresh design pass first.
 
 When Cards is ported into v1, v0 can be fully retired.

@@ -2,7 +2,7 @@
 /* Adaptive primitives shared across v1 screens — desktop scales up, mobile is native-feel. */
 const { useState, useEffect } = React;
 const Icon = window.OBIcon;
-const { CURRENCIES } = window.OBData;
+const { CURRENCIES, displayActivityLabel } = window.OBData;
 
 const XIcon = (p) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" {...p}>
@@ -11,6 +11,13 @@ const XIcon = (p) => (
 );
 
 const shortRef = r => r.length > 22 ? r.slice(0, 22) + "…" : r;
+
+// Shows most of the string — only elides a small chunk in the middle — so an address never
+// wraps but is still recognizable/eyeball-checkable at both ends.
+function truncateMiddle(str, front = 16, back = 10) {
+  if (!str || str.length <= front + back + 1) return str;
+  return `${str.slice(0, front)}…${str.slice(-back)}`;
+}
 
 function useIsDesktop(breakpoint = 768) {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= breakpoint);
@@ -166,7 +173,7 @@ function Records({ title, txns, onRowClick, emptyHint, onViewAll }) {
                 <tr key={tx.id} onClick={() => onRowClick && onRowClick(tx)}>
                   <td>
                     <div style={{ fontWeight: 500, color: "var(--gray-900)" }}>{tx.party}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--gray-500)" }}>{tx.type}{tx.from ? ` · From ${tx.from}` : ""}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--gray-500)" }}>{displayActivityLabel(tx.activityType) || tx.type}{tx.from ? ` · From ${tx.from}` : ""}</div>
                   </td>
                   <td title={tx.ref}>{ref}</td>
                   <td style={{ color: "var(--gray-600)", fontSize: 12.5 }}>{tx.date}</td>
@@ -383,4 +390,4 @@ function Toast({ msg, onDone }) {
   return <div className={`toast ${isDesktop ? "" : "toast-mobile"}`}><Icon.check /> {msg}</div>;
 }
 
-window.OBPrimitives = { useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, XIcon };
+window.OBPrimitives = { useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon };

@@ -419,7 +419,7 @@ table.records-table th.num { text-align: right; }
 
 .rail-panel { padding: 24px 28px 28px; }
 .page-mobile .rail-panel { padding: 18px 16px 24px; }
-.panel-intro { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.panel-intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
 .panel-intro-desc { font-size: 12.5px; color: var(--gray-700); line-height: 1.55; flex: 1 1 auto; min-width: 0; }
 
 /* Stablecoin deposit — QR alongside the address (stacks on narrow widths). */
@@ -902,6 +902,7 @@ table.records-table th.num { text-align: right; }
 .td-money .row.total { border-top: 1px solid var(--gray-200); border-bottom: 0; margin-top: 6px; padding-top: 14px; }
 .td-money .row.total .k { font-weight: 600; color: var(--gray-900); }
 .td-money .row.total .v { font-weight: 600; font-size: 15px; }
+.tag { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--gray-500); background: var(--gray-100); border-radius: 5px; padding: 2px 7px; white-space: nowrap; }
 
 .td-breakdown { display: flex; flex-direction: column; }
 .td-breakdown .bd-row, .td-breakdown .bd-eq { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0; }

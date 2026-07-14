@@ -82,10 +82,10 @@ const TXNS = [
   { id: "FND-2026-00319", date: "May 6, 07:41", direction: "in",  type: "Funding", party: "USDC · Base network", ref: "OPN-c9d1f3a8-e472-4c6b-b284-7ae053d698f1", amount: "5,000.00", ccy: "USD", chain: "base", txHash: "0x7b4a2f1c9e8d3a5b6f0c4e2d1a8b7c3f9e6d5a4b", status: "COMPLETED", pillTone: "success" },
   { id: "FND-2026-00318", date: "May 6, 08:02", direction: "in",  type: "Funding", party: "Wire — JPMorgan ****4419", ref: "OPN-3e4b1c8f-a291-4d7a-b603-9cf825e7d1a0", amount: "25,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04809", date: "May 5, 16:38", direction: "out", type: "Payout",  party: "Mensah Holdings Ltd", ref: "PAY-2026-04809", amount: "48,200.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "PAY-2026-04802", date: "May 5, 14:22", direction: "out", type: "Payout",  party: "Joseph Mwangi",       ref: "PAY-2026-04802", amount: "62,500.00",   ccy: "KES",   from: "GBP", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00317", date: "May 5, 11:50", direction: "in",  type: "Funding", party: "FPS — Barclays ****8821",  ref: "OPN-7b2a9c1e-f483-4e8d-a915-2bd046c83f7a", amount: "8,000.00",    ccy: "GBP",   status: "COMPLETED",  pillTone: "success" },
+  { id: "PAY-2026-04802", date: "May 5, 14:22", direction: "out", type: "Payout",  party: "Joseph Mwangi",       ref: "PAY-2026-04802", amount: "62,500.00",   ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00317", date: "May 5, 11:50", direction: "in",  type: "Funding", party: "FPS — Barclays ****8821",  ref: "OPN-7b2a9c1e-f483-4e8d-a915-2bd046c83f7a", amount: "10,126.58", fromAmount: "8,000.00", ccy: "USD", from: "GBP", rate: "1 USD = £0.79", convFee: "0.5%", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04795", date: "May 4, 17:09", direction: "out", type: "Payout",  party: "Tausi Logistics",     ref: "PAY-2026-04795", amount: "1,840,000.00", ccy: "TZS",  from: "USD", status: "FAILED",     pillTone: "danger" },
-  { id: "PAY-2026-04790", date: "May 4, 10:14", direction: "out", type: "Payout",  party: "Lucia Macamo",        ref: "PAY-2026-04790", amount: "92,400.00",   ccy: "MZN",   from: "EUR", status: "COMPLETED",  pillTone: "success" },
+  { id: "PAY-2026-04790", date: "May 4, 10:14", direction: "out", type: "Payout",  party: "Lucia Macamo",        ref: "PAY-2026-04790", amount: "92,400.00",   ccy: "MZN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "FND-2026-00316", date: "May 3, 14:00", direction: "in",  type: "Funding", party: "ACH — Mercury ****0021",   ref: "OPN-c1d4f8a3-b962-4a5e-8071-5ef130c849d2", amount: "12,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
 ];
 
@@ -165,24 +165,27 @@ const RECIPIENTS_FULL = (() => {
 // ---------- Extended transactions (full feed) ----------
 const TXNS_FULL = [
   ...TXNS,
+  { id: "FND-2026-00322", date: "May 7, 16:40", direction: "in",  type: "Funding", party: "NGN cash deposit", ref: "OPN-9c3e5a71-4b28-4d91-8e63-1af790c452d3", amount: "202.02", fromAmount: "300,000.00", ccy: "USD", from: "NGN", rate: "1 USD = ₦1,485.50", convFee: "0.5%", status: "PENDING", pillTone: "neutral" },
+  { id: "FND-2026-00323", date: "May 8, 09:00", direction: "in",  type: "Funding", party: "SWIFT — Standard Chartered ****7734", ref: "OPN-1b8e4f72-6a93-4c81-9e05-2df873c4a610", amount: "18,500.00", ccy: "USD", status: "COMPLETED", pillTone: "success" },
+  { id: "PAY-2026-04815", date: "May 8, 13:20", direction: "out", type: "Payout",  party: "Meridian Freight Solutions", ref: "PAY-2026-04815", amount: "14,200.00", ccy: "USD", from: "USD", status: "COMPLETED", pillTone: "success" },
   { id: "WDR-2026-00101", date: "May 7, 11:02", direction: "out", type: "Withdrawal", party: "Vitalik's Vault · USDC", ref: "WDR-2026-00101", amount: "2,500.00", ccy: "USDC", from: "USD", chain: "eth", txHash: "0x4c1a8e2f7d3b5a9c6e0f1d2b3a4c5e6f7a8b9c0d", status: "COMPLETED", pillTone: "success" },
   { id: "WDR-2026-00102", date: "May 5, 15:30", direction: "out", type: "Withdrawal", party: "Bridge Capital Ltd · USDT", ref: "WDR-2026-00102", amount: "8,000.00", ccy: "USDT", from: "USD", chain: "tron", txHash: "TXa1B2c3D4e5F6g7H8i9J0kLmNoPqRsTuVwXyZ", status: "PROCESSING", pillTone: "warn" },
   { id: "FND-2026-00320", date: "May 3, 09:12", direction: "in",  type: "Funding", party: "USDT · Tron (TRC-20)", ref: "OPN-e7f4c2a1-9d38-4e8b-a105-3cf490d571b2", amount: "10,000.00", ccy: "USD", chain: "tron", txHash: "TZ9bD4cF6aE1c5B82d3F9CdA4b5e6F7E8d12C0aB9", status: "COMPLETED", pillTone: "success" },
   { id: "PAY-2026-04788", date: "May 3, 11:24", direction: "out", type: "Payout",  party: "Akosua Asante",       ref: "PAY-2026-04788", amount: "62,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04781", date: "May 2, 18:41", direction: "out", type: "Payout",  party: "Chinedu Nwosu",       ref: "PAY-2026-04781", amount: "780,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "PAY-2026-04772", date: "May 2, 14:55", direction: "out", type: "Payout",  party: "Wanjiru Kamau",       ref: "PAY-2026-04772", amount: "144,200.00",  ccy: "KES",   from: "GBP", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00315", date: "May 2, 10:10", direction: "in",  type: "Funding", party: "SEPA — N26 ****1209", ref: "OPN-8f3c5d2a-1e7b-4a9c-b834-6df021e578c3", amount: "5,000.00",    ccy: "EUR",   status: "COMPLETED",  pillTone: "success" },
+  { id: "PAY-2026-04772", date: "May 2, 14:55", direction: "out", type: "Payout",  party: "Wanjiru Kamau",       ref: "PAY-2026-04772", amount: "144,200.00",  ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00315", date: "May 2, 10:10", direction: "in",  type: "Funding", party: "SEPA — N26 ****1209", ref: "OPN-8f3c5d2a-1e7b-4a9c-b834-6df021e578c3", amount: "5,434.78", fromAmount: "5,000.00", ccy: "USD", from: "EUR", rate: "1 USD = €0.92", convFee: "0.5%", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04763", date: "May 1, 16:02", direction: "out", type: "Payout",  party: "Nia Bakari",          ref: "PAY-2026-04763", amount: "920,000.00",  ccy: "TZS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "PAY-2026-04760", date: "May 1, 11:38", direction: "out", type: "Payout",  party: "Tendai Moyo",         ref: "PAY-2026-04760", amount: "48,200.00",   ccy: "MZN",   from: "EUR", status: "PROCESSING", pillTone: "warn" },
+  { id: "PAY-2026-04760", date: "May 1, 11:38", direction: "out", type: "Payout",  party: "Tendai Moyo",         ref: "PAY-2026-04760", amount: "48,200.00",   ccy: "MZN",   from: "USD", status: "PROCESSING", pillTone: "warn" },
   { id: "PAY-2026-04752", date: "Apr 30, 17:21",direction: "out", type: "Payout",  party: "Folake Adebayo",      ref: "PAY-2026-04752", amount: "510,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "FND-2026-00314", date: "Apr 30, 09:02",direction: "in",  type: "Funding", party: "Wire — Citi ****1188",ref: "OPN-a5e8d2c1-3f74-4b9a-c046-8df123e457b9", amount: "40,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04748", date: "Apr 29, 15:44",direction: "out", type: "Payout",  party: "Samuel Otieno",       ref: "PAY-2026-04748", amount: "92,000.00",   ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "PAY-2026-04742", date: "Apr 29, 12:09",direction: "out", type: "Payout",  party: "Kojo Mensah",         ref: "PAY-2026-04742", amount: "18,400.00",   ccy: "GHS",   from: "GBP", status: "COMPLETED",  pillTone: "success" },
+  { id: "PAY-2026-04742", date: "Apr 29, 12:09",direction: "out", type: "Payout",  party: "Kojo Mensah",         ref: "PAY-2026-04742", amount: "18,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04738", date: "Apr 28, 10:18",direction: "out", type: "Payout",  party: "Aisha Komba",         ref: "PAY-2026-04738", amount: "1,200,000.00",ccy: "TZS",   from: "USD", status: "FAILED",     pillTone: "danger" },
   { id: "PAY-2026-04730", date: "Apr 27, 16:49",direction: "out", type: "Payout",  party: "Omolade Ajayi",       ref: "PAY-2026-04730", amount: "330,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00313", date: "Apr 27, 09:00",direction: "in",  type: "Funding", party: "FPS — Monzo ****0014",ref: "OPN-2c7b4f9e-a831-4d5c-b912-4ef267d083c5", amount: "12,500.00",   ccy: "GBP",   status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00313", date: "Apr 27, 09:00",direction: "in",  type: "Funding", party: "FPS — Monzo ****0014",ref: "OPN-2c7b4f9e-a831-4d5c-b912-4ef267d083c5", amount: "15,822.78", fromAmount: "12,500.00", ccy: "USD", from: "GBP", rate: "1 USD = £0.79", convFee: "0.5%", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04725", date: "Apr 26, 13:11",direction: "out", type: "Payout",  party: "Brenda Wairimu",      ref: "PAY-2026-04725", amount: "78,200.00",   ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "PAY-2026-04719", date: "Apr 25, 11:33",direction: "out", type: "Payout",  party: "Eduardo Sitole",      ref: "PAY-2026-04719", amount: "62,400.00",   ccy: "MZN",   from: "EUR", status: "COMPLETED",  pillTone: "success" },
+  { id: "PAY-2026-04719", date: "Apr 25, 11:33",direction: "out", type: "Payout",  party: "Eduardo Sitole",      ref: "PAY-2026-04719", amount: "62,400.00",   ccy: "MZN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04711", date: "Apr 24, 17:00",direction: "out", type: "Payout",  party: "Yaa Boateng",         ref: "PAY-2026-04711", amount: "27,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04702", date: "Apr 23, 14:22",direction: "out", type: "Payout",  party: "Ifeoma Eze",          ref: "PAY-2026-04702", amount: "190,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
 ];
@@ -196,6 +199,9 @@ const PAYOUT_RAILS = {
   MZN: "RTGS Mozambique",
   USDC: "Stablecoin transfer",
   USDT: "Stablecoin transfer",
+  USD: "SWIFT",
+  GBP: "SWIFT",
+  EUR: "SWIFT",
 };
 
 // Mock business profile shown on Settings · Profile (also reused by Send Payment "pay myself")
@@ -268,5 +274,146 @@ const NETWORK_TOKENS = {
   tron:    ["USDT"],
 };
 
-window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS, CARDS };
+// ---------- Activity taxonomy (ledger's Account Activity API) ----------
+// The real backend is moving from a flat transactions endpoint to an aggregated activity feed
+// with 7 typed activities; only 5 are in scope for the web app for now (internal transfers and
+// offramp deposits are deferred — see v1/HANDOFF.md). This annotates each TXNS/TXNS_FULL fixture
+// with `activityType` + a typed `activityData`, modeled on the ledger OpenAPI spec, so v1's
+// transaction detail screen can branch on type instead of guessing from loose optional fields.
+const ACTIVITY_TYPE_LABELS = {
+  CASH_DEPOSIT: "Cash deposit",
+  ACCOUNT_NUMBER_DEPOSIT: "Deposit via account number",
+  CASH_PAYMENT: "Cash payout",
+  CRYPTO_DEPOSIT: "Crypto deposit",
+  CRYPTO_WITHDRAWAL: "Crypto withdrawal",
+};
+
+// Account-number deposits and the OTA-preview cash deposit are mechanically distinct
+// (activityType, and different Payment-details rows), but that distinction isn't worth surfacing
+// in the title/list/Type row — both just read as "Cash deposit" there. The actual rail (NIBSS
+// Instant Payment / SWIFT / "One-time account (OTA)" / etc.) still shows in the Channel row, so
+// nothing is lost, just not repeated in three places. Everything else maps to itself (no grouping).
+const ACTIVITY_DISPLAY_GROUP = {
+  ACCOUNT_NUMBER_DEPOSIT: "CASH_DEPOSIT",
+};
+const displayActivityType = (t) => ACTIVITY_DISPLAY_GROUP[t] || t;
+const displayActivityLabel = (t) => ACTIVITY_TYPE_LABELS[displayActivityType(t)] || t;
+
+const NGN_SENDER_DETAILS = {
+  "FND-2026-00321": { accountName: "Adaeze Okafor", accountNumber: "****5533", bankName: "First Bank" },
+};
+
+// The app's real, currently-supported deposit model is a dedicated account number per currency
+// (USD Wire/ACH, GBP FPS, EUR SEPA, NGN NUBAN) — so ACCOUNT_NUMBER_DEPOSIT is deliberately the
+// dominant fixture type below. CASH_DEPOSIT gets a single, NGN-flavored sample instead of parity
+// coverage: it previews the future "one-time accounts" (OTA) model — no persistent account,
+// reconciled by reference — which NGN (and later other currencies) will eventually move to.
+const CASH_DEPOSIT_IDS = new Set(["FND-2026-00322"]);
+
+function parseBankFromParty(party) {
+  const m = party.match(/^(.+?) — (.+?) (\*{4}\S+)$/);
+  return m ? { method: m[1], bankName: m[2], accountNumber: m[3] } : null;
+}
+
+// Rail/channel per deposit method — mirrors the ledger's CashAccountDetails.accountInfoType
+// discriminator (CashLocalBankAccount / CashACHBankAccount / CashSepaBankAccount /
+// CashSwiftBankAccount / ...), just in plain English for display.
+const DEPOSIT_CHANNEL_LABELS = {
+  Wire: "Domestic wire (Fedwire)",
+  ACH: "ACH",
+  FPS: "Faster Payments",
+  SEPA: "SEPA",
+  SWIFT: "SWIFT",
+};
+
+// Recipients with no RECIPIENTS_FULL match (one-off payout samples, not in the recipients list).
+const CASH_PAYMENT_OVERRIDES = {
+  "PAY-2026-04815": { accountName: "Meridian Freight Solutions", bankName: "Citibank N.A.", country: "us" },
+};
+
+// This account's own deposit address per chain (reuses the real addresses already shown on the
+// Deposit screen, so the two mocks agree) vs. a plausible external counterparty address.
+const CRYPTO_COUNTERPARTY_ADDRESS = {
+  "FND-2026-00319": "0x3aC9E5cF1b8A4d6E2c7F9B0a1D3e5F7A9c1B3d5E",
+  "FND-2026-00320": "TQn9Y2khD9CtA5F8kV3d1P2Q4pG6RtBnexS8mZ1a",
+  "WDR-2026-00101": "0xB4a1D3c5E7f90214385607aBCdEf0123456789Ab",
+  "WDR-2026-00102": "TBn7K2mR9vQ1sD4fH6jL8pXc3aZ5yWtNoeQ2dM9k",
+};
+
+// Network fee per crypto row (USD) — withdrawals carry a real on-chain gas cost, deposits a small
+// flat processing fee. Maps to AccountTransaction.feeAmount/feeInclusive in the ledger spec.
+const CRYPTO_FEE = {
+  "FND-2026-00319": 1.00,
+  "FND-2026-00320": 1.00,
+  "WDR-2026-00101": 5.00,
+  "WDR-2026-00102": 2.00,
+};
+
+function deriveActivity(tx) {
+  if (tx.chain) {
+    const isDeposit = tx.direction === "in";
+    const thisAccountAddress = (STABLECOIN_CHAINS[tx.party.includes("USDT") ? "USDT" : "USDC"] || []).find(c => c.id === tx.chain)?.address || tx.txHash;
+    const counterpartyAddress = CRYPTO_COUNTERPARTY_ADDRESS[tx.id] || tx.txHash;
+    return {
+      activityType: isDeposit ? "CRYPTO_DEPOSIT" : "CRYPTO_WITHDRAWAL",
+      activityData: {
+        feeAmount: CRYPTO_FEE[tx.id] ?? 0,
+        feeInclusive: false,
+        blockchainInfo: {
+          network: tx.chain,
+          txHash: tx.txHash,
+          senderAddress: isDeposit ? counterpartyAddress : thisAccountAddress,
+          recipientAddress: isDeposit ? thisAccountAddress : counterpartyAddress,
+          tokenSymbol: tx.party.includes("USDT") ? "USDT" : "USDC",
+        },
+      },
+    };
+  }
+  if (tx.direction === "in" && CASH_DEPOSIT_IDS.has(tx.id)) {
+    return {
+      activityType: "CASH_DEPOSIT",
+      activityData: {
+        payinCurrency: tx.ccy,
+        payinAmount: tx.amount,
+        providerReference: `PSP-${tx.id.slice(-8).toUpperCase()}`,
+        channel: "One-time account (OTA)",
+      },
+    };
+  }
+  if (tx.direction === "in") {
+    const parsed = parseBankFromParty(tx.party);
+    const isNgn = !!NGN_SENDER_DETAILS[tx.id];
+    return {
+      activityType: "ACCOUNT_NUMBER_DEPOSIT",
+      activityData: {
+        senderAccountDetails: NGN_SENDER_DETAILS[tx.id] || (parsed ? { accountName: BUSINESS_PROFILE.legalName, bankName: parsed.bankName, accountNumber: parsed.accountNumber } : { accountName: tx.party, accountNumber: "—", bankName: "—" }),
+        channel: isNgn ? PAYOUT_RAILS.NGN : (parsed ? (DEPOSIT_CHANNEL_LABELS[parsed.method] || parsed.method) : "—"),
+        fee: "0.00",
+        settlementAmount: tx.amount,
+        settlementAssetCode: tx.ccy,
+        settlementExchangeRate: tx.rate,
+      },
+    };
+  }
+  const recip = RECIPIENTS_FULL.find(r => r.name === tx.party);
+  const override = CASH_PAYMENT_OVERRIDES[tx.id];
+  return {
+    activityType: "CASH_PAYMENT",
+    activityData: {
+      payoutCurrency: tx.ccy,
+      payoutAmount: tx.amount,
+      providerReference: `PSP-${tx.id.slice(-8).toUpperCase()}`,
+      // Mobile money recipients travel over their own network, not the local bank rail — a
+      // Vodafone Cash payout doesn't go through GhIPSS. Only fall back to the currency's bank
+      // rail (PAYOUT_RAILS) for actual bank recipients (or when there's no recipient match).
+      channel: recip && recip.type === "Mobile money" ? recip.handle.split(" · ")[0] : (PAYOUT_RAILS[tx.ccy] || "—"),
+      recipient: override || (recip ? { accountName: recip.name, bankName: recip.handle, country: recip.country } : { accountName: tx.party, bankName: "—", country: "" }),
+    },
+  };
+}
+
+TXNS.forEach(tx => Object.assign(tx, deriveActivity(tx)));
+TXNS_FULL.forEach(tx => Object.assign(tx, deriveActivity(tx)));
+
+window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS, CARDS, ACTIVITY_TYPE_LABELS, displayActivityType, displayActivityLabel };
 window.OBNetworkIcon = NetworkIcon;

@@ -3,7 +3,7 @@ const { useState, useEffect } = React;
 const Icon = window.OBIcon;
 const NetworkIcon = window.OBNetworkIcon;
 const { STABLECOIN_CHAINS } = window.OBData;
-const { Page, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop } = window.OBPrimitives;
+const { Page, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle } = window.OBPrimitives;
 const Combobox = window.OBCombobox;
 
 function CoinBadge({ coin, size = 26 }) {
@@ -14,13 +14,6 @@ function CoinBadge({ coin, size = 26 }) {
       {labels[coin] || "?"}
     </div>
   );
-}
-
-// Shows most of the string — only elides a small chunk in the middle — so an address
-// never wraps but is still recognizable/eyeball-checkable at both ends.
-function truncateMiddle(str, front = 16, back = 10) {
-  if (!str || str.length <= front + back + 1) return str;
-  return `${str.slice(0, front)}…${str.slice(-back)}`;
 }
 
 function PanelActions({ fields, onCopy, showPdf = true }) {
