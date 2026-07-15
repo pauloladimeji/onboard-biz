@@ -1260,8 +1260,8 @@ function NgnRailPanel({ onCopy, issuance = "ready", onIssuanceChange }) {
           { k: "Bank",             v: NGN_ACCOUNT.bank,   copy: false },
           { k: "Account name",     v: NGN_ACCOUNT.name,   copy: false },
           { k: "Account number",   v: NGN_ACCOUNT.number, copy: true  },
-          { k: "Conversion rate",  v: "1 USD = ₦1,485.50", copy: false },
-          { k: "Deposit fee",      v: "0.5%",             copy: false },
+          { k: "Conversion rate",  v: "1 USD = ₦1,400.50", copy: false },
+          { k: "Deposit fee",      v: "Free",             copy: false },
           { k: "Minimum deposit",  v: "₦50,000",          copy: false },
         ].map(f => (
           <div key={f.k} style={{minWidth: 0}}>

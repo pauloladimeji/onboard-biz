@@ -60,8 +60,8 @@ function NgnPanel({ issuance = "ready", onCopy }) {
     { k: "Bank", v: NGN_ACCOUNT.bank },
     { k: "Account name", v: NGN_ACCOUNT.name },
     { k: "Account number", v: NGN_ACCOUNT.number, copy: true },
-    { k: "Conversion rate", v: "1 USD = ₦1,485.50" },
-    { k: "Deposit fee", v: "0.5%" },
+    { k: "Conversion rate", v: "1 USD = ₦1,400.50" },
+    { k: "Deposit fee", v: "Free" },
     { k: "Minimum deposit", v: "₦50,000" },
   ];
   return (
