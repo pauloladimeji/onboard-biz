@@ -9,6 +9,7 @@ const { RecipientsScreen } = window.OBRecipients;
 const { AddRecipientScreen } = window.OBAddRecipient;
 const { TransactionsScreen, TransactionDetailScreen } = window.OBTransactions;
 const { SettingsScreen, DeveloperSection } = window.OBSettings;
+const { CardsScreen } = window.OBCards;
 const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
   TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
@@ -34,7 +35,7 @@ function MockControls({
   stablecoinIssuance, onStablecoinIssuance, fiatConvert, onFiatConvert,
   payMode, onPayMode, paymentApproval, onPaymentApproval, paymentApprovalMethod, onPaymentApprovalMethod,
   complianceHold, onComplianceHold, route, nameLookupMock, onNameLookupMock,
-  apiAccess, onApiAccess,
+  apiAccess, onApiAccess, cardsAccess, onCardsAccess,
   flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState,
 }) {
   const inSignin = flow.startsWith("signin") || flow === "forgot-password";
@@ -158,6 +159,13 @@ function MockControls({
           <button className={apiAccess === "none" ? "on" : ""} onClick={() => onApiAccess("none")}>Not requested</button>
         </div>
       </div>
+      <div className="mock-group">
+        <div className="mock-label">Cards</div>
+        <div className="mock-row">
+          <button className={cardsAccess === "not_applied" ? "on" : ""} onClick={() => onCardsAccess("not_applied")}>Not applied</button>
+          <button className={cardsAccess === "active" ? "on" : ""} onClick={() => onCardsAccess("active")}>Active</button>
+        </div>
+      </div>
     </>
   );
 }
@@ -200,6 +208,7 @@ function App() {
   const [complianceHold, setComplianceHold] = useState(false);
   const [nameLookupMock, setNameLookupMock] = useState("default");
   const [apiAccess, setApiAccess] = useState("granted");
+  const [cardsAccess, setCardsAccess] = useState("active");
   const [openTx, setOpenTx] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -217,6 +226,7 @@ function App() {
       complianceHold={complianceHold} onComplianceHold={setComplianceHold}
       route={route} nameLookupMock={nameLookupMock} onNameLookupMock={setNameLookupMock}
       apiAccess={apiAccess} onApiAccess={setApiAccess}
+      cardsAccess={cardsAccess} onCardsAccess={setCardsAccess}
       flow={flow} onFlow={setFlow}
       signinAccountStatus={signinAccountStatus} onSigninAccountStatus={setSigninAccountStatus}
       totpState={totpState} onTotpState={setTotpState} />
@@ -347,6 +357,8 @@ function App() {
         onOpenTx={setOpenTx}
         onToast={setToast} />
     );
+  } else if (route === "cards") {
+    screen = <CardsScreen onToast={setToast} cardsAccess={cardsAccess} />;
   } else if (route === "settings") {
     screen = <SettingsScreen onToast={setToast} />;
   } else if (route === "developer") {

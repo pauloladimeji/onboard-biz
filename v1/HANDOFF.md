@@ -4,9 +4,10 @@ This document describes the **v1 adaptive prototype** for engineering implementa
 **one codebase that feels native on mobile and scales up to the desktop layout**, rather than
 two separate builds.
 
-**v1 is the single canonical reference — for both desktop and mobile.** `v0/` is frozen/legacy;
-read it only for the one thing not yet ported to v1 (see §13). This resolves the "two references"
-problem — when v0 and v1 disagree, **v1 wins.**
+**v1 is the single canonical reference — for both desktop and mobile.** `v0/` is fully retired —
+every screen it had is now in v1, adaptive. Nothing in v0 needs to be opened to build against v1;
+see §13 for the handful of v0 screens that were deliberately *not* ported (reference-only, dead
+paths, not gaps). When v0 and v1 disagree, **v1 wins.**
 
 > ⚠️ **This is a design prototype, not production code.** It runs React + Babel-standalone in the
 > browser (no build step) purely so design can iterate. Treat it as the **spec for behaviour and
@@ -40,7 +41,7 @@ v1 does **not** duplicate data or design tokens — it loads them from `v0/` by 
 | `../v0/design-system/` | Design tokens (`colors_and_type.css`), Euclid Circular A fonts, flag SVGs, logo |
 
 Everything else is v1-owned. `v0/` is otherwise **frozen** — kept only to serve the shared files
-above and the not-yet-ported screen in §13. Don't build new work into it.
+above. Don't build new work into it.
 
 ---
 
@@ -61,6 +62,7 @@ recipients.jsx     → window.OBRecipients — Recipients list + delete
 add-recipient.jsx  → window.OBAddRecipient — 3-step add-recipient wizard
 transactions.jsx   → window.OBTransactions — Transactions list + detail
 settings.jsx       → window.OBSettings — Settings + Developer
+cards.jsx          → window.OBCards — Flex Business Cards: list, detail, create/fund/withdraw/freeze
 app.jsx            → root App: auth flow state machine, post-login routing, mock-control state, toast
 ```
 
@@ -90,6 +92,9 @@ At the breakpoint, these concerns flip:
 | **Stablecoin network picker** | Chip row (`.chan-picker`) | Plain dropdown (`.net-select`) — deliberately lighter than the currency selector (no card/avatar/search); a real backend can list ~10 networks, too many to lay out as wrapping chips |
 | **2-column detail grids** | 2-col | Stacked |
 | **Auth shell** | Split two-column (form + marketing panel) | Single centered column, no marketing panel |
+| **Card detail layout** | Two-column (`.card-detail-grid`: fixed 360px card + actions / flexible transactions) | Stacked, card visual full-width on top |
+| **Card number/exp/CVV reveal** | Hover shows a "Click to reveal/copy" tooltip, then click reveals/copies | No hover (no touch equivalent) — tap reveals, tap again copies, confirmed by the existing toast; no tooltip |
+| **Card "More" actions** | Anchored dropdown (Spending limits / Withdraw / Fees / Edit / Delete) | Same list, opened as a `Sheet` |
 
 > **Implementation note:** the same route/selection state drives both layouts, so a user rotating
 > a tablet or a responsive breakpoint change never loses context. Build the shared state once; the
@@ -203,6 +208,7 @@ Each toggle just flips prototype state so a reviewer can see a given screen vari
 | **Compliance hold** | Injects a held transaction + amber banner |
 | **Name lookup** (Add Recipient only) | Forces the account-name verification path on/off |
 | **API access** | Developer API entitlement: granted / pending / not requested |
+| **Cards** | Whether the business has applied for Flex Business Cards: not applied (shows `CardsApplyPage`) vs active |
 
 > **For eng:** ignore this panel entirely when scoping. It corresponds to **backend/account and
 > auth states** your real system already owns, surfaced here only so design could demo each branch
@@ -315,7 +321,7 @@ reference match); `PROCESSING` means actively in flight.
 
 ## 11. Screens (status + key behaviours)
 
-All the below are built. (Cards is **not** in v1 — see §13.)
+All the below are built.
 
 - **Auth** — see §7.
 - **Home** — Global USD balance hero, Deposit / Send actions, Recent activity (`Records`). Mobile rows
@@ -337,6 +343,11 @@ All the below are built. (Cards is **not** in v1 — see §13.)
   for fiat), a Money breakdown card that works for all 5 types, and actions. See §10.
 - **Settings** — Business profile + Security sections (section rail). **Developer** — API keys +
   webhooks, every sensitive action gated behind a 2FA Sheet; not-granted / pending states.
+- **Cards** (Flex Business Cards) — card list (horizontal-scroll tiles + all-cards transaction
+  list), card detail (two-column desktop / stacked mobile via `.card-detail-grid`), create/fund/
+  withdraw/freeze flows, spending limits, fee schedule, and a not-applied landing page — all 7
+  modals are `Sheet`-based. See §4 for the touch-adapted card visual (reveal/copy) and §6 for
+  where Cards sits in navigation.
 
 ---
 
@@ -360,11 +371,8 @@ All the below are built. (Cards is **not** in v1 — see §13.)
 
 ## 13. Not yet in v1 (known gaps)
 
-**Gap — still needs building:**
-
-- **Cards** — intentionally removed from v1 nav (deferred). A full desktop-only version exists in
-  `../v0/screens-cards.jsx` if it's picked up later; it has no adaptive/mobile design yet. This is
-  the **only** reason to open `v0/` today.
+**No open gaps.** Cards was the last one — it's now built and adaptive (§11). `v0/` is fully
+retired; nothing there needs to be opened to build against v1.
 
 **Deliberately excluded — not a gap, don't port these:**
 
@@ -378,8 +386,7 @@ All the below are built. (Cards is **not** in v1 — see §13.)
 All four exist in v0 only as design-review reference.
 
 - **`INTERNAL_TRANSFER` and `OFFRAMP_DEPOSIT` activity types** (§10) — real types in the ledger's
-  Account Activity API, but not part of this web app launch. Both have real nuance (paired-leg
-  linking via `groupId`, the offramp's crypto-in/bank-out hybrid) that wasn't worth designing until
-  there's an actual need — don't add UI for them without a fresh design pass first.
-
-When Cards is ported into v1, v0 can be fully retired.
+  Account Activity API, but not part of this web app launch and have no UI anywhere (not even in
+  v0). Both have real nuance (paired-leg linking via `groupId`, the offramp's crypto-in/bank-out
+  hybrid) that wasn't worth designing until there's an actual need — don't add UI for them without
+  a fresh design pass first.

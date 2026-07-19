@@ -30,13 +30,15 @@ const NAV = [
   { id: "recipients", label: "Recipients",   icon: Icon.people },
   { id: "activity",   label: "Transactions", icon: Icon.list },
 ];
-// Cards is deferred — intentionally omitted from nav for now (see HANDOFF.md).
+// Cards sits inline in the desktop sidebar (not a 6th bottom tab — would crowd the tab bar);
+// mobile reaches it through the "More" sheet instead.
+const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card };
 const WORKSPACE_NAV = [
   { id: "settings",  label: "Settings",  icon: Icon.cog },
   { id: "developer", label: "Developer", icon: Icon.doc },
 ];
 // Desktop puts these under a "Workspace" sidebar group; mobile's "More" tab opens them in a sheet.
-const MORE_NAV = WORKSPACE_NAV;
+const MORE_NAV = [CARDS_NAV, ...WORKSPACE_NAV];
 
 function AccountManagerCard() {
   return (
@@ -79,6 +81,7 @@ function SidebarV1({ active, onNavigate }) {
   return (
     <aside className="sidebar-v1">
       {NAV.map(item)}
+      {item(CARDS_NAV)}
       <div className="sb-group">Workspace</div>
       {WORKSPACE_NAV.map(item)}
       <div style={{ flex: 1 }} />
