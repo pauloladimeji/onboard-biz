@@ -4,9 +4,8 @@
    stay v0-only reference material and are not ported here. */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
-const { useIsDesktop, QrCode } = window.OBPrimitives;
+const { useIsDesktop, QrCode, TALLY_URL } = window.OBPrimitives;
 
-const TALLY_URL = "https://tally.so/r/5BMoRP";
 const SUPPORT_WA = "https://wa.me/14313404484";
 const TOS_URL = "https://www.onboard.xyz/terms";
 const PP_URL = "https://www.onboard.xyz/privacy-policy";

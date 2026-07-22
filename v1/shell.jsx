@@ -1,7 +1,7 @@
 /* global React */
 const Icon = window.OBIcon;
-const { useIsDesktop, Sheet } = window.OBPrimitives;
-const { useState } = React;
+const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, TALLY_URL } = window.OBPrimitives;
+const { useState, useEffect } = React;
 
 const AM = { wa: "https://wa.me/+2348000000000" };
 
@@ -58,13 +58,84 @@ function AccountManagerCard() {
   );
 }
 
-function TopBar({ onOpenMock }) {
+// Persistent, non-dismissible — a public demo visitor should always have a way back to the
+// real signup, not just on first load. Never rendered outside demo mode.
+function DemoBanner() {
+  return (
+    <div className="demo-banner">
+      <span>You're exploring the Onboard Business demo — nothing here is real.</span>
+      <a href={withDemoUtm(TALLY_URL, { utm_campaign: "topbanner" })} target="_blank" rel="noopener noreferrer" className="demo-banner-cta">
+        Open an account <Icon.arrowRight style={{ width: 12, height: 12 }} />
+      </a>
+    </div>
+  );
+}
+
+// A checklist tour doubling as a CTA surface (Mercury-style) — nudges a demo visitor through
+// the features worth seeing, tracks what they've already opened, and closes with the same
+// "Open an account" conversion point as the rest of the demo chrome. Never rendered outside
+// demo mode; state lives in Shell so it survives navigation but resets on reload (no persistence
+// needed — same call as recipients-in-session).
+const NUDGE_ITEMS = [
+  { route: "dashboard",  label: "See your global USD account" },
+  { route: "add-money",  label: "See how deposits work" },
+  { route: "payments",   label: "Send a payment" },
+  { route: "recipients", label: "Add a recipient" },
+  { route: "cards",      label: "Create a virtual card" },
+];
+
+function GuidedNudges({ active, onNavigate }) {
+  const [dismissed, setDismissed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [visited, setVisited] = useState(() => new Set(["dashboard"]));
+
+  useEffect(() => { setVisited((prev) => (prev.has(active) ? prev : new Set(prev).add(active))); }, [active]);
+
+  if (dismissed) return null;
+  const doneCount = NUDGE_ITEMS.filter((n) => visited.has(n.route)).length;
+  const allDone = doneCount === NUDGE_ITEMS.length;
+
+  if (collapsed) {
+    return (
+      <button className="nudges-fab" onClick={() => setCollapsed(false)} aria-label="Show demo tour">
+        <span className="nudges-fab-ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="none" stroke="var(--gray-200)" strokeWidth="3" /><circle cx="18" cy="18" r="16" fill="none" stroke="var(--brand-purple, #7C3AED)" strokeWidth="3" strokeDasharray={`${(doneCount / NUDGE_ITEMS.length) * 100.5} 100.5`} strokeLinecap="round" transform="rotate(-90 18 18)" /></svg></span>
+        <span>{allDone ? "Tour complete" : "Explore the demo"}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="nudges-panel">
+      <div className="nudges-head">
+        <div>
+          <div className="nudges-title">{allDone ? "You've seen it all" : "Try the demo"}</div>
+          <div className="nudges-sub">{doneCount}/{NUDGE_ITEMS.length} explored</div>
+        </div>
+        <button className="nudges-min" onClick={() => setCollapsed(true)} aria-label="Minimize">–</button>
+      </div>
+      <div className="nudges-list">
+        {NUDGE_ITEMS.map((n) => (
+          <button key={n.route} className={`nudges-item ${visited.has(n.route) ? "done" : ""} ${active === n.route ? "active" : ""}`} onClick={() => onNavigate(n.route)}>
+            <span className="nudges-check">{visited.has(n.route) ? <Icon.check style={{ width: 11, height: 11 }} /> : null}</span>
+            {n.label}
+          </button>
+        ))}
+      </div>
+      <a className="nudges-cta" href={withDemoUtm(TALLY_URL, { utm_campaign: "nudges_panel" })} target="_blank" rel="noopener noreferrer">
+        Open an account <Icon.arrowRight style={{ width: 12, height: 12 }} />
+      </a>
+      <button className="nudges-dismiss" onClick={() => setDismissed(true)}>Hide for this visit</button>
+    </div>
+  );
+}
+
+function TopBar({ onOpenMock, isDemo }) {
   return (
     <header className="topbar">
       <div className="brand"><img src="../v0/design-system/assets/onboard-logo-lockup-purple.png" alt="Onboard Business" /></div>
       <div style={{ flex: 1 }} />
       <div className="right">
-        <button className="gear" onClick={onOpenMock} aria-label="Mock controls"><Icon.cog style={{ width: 16, height: 16 }} /></button>
+        {!isDemo && <button className="gear" onClick={onOpenMock} aria-label="Mock controls"><Icon.cog style={{ width: 16, height: 16 }} /></button>}
         <div className="avatar">JN</div>
       </div>
     </header>
@@ -91,12 +162,12 @@ function SidebarV1({ active, onNavigate }) {
   );
 }
 
-function TopBarMobile({ onOpenMock }) {
+function TopBarMobile({ onOpenMock, isDemo }) {
   return (
     <header className="topbar-mobile">
       <div className="brand"><img src="../v0/design-system/assets/onboard-logo-lockup-purple.png" alt="Onboard Business" /></div>
       <div className="right">
-        <button className="gear" onClick={onOpenMock} aria-label="Mock controls"><Icon.cog style={{ width: 15, height: 15 }} /></button>
+        {!isDemo && <button className="gear" onClick={onOpenMock} aria-label="Mock controls"><Icon.cog style={{ width: 15, height: 15 }} /></button>}
         <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" aria-label="Chat with your Account Manager">
           <WaIcon style={{ width: 15, height: 15 }} />
         </a>
@@ -140,29 +211,35 @@ function MoreSheet({ open, onClose, onNavigate }) {
 }
 
 // Adaptive shell: sidebar+topnav on desktop, bottom tabs+topbar on mobile. Same route state either way.
-// Mock controls open from the same small gear icon in the top bar on both breakpoints, as a Sheet.
+// Mock controls open from the same small gear icon in the top bar on both breakpoints, as a Sheet —
+// except in demo mode, where the gear (and the whole harness) doesn't render at all. See HANDOFF.md.
 function Shell({ active, onNavigate, mockControls, children }) {
   const isDesktop = useIsDesktop();
+  const isDemo = isDemoMode();
   const [moreOpen, setMoreOpen] = useState(false);
   const [mockOpen, setMockOpen] = useState(false);
 
   if (isDesktop) {
     return (
-      <div className="shell is-desktop">
-        <TopBar onOpenMock={() => setMockOpen(true)} />
+      <div className={`shell is-desktop ${isDemo ? "has-demo-banner" : ""}`}>
+        {isDemo && <DemoBanner />}
+        <TopBar onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
         <SidebarV1 active={active} onNavigate={onNavigate} />
         <div className="content-desktop">{children}</div>
-        <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>
+        {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
+        {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
       </div>
     );
   }
   return (
     <div className="shell is-mobile">
-      <TopBarMobile onOpenMock={() => setMockOpen(true)} />
+      {isDemo && <DemoBanner />}
+      <TopBarMobile onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
       <div className="content-mobile">{children}</div>
       <BottomTabs active={active} onNavigate={onNavigate} onMore={() => setMoreOpen(true)} />
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} onNavigate={onNavigate} />
-      <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>
+      {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
+      {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
     </div>
   );
 }

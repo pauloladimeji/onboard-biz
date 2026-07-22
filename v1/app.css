@@ -79,6 +79,121 @@ button { font-family: var(--font-sans); }
 
 /* ---------- Desktop ---------- */
 .shell.is-desktop { display: grid; grid-template-columns: var(--layout-sidebar) 1fr; grid-template-rows: var(--layout-nav-h) 1fr; height: 100vh; overflow: hidden; }
+.shell.is-desktop.has-demo-banner { grid-template-rows: var(--demo-banner-h) var(--layout-nav-h) 1fr; }
+
+/* ---------- Demo mode banner ---------- */
+:root { --demo-banner-h: 38px; }
+.demo-banner {
+  grid-column: 1 / -1; height: var(--demo-banner-h); flex-shrink: 0;
+  background: var(--gray-900); color: #fff;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  padding: 0 16px; font-size: 12.5px; text-align: center; flex-wrap: wrap;
+  position: relative; z-index: 6;
+}
+.demo-banner-cta {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: #fff; font-weight: 600; text-decoration: underline; white-space: nowrap;
+}
+.demo-banner-cta:hover { text-decoration: none; }
+.demo-banner-cta svg { width: 12px; height: 12px; }
+.shell.is-mobile .demo-banner {
+  flex-direction: column; gap: 3px; font-size: 10.5px; line-height: 1.35;
+  padding: 7px 14px; height: auto; min-height: 32px;
+}
+
+/* ---------- Demo entry gate ---------- */
+.demo-entry {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 28px; padding: 24px; background: var(--gray-50);
+}
+.demo-entry-logo img { height: 22px; }
+.demo-entry-card {
+  width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--gray-200); border-radius: 16px;
+  padding: 32px 28px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  display: flex; flex-direction: column; align-items: stretch; text-align: center;
+}
+.demo-entry-eyebrow {
+  align-self: center; display: inline-flex; align-items: center; gap: 5px;
+  background: var(--primary-50, #F5F3FF); color: var(--primary-700, #6D28D9);
+  font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px; margin-bottom: 14px;
+}
+.demo-entry-card h1 { font-size: 21px; font-weight: 600; color: var(--gray-900); margin: 0 0 10px; line-height: 1.3; letter-spacing: -0.01em; }
+.demo-entry-lede { font-size: 13.5px; color: var(--gray-500); margin: 0 0 20px; line-height: 1.55; }
+.demo-entry-features {
+  display: flex; flex-direction: column; gap: 9px; text-align: left;
+  background: var(--gray-50); border-radius: 10px; padding: 14px 16px; margin-bottom: 22px;
+}
+.demo-entry-feature { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--gray-700); font-weight: 500; }
+.demo-entry-feature svg { color: var(--primary-600, #7C3AED); flex-shrink: 0; }
+.demo-entry-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--gray-400); font-size: 12px; }
+.demo-entry-divider::before, .demo-entry-divider::after { content: ""; flex: 1; height: 1px; background: var(--gray-200); }
+.demo-entry-personal-lbl { font-size: 12.5px; font-weight: 600; color: var(--gray-700); margin-bottom: 10px; }
+.demo-entry-stores { display: flex; gap: 8px; }
+.demo-entry-store {
+  flex: 1; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px;
+  font-size: 12.5px; font-weight: 600; color: var(--gray-700); text-decoration: none;
+}
+.demo-entry-store:hover { border-color: var(--gray-300); background: var(--gray-50); }
+
+/* ---------- Demo completion-moment CTA ---------- */
+.demo-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 18px; padding: 14px 16px; border-radius: 12px;
+  background: var(--gray-50); border: 1px solid var(--gray-200);
+  font-size: 12.5px; color: var(--gray-700); text-align: left;
+}
+.demo-cta .btn { flex-shrink: 0; }
+
+/* ---------- Demo guided-nudges panel ---------- */
+.nudges-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 8;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--gray-900); color: #fff; border: 0; border-radius: 999px;
+  padding: 9px 16px 9px 9px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, .22);
+}
+.nudges-fab-ring { width: 22px; height: 22px; flex-shrink: 0; }
+.nudges-fab-ring svg { width: 100%; height: 100%; }
+.shell.is-mobile .nudges-fab { bottom: 84px; right: 14px; }
+
+.nudges-panel {
+  position: fixed; right: 20px; bottom: 20px; z-index: 8; width: 268px;
+  background: #fff; border: 1px solid var(--gray-200); border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, .16); overflow: hidden;
+}
+.shell.is-mobile .nudges-panel { right: 14px; left: 14px; width: auto; bottom: 84px; }
+.nudges-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 14px 10px; }
+.nudges-title { font-size: 13.5px; font-weight: 600; color: var(--gray-900); }
+.nudges-sub { font-size: 11.5px; color: var(--gray-500); margin-top: 2px; }
+.nudges-min {
+  width: 22px; height: 22px; border-radius: 999px; border: 1px solid var(--gray-200); background: #fff;
+  color: var(--gray-500); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0;
+}
+.nudges-list { display: flex; flex-direction: column; padding: 0 8px 6px; }
+.nudges-item {
+  display: flex; align-items: center; gap: 9px; text-align: left;
+  border: 0; background: transparent; border-radius: 8px; padding: 8px 6px;
+  font-size: 12.5px; color: var(--gray-700); cursor: pointer;
+}
+.nudges-item:hover { background: var(--gray-50); }
+.nudges-item.active { background: var(--gray-50); color: var(--gray-900); font-weight: 600; }
+.nudges-item.done { color: var(--gray-400); text-decoration: line-through; }
+.nudges-check {
+  width: 16px; height: 16px; border-radius: 999px; border: 1.5px solid var(--gray-300); flex-shrink: 0;
+  display: grid; place-items: center; color: #fff;
+}
+.nudges-item.done .nudges-check { background: var(--success-600, #16A34A); border-color: var(--success-600, #16A34A); }
+.nudges-cta {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 6px 10px 0; padding: 10px; background: var(--gray-900); color: #fff;
+  border-radius: 9px; font-size: 12.5px; font-weight: 600; text-decoration: none;
+}
+.nudges-dismiss {
+  display: block; width: 100%; text-align: center; border: 0; background: transparent;
+  color: var(--gray-400); font-size: 11.5px; padding: 10px 0 12px; cursor: pointer;
+}
+.nudges-dismiss:hover { color: var(--gray-600); }
 
 .topbar {
   grid-column: 1 / -1;

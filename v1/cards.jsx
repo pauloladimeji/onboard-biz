@@ -3,7 +3,7 @@
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
 const Data = window.OBData;
-const { Page, Sheet, Pill, useIsDesktop } = window.OBPrimitives;
+const { Page, Sheet, Pill, useIsDesktop, DemoCta } = window.OBPrimitives;
 
 const CARD_BG = "../v0/design-system/assets/card-bg.svg";
 const MOCK_CARDHOLDER = "Amara Nwosu";
@@ -430,10 +430,20 @@ function CreateCardSheet({ onClose, onCreate }) {
       expiry: "06/28", cvv: String(Math.floor(100 + Math.random() * 900)),
       limit: { perTransaction: 5000, daily: 10000, monthly: 25000 }, created: "Jun 28, 2026", balance: cardBalance,
     });
+    setStep("done");
   };
 
   return (
-    <Sheet open onClose={onClose} title={step === "review" ? "Confirm card creation" : "Create new card"}>
+    <Sheet open onClose={onClose} title={step === "review" ? "Confirm card creation" : step === "done" ? "" : "Create new card"}>
+      {step === "done" && (
+        <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+          <div className="pay-confirm-icon"><Icon.check /></div>
+          <div className="pay-confirm-title">Card created</div>
+          <div className="pay-confirm-sub">{name.trim()} is activating — it'll be ready to use in a moment.</div>
+          <button className="btn btn-lg btn-block" onClick={onClose}>Done</button>
+          <DemoCta message="Ready to issue real cards for your team?" campaign="card_confirm" />
+        </div>
+      )}
       {step === "review" && (
         <>
           <div className="pay-review-list" style={{ paddingTop: 0 }}>
@@ -839,7 +849,6 @@ function CardsScreen({ onToast, cardsAccess = "active" }) {
   const handleBack = () => { setSelectedCard(null); setView("list"); };
   const handleCreate = (newCard) => {
     setCards((prev) => [...prev, newCard]);
-    setShowCreate(false);
     onToast(`${newCard.name} is being activated…`);
     setTimeout(() => setCards((prev) => prev.map((c) => c.id === newCard.id && c.status === "activating" ? { ...c, status: "active" } : c)), 30000);
   };

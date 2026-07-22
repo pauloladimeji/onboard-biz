@@ -374,6 +374,11 @@ All the below are built.
 **No open gaps.** Cards was the last one — it's now built and adaptive (§11). `v0/` is fully
 retired; nothing there needs to be opened to build against v1.
 
+The demo-mode build (§14) added one real, structural fix: recipients (add/delete) now persist in
+React state for the session (`app.jsx`) — previously `RECIPIENTS_FULL` was read directly by
+`RecipientsScreen`/`SendPayment` and any add/delete was a silent no-op. Not demo-specific; it was
+a pre-existing gap the demo surfaced.
+
 **Deliberately excluded — not a gap, don't port these:**
 
 - `ExpressInterestScreen` + `SignUpConfirmationScreen` in `v0/screens-onboarding.jsx` — an earlier,
@@ -390,3 +395,56 @@ All four exist in v0 only as design-review reference.
   v0). Both have real nuance (paired-leg linking via `groupId`, the offramp's crypto-in/bank-out
   hybrid) that wasn't worth designing until there's an actual need — don't add UI for them without
   a fresh design pass first.
+
+---
+
+## 14. Demo mode — public lead-gen build
+
+v1 doubles as a public, unauthenticated demo. No env var / build flag exists (no bundler), so it's
+a **runtime check** in `primitives.jsx`:
+
+```js
+function isDemoMode() {
+  // true if ?demo=1 is in the URL, or the hostname starts with "demo."
+}
+```
+
+Everything demo-specific reads this at render time — there's no separate build output. Locally,
+append `?demo=1` to the URL to preview it (e.g. `index.html?demo=1`). Turn it off by dropping the
+param; there's nothing to "undo".
+
+**What changes in demo mode:**
+
+- **Mock-controls gear is hidden** (`shell.jsx`, `TopBar`/`TopBarMobile`) — the QA harness must
+  never be exposed publicly. The Sheet it opens is also suppressed even if somehow triggered.
+- **`DemoBanner`** (`shell.jsx`) — persistent top strip ("You're exploring the Onboard Business
+  demo…") with an "Open an account" link. Non-dismissible by design; a visitor should always have
+  a way back to real signup, not just on first load. Desktop's shell grid gains an extra row
+  (`.has-demo-banner`, `--demo-banner-h`) to fit it above the normal topbar.
+- **`DemoEntryScreen`** (`app.jsx`) — the only screen a demo visitor sees before the app. Not part
+  of the real auth state machine; gated by its own `demoEntryDone` state (`useState(() =>
+  !isDemoMode())`, so non-demo builds skip it entirely and every existing `flow` branch is
+  untouched). Offers **"For my business"** (enters the demo app) or **"For personal use"** (links
+  to the real consumer apps via `CONSUMER_APP_LINKS.ios`/`.android`, no further demo access).
+- **`DemoCta`** (`primitives.jsx`) — small reusable prompt ("Ready to do this for real? → Open an
+  account"), renders `null` outside demo mode. Dropped into completion moments: `SendConfirmation`
+  (`send.jsx`) after a payment, and a new "done" step in `CreateCardSheet` (`cards.jsx` — the sheet
+  previously closed straight back to the list on confirm; it now shows a brief success step first
+  so there's a place to attach the CTA).
+- **`GuidedNudges`** (`shell.jsx`) — Mercury-style floating checklist ("Try the demo": see the
+  account, deposit, send, add a recipient, create a card). Tracks visited routes in its own state
+  (resets on reload, same as recipients — no persistence needed for a single browsing session),
+  collapses to a small progress-ring FAB, and can be hidden for the visit. Rendered inside `Shell`
+  on both breakpoints, positioned to clear the bottom tab bar on mobile.
+
+**Conversion tracking convention:** every outbound CTA (banner, entry-gate, `DemoCta`, nudges
+panel) wraps its href in `withDemoUtm(url, { utm_campaign: "…" })` (`primitives.jsx`). No analytics
+SDK is wired up yet — this only tags links so Google Analytics (or similar) can be dropped in later
+to see who's converting, without touching every CTA again. `TALLY_URL` (real signup) and
+`CONSUMER_APP_LINKS` (consumer app store links) are the two destinations; both live in
+`primitives.jsx` so every screen points at the same URLs rather than a local copy each could drift
+from.
+
+**Not built / deliberately out of scope:** real analytics integration (UTM params are the prep
+work, not the integration), a public deployment/hosting config for the `demo.` hostname, and any
+persona beyond the binary Personal/Business split at entry.

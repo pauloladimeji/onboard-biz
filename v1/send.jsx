@@ -2,10 +2,9 @@
 const { useState: useStateP, useMemo: useMemoP, useRef: useRefP, useEffect: useEffectP } = React;
 const PIcon = window.OBIcon;
 const PNetworkIcon = window.OBNetworkIcon;
-const { CURRENCIES: PCCY, RECIPIENTS_FULL, V0_USD_BALANCE, NETWORK_TOKENS } = window.OBData;
-const { Page, Sheet, Banner, useIsDesktop, CcyFlag, Flag: PFlag, FlowShell } = window.OBPrimitives;
+const { CURRENCIES: PCCY, V0_USD_BALANCE, NETWORK_TOKENS } = window.OBData;
+const { Page, Sheet, Banner, useIsDesktop, CcyFlag, Flag: PFlag, FlowShell, DemoCta } = window.OBPrimitives;
 
-const RECIPIENTS = RECIPIENTS_FULL;
 const PAGE_SIZE = 8;
 const REASONS = ["Supplier payment", "Payroll", "Contractor / freelancer", "Intercompany transfer", "Logistics & shipping", "Tax & government", "Refund", "Other"];
 const FX = { USD: 1, GBP: 0.79, EUR: 0.92, NGN: 1485.5, GHS: 14.2, KES: 129.4, TZS: 2640.0, MZN: 63.8, USDC: 1, USDT: 1 };
@@ -90,14 +89,14 @@ function CcyDropdown({ value, options, onChange }) {
 // =====================================================
 // Recipient picker
 // =====================================================
-function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipient", subtitle = "Select a saved recipient or add a new one" }) {
+function RecipientPanel({ recipients, selectedId, onSelect, onAddNew, title = "Choose recipient", subtitle = "Select a saved recipient or add a new one" }) {
   const [q, setQ] = useStateP("");
   const [tab, setTab] = useStateP("fiat");
   const [visible, setVisible] = useStateP(PAGE_SIZE);
   const sentinelRef = useRefP(null);
 
-  const fiatRecipients = useMemoP(() => RECIPIENTS.filter(r => r.country !== "crypto"), []);
-  const cryptoRecipients = useMemoP(() => RECIPIENTS.filter(r => r.country === "crypto"), []);
+  const fiatRecipients = useMemoP(() => recipients.filter(r => r.country !== "crypto"), [recipients]);
+  const cryptoRecipients = useMemoP(() => recipients.filter(r => r.country === "crypto"), [recipients]);
 
   const filtered = useMemoP(() => {
     const base = tab === "fiat" ? fiatRecipients : cryptoRecipients;
@@ -173,7 +172,7 @@ function RecipientPanel({ selectedId, onSelect, onAddNew, title = "Choose recipi
   );
 }
 
-function RecipientPanelFiltered({ destCcy, selectedId, onSelect, onAddNew, onBack }) {
+function RecipientPanelFiltered({ recipients, destCcy, selectedId, onSelect, onAddNew, onBack }) {
   const [q, setQ] = useStateP("");
   const [visible, setVisible] = useStateP(PAGE_SIZE);
   const sentinelRef = useRefP(null);
@@ -181,12 +180,12 @@ function RecipientPanelFiltered({ destCcy, selectedId, onSelect, onAddNew, onBac
   const filtered = useMemoP(() => {
     const isStablecoin = destCcy === "USDC" || destCcy === "USDT";
     let res = isStablecoin
-      ? RECIPIENTS.filter(r => r.country === "crypto" && (NETWORK_TOKENS[r.network] || []).includes(destCcy))
-      : RECIPIENTS.filter(r => r.ccy === destCcy);
+      ? recipients.filter(r => r.country === "crypto" && (NETWORK_TOKENS[r.network] || []).includes(destCcy))
+      : recipients.filter(r => r.ccy === destCcy);
     const t = q.trim().toLowerCase();
     if (t) res = res.filter(r => r.name.toLowerCase().includes(t) || r.handle.toLowerCase().includes(t));
     return res;
-  }, [q, destCcy]);
+  }, [q, destCcy, recipients]);
 
   useEffectP(() => { setVisible(PAGE_SIZE); }, [q, destCcy]);
   useEffectP(() => {
@@ -587,6 +586,8 @@ function SendConfirmation({ payment, reference, onDone, onNewPayment }) {
           <button className="btn btn-soft" onClick={onDone}><PIcon.external /> View transaction</button>
           <button className="btn" onClick={onNewPayment}>Send another payment</button>
         </div>
+
+        <DemoCta message="Ready to send real payments to your suppliers and partners?" campaign="send_confirm" />
       </div>
     </div>
   );
@@ -595,7 +596,7 @@ function SendConfirmation({ payment, reference, onDone, onNewPayment }) {
 // =====================================================
 // Orchestrator
 // =====================================================
-function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", paymentApproval = "required", paymentApprovalMethod = "totp", accountSuspended = false, dataState = "full" }) {
+function SendPayment({ recipients, onAddRecipient, onToast, defaultMode = "recipient", paymentApproval = "required", paymentApprovalMethod = "totp", accountSuspended = false, dataState = "full" }) {
   const [mode] = useStateP(defaultMode);
   const [step, setStep] = useStateP(0);
   const [recipient, setRecipient] = useStateP(null);
@@ -678,6 +679,7 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
       <FlowShell steps={stepLabels} current={stepperIndex}>
         {step === 0 && mode === "recipient" && (
           <RecipientPanel
+            recipients={recipients}
             selectedId={recipient?.id}
             onSelect={(r) => {
               setRecipient(r);
@@ -701,7 +703,7 @@ function SendPayment({ onAddRecipient, onToast, defaultMode = "recipient", payme
         )}
 
         {step === 1 && mode === "amount" && (
-          <RecipientPanelFiltered destCcy={dstCcy} selectedId={recipient?.id} onSelect={(r) => { setRecipient(r); setStep(2); }} onAddNew={onAddRecipient} onBack={() => setStep(0)} />
+          <RecipientPanelFiltered recipients={recipients} destCcy={dstCcy} selectedId={recipient?.id} onSelect={(r) => { setRecipient(r); setStep(2); }} onAddNew={onAddRecipient} onBack={() => setStep(0)} />
         )}
 
         {step === 2 && (

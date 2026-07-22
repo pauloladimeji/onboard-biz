@@ -2,7 +2,6 @@
 const { useState: useStateC, useMemo: useMemoC, useRef: useRefC, useEffect: useEffectC } = React;
 const CIcon = window.OBIcon;
 const CNetworkIcon = window.OBNetworkIcon;
-const { RECIPIENTS_FULL } = window.OBData;
 const { Page, Sheet, Flag: CFlag, FilterBar, useIsDesktop } = window.OBPrimitives;
 
 const PAGE_SIZE_RC = 10;
@@ -92,7 +91,7 @@ function DeleteRecipientSheet({ recipient, onConfirm, onClose }) {
   );
 }
 
-function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
+function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full", recipients, onDelete }) {
   const isDesktop = useIsDesktop();
   const [tab, setTab] = useStateC("fiat");
   const [q, setQ] = useStateC("");
@@ -100,17 +99,17 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
   const [visible, setVisible] = useStateC(PAGE_SIZE_RC);
   const sentinelRef = useRefC(null);
 
-  const fiatCount = RECIPIENTS_FULL.filter(r => r.country !== "crypto").length;
-  const cryptoCount = RECIPIENTS_FULL.filter(r => r.country === "crypto").length;
+  const fiatCount = recipients.filter(r => r.country !== "crypto").length;
+  const cryptoCount = recipients.filter(r => r.country === "crypto").length;
 
   const filtered = useMemoC(() => {
     if (dataState === "empty") return [];
-    let res = RECIPIENTS_FULL.filter(r => tab === "fiat" ? r.country !== "crypto" : r.country === "crypto");
+    let res = recipients.filter(r => tab === "fiat" ? r.country !== "crypto" : r.country === "crypto");
     if (tab === "fiat" && ccyF !== "all") res = res.filter(r => r.ccy === ccyF);
     const t = q.trim().toLowerCase();
     if (t) res = res.filter(r => r.name.toLowerCase().includes(t) || r.handle.toLowerCase().includes(t) || (r.ccy || "").toLowerCase().includes(t) || (r.networkLabel || "").toLowerCase().includes(t));
     return res;
-  }, [q, ccyF, tab, dataState]);
+  }, [q, ccyF, tab, dataState, recipients]);
 
   useEffectC(() => { setVisible(PAGE_SIZE_RC); }, [q, ccyF, tab]);
   useEffectC(() => {
@@ -205,7 +204,7 @@ function RecipientsScreen({ onAddNew, onPay, onToast, dataState = "full" }) {
 
       <DeleteRecipientSheet
         recipient={deleteTarget}
-        onConfirm={() => { onToast && onToast(`${deleteTarget.name} removed`); setDeleteTarget(null); }}
+        onConfirm={() => { onDelete && onDelete(deleteTarget.id); onToast && onToast(`${deleteTarget.name} removed`); setDeleteTarget(null); }}
         onClose={() => setDeleteTarget(null)} />
     </Page>
   );

@@ -12,6 +12,53 @@ const XIcon = (p) => (
 
 const shortRef = r => r.length > 22 ? r.slice(0, 22) + "…" : r;
 
+// Real signup — off-app via Tally. Shared so every "Open account" CTA (auth, demo chrome,
+// demo conversion moments) points at the same place, not a copy each screen could drift from.
+const TALLY_URL = "https://tally.so/r/5BMoRP";
+const CONSUMER_APP_LINKS = {
+  android: "https://play.google.com/store/apps/details?id=com.onboard.wallet&hl=en",
+  ios: "https://apps.apple.com/us/app/onboard-global/id1665198778",
+};
+
+// ---------- Demo mode ----------
+// Public lead-gen surface — on when `?demo=1` (local/preview testing) or the deployed demo
+// hostname. Everything gated on this must degrade safely: hide the mock-controls harness
+// (never expose the QA panel publicly), skip auth, add conversion chrome. See HANDOFF.md.
+function isDemoMode() {
+  if (typeof window === "undefined" || !window.location) return false;
+  try {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") return true;
+  } catch (e) { /* ignore */ }
+  return window.location.hostname.indexOf("demo.") === 0;
+}
+
+// Appends UTM params to an outbound CTA so a later analytics pass (e.g. Google Analytics) can
+// attribute conversions back to the demo with zero code changes then — no tracking SDK now.
+function withDemoUtm(url, extra = {}) {
+  try {
+    const u = new URL(url);
+    const params = { utm_source: "onboard_demo", utm_medium: "cta", ...extra };
+    Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+    return u.toString();
+  } catch (e) {
+    return url;
+  }
+}
+
+// Reusable conversion prompt for "completion moments" (send confirmation, card created, etc).
+// Renders nothing outside demo mode — safe to drop into any screen unconditionally.
+function DemoCta({ message, campaign }) {
+  if (!isDemoMode()) return null;
+  return (
+    <div className="demo-cta">
+      <span>{message}</span>
+      <a href={withDemoUtm(TALLY_URL, { utm_campaign: campaign })} target="_blank" rel="noopener noreferrer" className="btn btn-dark btn-sm">
+        Open an account
+      </a>
+    </div>
+  );
+}
+
 // Shows most of the string — only elides a small chunk in the middle — so an address never
 // wraps but is still recognizable/eyeball-checkable at both ends.
 function truncateMiddle(str, front = 16, back = 10) {
@@ -390,4 +437,8 @@ function Toast({ msg, onDone }) {
   return <div className={`toast ${isDesktop ? "" : "toast-mobile"}`}><Icon.check /> {msg}</div>;
 }
 
-window.OBPrimitives = { useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon };
+window.OBPrimitives = {
+  useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
+  Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
+  TALLY_URL, CONSUMER_APP_LINKS, isDemoMode, withDemoUtm, DemoCta,
+};

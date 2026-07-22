@@ -14,7 +14,50 @@ const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
   TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
 } = window.OBAuth;
-const { Page, Toast, Sheet } = window.OBPrimitives;
+const { Page, Toast, Sheet, isDemoMode, withDemoUtm, TALLY_URL, CONSUMER_APP_LINKS } = window.OBPrimitives;
+const { RECIPIENTS_FULL } = window.OBData;
+
+// ---------- Demo entry gate (demo mode only) ----------
+// The only screen a demo visitor sees before the app itself. Not a real auth step — it never
+// asks for anything, just routes personal-use visitors to the consumer app instead of the
+// business demo. Skipped entirely outside demo mode.
+const DEMO_ENTRY_FEATURES = [
+  { icon: "globe", label: "Hold a global USD balance" },
+  { icon: "paperplane", label: "Pay out to 5+ currencies" },
+  { icon: "zap", label: "Real-time FX, transparent fees" },
+];
+
+function DemoEntryScreen({ onEnterBusiness }) {
+  return (
+    <div className="demo-entry">
+      <div className="demo-entry-logo"><img src="../v0/design-system/assets/onboard-logo-lockup-purple.png" alt="Onboard" /></div>
+      <div className="demo-entry-card">
+        <span className="demo-entry-eyebrow">Live product demo</span>
+        <h1>Business payments, without the friction</h1>
+        <p className="demo-entry-lede">Onboard gives businesses a global USD balance and fast payouts to suppliers, contractors, and teams abroad. Explore the real product below — nothing to sign up for.</p>
+
+        <div className="demo-entry-features">
+          {DEMO_ENTRY_FEATURES.map((f) => (
+            <div key={f.label} className="demo-entry-feature">
+              {React.createElement(Icon[f.icon], { style: { width: 15, height: 15 } })}
+              <span>{f.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <button className="btn btn-lg btn-block btn-dark" onClick={onEnterBusiness}>For my business</button>
+        <div className="demo-entry-divider"><span>or</span></div>
+        <div className="demo-entry-personal">
+          <div className="demo-entry-personal-lbl">Looking for the personal app?</div>
+          <div className="demo-entry-stores">
+            <a href={withDemoUtm(CONSUMER_APP_LINKS.ios, { utm_campaign: "entry_personal" })} target="_blank" rel="noopener noreferrer" className="demo-entry-store">App Store</a>
+            <a href={withDemoUtm(CONSUMER_APP_LINKS.android, { utm_campaign: "entry_personal" })} target="_blank" rel="noopener noreferrer" className="demo-entry-store">Google Play</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Auth screens render outside the app Shell (no sidebar/topbar yet), so mock controls
 // get a small floating gear instead of the one built into TopBar/TopBarMobile.
@@ -191,6 +234,9 @@ function App() {
   // signin-totp-verify | signin-set-password | apply-for-access | app.
   // Sign-up is off-app via Tally, so it's not part of this state machine.
   const [flow, setFlow] = useState("app"); // start in app for review
+  // Demo mode only: gates everything behind a Personal/Business choice first. Non-demo
+  // builds skip it entirely (starts true) since it's not part of the real product flow.
+  const [demoEntryDone, setDemoEntryDone] = useState(() => !isDemoMode());
   const [authEmail, setAuthEmail] = useState("finance@acmetrading.com");
   const [signinAccountStatus, setSigninAccountStatus] = useState("verified_active");
   const [totpState, setTotpState] = useState("verify"); // "setup" = first sign-in, "verify" = returning
@@ -211,6 +257,7 @@ function App() {
   const [cardsAccess, setCardsAccess] = useState("active");
   const [openTx, setOpenTx] = useState(null);
   const [toast, setToast] = useState(null);
+  const [recipients, setRecipients] = useState(() => [...RECIPIENTS_FULL]);
 
   const mockControls = (
     <MockControls
@@ -231,6 +278,11 @@ function App() {
       signinAccountStatus={signinAccountStatus} onSigninAccountStatus={setSigninAccountStatus}
       totpState={totpState} onTotpState={setTotpState} />
   );
+
+  // ---------- DEMO ENTRY GATE (demo mode only, ahead of everything else) ----------
+  if (!demoEntryDone) {
+    return <DemoEntryScreen onEnterBusiness={() => setDemoEntryDone(true)} />;
+  }
 
   // ---------- AUTH FLOWS (pre-app — no Shell yet) ----------
   if (flow === "apply-for-access") {
@@ -323,6 +375,7 @@ function App() {
     screen = (
       <SendPayment
         key={payMode}
+        recipients={recipients}
         defaultMode={payMode}
         paymentApproval={paymentApproval}
         paymentApprovalMethod={paymentApprovalMethod}
@@ -334,6 +387,8 @@ function App() {
   } else if (route === "recipients") {
     screen = (
       <RecipientsScreen
+        recipients={recipients}
+        onDelete={(id) => setRecipients((prev) => prev.filter((r) => r.id !== id))}
         dataState={dataState}
         onAddNew={() => setRoute("add-recipient")}
         onPay={() => setRoute("payments")}
@@ -344,7 +399,10 @@ function App() {
       <AddRecipientScreen
         nameLookupMock={nameLookupMock}
         onBack={() => setRoute("recipients")}
-        onSaved={() => setRoute("recipients")}
+        onSaved={(newRecipient) => {
+          setRecipients((prev) => [{ ...newRecipient, id: `r${Date.now()}`, last: "Never" }, ...prev]);
+          setRoute("recipients");
+        }}
         onToast={setToast} />
     );
   } else if (route === "activity" && openTx) {
