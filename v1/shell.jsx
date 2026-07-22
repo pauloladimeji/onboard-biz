@@ -3,7 +3,7 @@ const Icon = window.OBIcon;
 const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, TALLY_URL } = window.OBPrimitives;
 const { useState, useEffect } = React;
 
-const AM = { wa: "https://wa.me/+2348000000000" };
+const AM = { wa: "https://wa.me/14313404484" };
 
 const WaIcon = (p) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
