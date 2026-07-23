@@ -9,6 +9,7 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 ### Meta & Open Graph tags for the public demo
 - Added `<meta name="description">`, Open Graph, and Twitter Card tags to the two public entry points (`v1/index.html` — the Vercel root — and `v0/index.html`) so the demo shows a proper title, description, and preview image when shared (Slack, LinkedIn, iMessage, X, etc.)
 - Absolute URLs point at the public host `https://demo.business.onboard.xyz`; added `theme-color` and `canonical` too
+- Renamed the `v1/index.html` browser-tab `<title>` from the internal `"Onboard Business — v1 (Adaptive)"` to the public-facing `"Onboard Business — Business payments, without the friction"` (this is the Vercel root, so the title shows publicly)
 - New `v1/og-preview.html`: a 1200×630 social-image source that recreates the demo entry hero (photo, floating card, headline, feature list, lime accent) — screenshot it to regenerate the OG image; capture instructions are in the file header
 - New `v0/design-system/assets/og-image.png` (2400×1260, 2× of 1200×630): the shared preview image the tags reference. Placeholder rendered from `og-preview.html` — replace with a fresh screenshot anytime
 - **Files changed**: `v1/index.html`, `v0/index.html`, `v1/og-preview.html` (new), `v0/design-system/assets/og-image.png` (new)
