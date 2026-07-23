@@ -322,7 +322,7 @@ function UsdPanel({ status, onCopy }) {
         <UsdStepper step={2} />
         <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
           title="Application declined"
-          desc={<>Unfortunately, our banking partner was unable to approve your USD account at this time. Contact <strong>support@onboard.xyz</strong> for more information.</>} />
+          desc={<>Unfortunately, our banking partner was unable to approve your USD account at this time. <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">Message your dedicated account team on WhatsApp</a> for more information.</>} />
       </div>
     );
   }
@@ -406,7 +406,7 @@ function FiatConvertPanel({ ccy, state: initialState = "ready", onCopy }) {
     return (
       <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
         title={`Couldn't set up your ${ccy} account`}
-        desc={<>Something went wrong while allocating your {ccy} account details. Please try again — if it keeps happening, contact <strong>support@onboard.xyz</strong>.</>}>
+        desc={<>Something went wrong while allocating your {ccy} account details. Please try again — if it keeps happening, <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">message your dedicated account team on WhatsApp</a>.</>}>
         <button className="btn btn-lg" onClick={create}><Icon.refresh /> Try again</button>
       </StatusPanel>
     );
