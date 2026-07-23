@@ -92,8 +92,49 @@ Mapped to the screens that exist today (see `CLAUDE.md` for the flow inventory):
 - **Team** (new, Admin-only) — invite/remove members, assign role, toggle an Operator's
   completion flag.
 
-## Open question
+## Completion routing (decided)
 
-When an Operator without the flag submits a payment, who is expected to pick it up —
-any Admin, or a named approver? Current assumption: **any Admin or any
-completion-enabled Operator**, no routing. Flag if that's wrong.
+When an Operator without the flag submits a payment, it can be picked up by **any Admin
+or any completion-enabled Operator** — no routing, no assignment, no named approver. It
+simply appears in the shared pending list for everyone who's allowed to complete.
+
+## UI surface
+
+What this model requires, split by whether the screen exists today.
+
+### New pages / flows
+
+- **Team** (Admin-only) — the core of this. A member list (name, email, role, status),
+  and the actions to manage it:
+  - **Invite member** — email + role picker; if role is Operator, the *"can complete
+    payments"* toggle. This is the biggest new lift because moving invites in-app means
+    a new **invite → accept → account setup** path for the invited person (today that's
+    a back-office step). Worth scoping on its own.
+  - **Edit member** — change role, toggle an Operator's completion flag.
+  - **Remove member.**
+- **Pending payments** — a list of `pending_completion` payments with a **Complete**
+  action (runs the existing 2FA step) and a **Cancel** action. Visible only to those
+  with completion rights. Likely surfaced as a sidebar item with a count badge.
+
+### Changes to existing flows
+
+- **Send payment** — for an Operator without completion rights, the review step's
+  terminal button reads *"Submit for completion"* not *"Send"*, and the confirmation
+  screen shows a **pending** state instead of *Sent*. Everyone else is unchanged.
+- **Transaction / payment detail** — a `pending_completion` item needs a detail view
+  that shows who initiated it and, for viewers with completion rights, the
+  **Complete / Cancel** actions.
+- **Sidebar / shell** — hide the "Send payment" CTA for Viewers; show the **Team** item
+  only to Admins; show **Pending payments** only to those who can complete.
+- **Recipients** — hide "Add recipient" for Viewers (list stays read-only).
+- **Role visibility** — a small indication of the current user's role (e.g. in the
+  profile menu), so people understand why an action is or isn't available.
+
+### Permission / empty states
+
+Every gated action needs a defined "you can't do this" state — Viewers landing on a
+list with no create button, an Operator seeing a submitted-not-sent confirmation. These
+are cheap but easy to forget; call them out per screen when we build.
+
+> Note: none of the above is mocked yet — this is the page inventory to work from when
+> we do. In the prototype these gates would be driven by a "current role" mock control.
