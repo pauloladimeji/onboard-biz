@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Served from /v1/ but reachable at the site root (vercel.json rewrites / → /v1/index.html).
+     This base makes every relative asset path resolve against /v1/ regardless of the URL the
+     visitor is on, so the root domain (and the demo CNAME) load correctly, not blank. -->
+<base href="/v1/" />
 <title>Onboard Business — v1 (Adaptive)</title>
 <link rel="icon" type="image/svg+xml" href="../v0/design-system/assets/safari-pinned-tab.svg" />
 <link rel="stylesheet" href="app.css?v=49" />
