@@ -102,30 +102,37 @@ simply appears in the shared pending list for everyone who's allowed to complete
 
 What this model requires, split by whether the screen exists today.
 
+> These are the current structural ideas, not locked — the final page shape is an
+> implementation-time decision. The permission *rules* below hold regardless of how the
+> pages are arranged.
+
 ### New pages / flows
 
-- **Team** (Admin-only) — the core of this. A member list (name, email, role, status),
-  and the actions to manage it:
+- **Payments hub** — rather than a standalone "Send payment" destination, a richer
+  Payments page that holds it all: the transactions list, the **pending** queue, and the
+  entry point to start a new payment. This absorbs today's separate Transactions page and
+  the send flow; the pending `pending_completion` items live here (a tab or filter)
+  rather than as their own nav item, ideally with a count on the pending view. Starting a
+  new payment becomes an action launched from this page.
+- **Team** — lives as a tab **inside Settings** (which already exists for profile /
+  security), Admin-only. A member list (name, email, role, status) plus:
   - **Invite member** — email + role picker; if role is Operator, the *"can complete
     payments"* toggle. This is the biggest new lift because moving invites in-app means
     a new **invite → accept → account setup** path for the invited person (today that's
     a back-office step). Worth scoping on its own.
   - **Edit member** — change role, toggle an Operator's completion flag.
   - **Remove member.**
-- **Pending payments** — a list of `pending_completion` payments with a **Complete**
-  action (runs the existing 2FA step) and a **Cancel** action. Visible only to those
-  with completion rights. Likely surfaced as a sidebar item with a count badge.
 
 ### Changes to existing flows
 
-- **Send payment** — for an Operator without completion rights, the review step's
+- **New-payment flow** — for an Operator without completion rights, the review step's
   terminal button reads *"Submit for completion"* not *"Send"*, and the confirmation
-  screen shows a **pending** state instead of *Sent*. Everyone else is unchanged.
-- **Transaction / payment detail** — a `pending_completion` item needs a detail view
-  that shows who initiated it and, for viewers with completion rights, the
-  **Complete / Cancel** actions.
-- **Sidebar / shell** — hide the "Send payment" CTA for Viewers; show the **Team** item
-  only to Admins; show **Pending payments** only to those who can complete.
+  shows a **pending** state instead of *Sent*. Everyone else is unchanged.
+- **Payment detail** — a `pending_completion` item needs a detail view that shows who
+  initiated it and, for those with completion rights, the **Complete / Cancel** actions
+  (Complete runs the existing 2FA step).
+- **Sidebar / shell** — hide the payments entry / new-payment CTA for Viewers; show the
+  **Settings → Team** tab only to Admins.
 - **Recipients** — hide "Add recipient" for Viewers (list stays read-only).
 - **Role visibility** — a small indication of the current user's role (e.g. in the
   profile menu), so people understand why an action is or isn't available.
