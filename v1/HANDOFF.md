@@ -201,7 +201,7 @@ Each toggle just flips prototype state so a reviewer can see a given screen vari
 | **USD account status** | KYB/onboarding state of the USD bank rail: not applied / incomplete / under review / approved / declined |
 | **NGN account details** | Whether the NGN virtual account is provisioned (not generated / ready) |
 | **Stablecoin addresses** | Whether USDC/USDT deposit addresses are provisioned |
-| **EUR / GBP deposits** | Whether those rails are live (available) or waitlisted |
+| **EUR / GBP account** | Allocation state of the EUR/GBP receiving account: not created / ready / allocation error |
 | **Send payment order** | Default step order: recipient-first vs amount-first |
 | **2FA on payments** | Whether the payment-approval step is required |
 | **2FA method** | Default approval method: authenticator (TOTP) vs email OTP |
@@ -329,7 +329,21 @@ All the below are built.
 - **Deposit** — Adaptive funding-method picker (**tabs desktop / currency selector mobile**). Rails:
   NGN (convert-on-deposit), USDC/USDT (network picker + deposit address + decorative QR), USD (bank
   application flow with not-applied → submitting → verify → under review / approved / declined), EUR/GBP
-  (convert-on-deposit *or* waitlist per the mock toggle). Suspended-account state.
+  (self-serve dedicated receiving account, convert-on-deposit — see below). Suspended-account state.
+  - **EUR/GBP creation flow.** EUR and GBP are dedicated receiving accounts a business creates
+    itself, through the *same* endpoint as the USD virtual account (`POST`/`GET
+    /accounts/{accountId}/account-details` → `CashDepositPaymentDetails`). GBP returns a
+    `CashLocalBankAccount` (account number + sort code, which is the `bankCode` field); EUR returns
+    a `CashSepaBankAccount` (IBAN = `accountNumber`, optional `bic`). Allocation is **not instant** —
+    `details` comes back `null` for up to ~1 min while the banking partner allocates, so the panel
+    runs **create → allocating (pending spinner) → ready**, with an **allocation-error** state
+    (retry + support fallback) if it fails. The mock toggle (§8, *EUR / GBP account*) jumps to any
+    of not-created / ready / error; the create button runs the pending→ready transition live (10s
+    stand-in for the real allocation window). Funds still credit the single **USD** balance at the
+    live rate on receipt — no per-currency balances (confirmed product decision). Displayed detail
+    fields are intentionally richer than the bare schema (bank name/address, account type, both
+    IBAN and sort code for GBP) — kept deliberately, not an oversight. **Fees/limits shown are
+    placeholders** pending real specs from the ledger team.
 - **Send payment** — Recipient-first or amount-first (mock toggle); FX send/receive fields with live
   rate + countdown + over-balance guard; required reason + optional memo; review; 2FA approval
   (authenticator / email, method-switch Sheet); confirmation. Empty (no recipients) + suspended states.

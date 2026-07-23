@@ -34,7 +34,7 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
           <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}><Icon.paperplane /> Send money</button>
         </div>
         <div className="home-divider" />
-        <div className="home-rails-note">Fund with USD, NGN, or stablecoins — all deposits are held as USD</div>
+        <div className="home-rails-note">Fund with USD, GBP, EUR, NGN, or stablecoins — all deposits are held as USD</div>
       </div>
 
       <Records

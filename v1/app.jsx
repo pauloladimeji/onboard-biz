@@ -243,10 +243,11 @@ function MockControls({
         </div>
       </div>
       <div className="mock-group">
-        <div className="mock-label">EUR / GBP deposits</div>
+        <div className="mock-label">EUR / GBP account</div>
         <div className="mock-row">
-          <button className={fiatConvert === "available" ? "on" : ""} onClick={() => onFiatConvert("available")}>Available</button>
-          <button className={fiatConvert === "waitlist" ? "on" : ""} onClick={() => onFiatConvert("waitlist")}>Waitlist</button>
+          <button className={fiatConvert === "not_generated" ? "on" : ""} onClick={() => onFiatConvert("not_generated")}>Not created</button>
+          <button className={fiatConvert === "ready" ? "on" : ""} onClick={() => onFiatConvert("ready")}>Ready</button>
+          <button className={fiatConvert === "error" ? "on" : ""} onClick={() => onFiatConvert("error")}>Alloc. error</button>
         </div>
       </div>
       <div className="mock-group">
@@ -340,7 +341,7 @@ function App() {
   const [usdAccountStatus, setUsdAccountStatus] = useState("approved");
   const [ngnIssuance, setNgnIssuance] = useState("ready");
   const [stablecoinIssuance, setStablecoinIssuance] = useState("ready");
-  const [fiatConvert, setFiatConvert] = useState("available");
+  const [fiatConvert, setFiatConvert] = useState("ready");
   const [payMode, setPayMode] = useState("recipient");
   const [paymentApproval, setPaymentApproval] = useState("required");
   const [paymentApprovalMethod, setPaymentApprovalMethod] = useState("totp");

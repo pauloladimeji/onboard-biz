@@ -199,7 +199,7 @@ function AccountsDashboard({ onOpenCurrency, onSendPayment, onAddMoney, onGoToCa
 
           <div className="home-divider" />
 
-          <div className="home-rails-note">Fund with USD, NGN, or stablecoins — all deposits are held as USD</div>
+          <div className="home-rails-note">Fund with USD, GBP, EUR, NGN, or stablecoins — all deposits are held as USD</div>
         </div>
 
         {dashLayout === "cards-split" && (

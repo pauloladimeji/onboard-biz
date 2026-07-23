@@ -330,7 +330,11 @@ function UsdPanel({ status, onCopy }) {
   return null;
 }
 
-// ---------- EUR / GBP (convert-on-deposit) ----------
+// ---------- EUR / GBP (dedicated receiving account, convert-on-deposit) ----------
+// Both created via the same account-details endpoint as the USD VA. GBP returns a
+// CashLocalBankAccount (account number + sort code = bankCode); EUR returns a
+// CashSepaBankAccount (IBAN = accountNumber, + BIC). Allocation isn't instant — details come
+// back null for <1 min, so creation goes: create → allocating → ready (or error).
 const FIAT_CONVERT_DATA = {
   EUR: {
     fields: [
@@ -341,6 +345,7 @@ const FIAT_CONVERT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = €0.88" },
     ],
+    createDesc: "We'll allocate a dedicated EUR IBAN for your business. EUR deposits are converted to USD at the live rate when they clear.",
     desc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
     timingTone: "med",
     timing: "1–2 business days",
@@ -358,6 +363,7 @@ const FIAT_CONVERT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = £0.75" },
     ],
+    createDesc: "We'll allocate a dedicated GBP account number & sort code for your business. GBP deposits are converted to USD at the live rate when they clear.",
     desc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     timingTone: null,
     timing: null,
@@ -369,9 +375,43 @@ const FIAT_CONVERT_DATA = {
   },
 };
 
-function FiatConvertPanel({ ccy, onCopy }) {
+function FiatConvertPanel({ ccy, state: initialState = "ready", onCopy }) {
   const data = FIAT_CONVERT_DATA[ccy];
+  const [state, setState] = useState(initialState);
+  useEffect(() => setState(initialState), [initialState]);
   if (!data) return null;
+
+  // Mirrors the real create → poll-until-allocated flow. Details are null while allocating;
+  // 10s here stands in for the <1 min staging allocation.
+  const create = () => { setState("processing"); setTimeout(() => setState("ready"), 10000); };
+
+  if (state === "not_generated") {
+    return (
+      <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.bank />}
+        title={`Create your ${ccy} account`} desc={data.createDesc}>
+        <button className="btn btn-lg" onClick={create}>Create {ccy} account</button>
+      </StatusPanel>
+    );
+  }
+  if (state === "processing") {
+    return (
+      <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<span className="spin" style={{ width: 24, height: 24 }} />}
+        title={`Setting up your ${ccy} account…`}
+        desc={`Your ${ccy === "EUR" ? "IBAN is" : "account details are"} being allocated by our banking partner. This usually takes under a minute — you can leave this page and come back.`}>
+        <div className="gen-progress"><span /></div>
+      </StatusPanel>
+    );
+  }
+  if (state === "error") {
+    return (
+      <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
+        title={`Couldn't set up your ${ccy} account`}
+        desc={<>Something went wrong while allocating your {ccy} account details. Please try again — if it keeps happening, contact <strong>support@onboard.xyz</strong>.</>}>
+        <button className="btn btn-lg" onClick={create}><Icon.refresh /> Try again</button>
+      </StatusPanel>
+    );
+  }
+
   const copyableFields = data.fields.filter(f => f.copy);
   return (
     <div className="rail-panel">
@@ -387,28 +427,15 @@ function FiatConvertPanel({ ccy, onCopy }) {
   );
 }
 
-function CcyRequestPanel({ ccy }) {
-  return (
-    <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.bank />}
-      title={`${ccy} bank transfers`}
-      desc={<>Receive {ccy} deposits via bank transfer. To get started, email <strong>support@onboard.xyz</strong> with your expected monthly volume and we'll set you up.</>}>
-      <a href={`mailto:support@onboard.xyz?subject=Request for ${ccy} bank account for Acme Trading Co&body=Business name: Acme Trading Co%0D%0AExpected monthly volume (${ccy}): `} className="btn btn-lg" style={{ textDecoration: "none" }}>
-        Email support@onboard.xyz
-      </a>
-    </StatusPanel>
-  );
-}
-
 // ---------- Deposit page ----------
-function DepositPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "available" }) {
-  const eurGbpType = fiatConvert === "available" ? "fiat-convert" : "ccy-request";
+function DepositPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
   const tabs = [
     { id: "ngn", name: "NGN", full: "Nigerian Naira", method: "Bank transfer", flag: "ng", type: "ngn" },
     { id: "usdc", name: "USDC", full: "USD Coin", method: "Stablecoin", coin: "USDC", type: "stablecoin" },
     { id: "usdt", name: "USDT", full: "Tether USD", method: "Stablecoin", coin: "USDT", type: "stablecoin" },
     { id: "usd-bank", name: "USD", full: "US Dollar", method: "Bank transfer", flag: "us", type: "usd" },
-    { id: "eur-bank", name: "EUR", full: "Euro", method: "Bank transfer", flag: "eu", type: eurGbpType, ccy: "EUR" },
-    { id: "gbp-bank", name: "GBP", full: "Pound Sterling", method: "Bank transfer", flag: "gb", type: eurGbpType, ccy: "GBP" },
+    { id: "eur-bank", name: "EUR", full: "Euro", method: "Bank transfer", flag: "eu", type: "fiat-convert", ccy: "EUR" },
+    { id: "gbp-bank", name: "GBP", full: "Pound Sterling", method: "Bank transfer", flag: "gb", type: "fiat-convert", ccy: "GBP" },
   ];
   const [activeRail, setActiveRail] = useState(0);
   const activeTab = tabs[activeRail];
@@ -424,7 +451,7 @@ function DepositPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuan
       </div>
 
       <h1 className="title">Deposit</h1>
-      <p className="subtitle">Fund your USD balance via bank transfer, stablecoin, or local currency (NGN).</p>
+      <p className="subtitle">Fund your USD balance via global accounts, local currency accounts, or stablecoins.</p>
 
       {accountSuspended ? (
         <Banner tone="danger" icon={<Icon.alert />} title="Deposits disabled">
@@ -460,8 +487,7 @@ function DepositPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuan
           {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} />}
           {activeTab.type === "stablecoin" && <StablecoinPanel coin={activeTab.coin} issuance={stablecoinIssuance} onCopy={handleCopy} />}
           {activeTab.type === "usd" && <UsdPanel status={usdAccountStatus} onCopy={handleCopy} />}
-          {activeTab.type === "fiat-convert" && <FiatConvertPanel ccy={activeTab.ccy} onCopy={handleCopy} />}
-          {activeTab.type === "ccy-request" && <CcyRequestPanel ccy={activeTab.ccy} />}
+          {activeTab.type === "fiat-convert" && <FiatConvertPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} />}
         </div>
       )}
     </Page>
