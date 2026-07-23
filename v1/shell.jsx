@@ -1,6 +1,6 @@
 /* global React */
 const Icon = window.OBIcon;
-const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, TALLY_URL } = window.OBPrimitives;
+const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, APPLY_URL, SALES_CALL_URL } = window.OBPrimitives;
 const { useState, useEffect } = React;
 
 const AM = { wa: "https://wa.me/14313404484" };
@@ -63,8 +63,8 @@ function AccountManagerCard() {
 function DemoBanner() {
   return (
     <div className="demo-banner">
-      <span>You're exploring the Onboard Business demo — nothing here is real.</span>
-      <a href={withDemoUtm(TALLY_URL, { utm_campaign: "topbanner" })} target="_blank" rel="noopener noreferrer" className="demo-banner-cta">
+      <span>You're exploring the Onboard Business demo - nothing you do here is saved.</span>
+      <a href={withDemoUtm(APPLY_URL, { utm_campaign: "topbanner" })} target="_blank" rel="noopener noreferrer" className="demo-banner-cta">
         Open an account <Icon.arrowRight style={{ width: 12, height: 12 }} />
       </a>
     </div>
@@ -121,8 +121,11 @@ function GuidedNudges({ active, onNavigate }) {
           </button>
         ))}
       </div>
-      <a className="nudges-cta" href={withDemoUtm(TALLY_URL, { utm_campaign: "nudges_panel" })} target="_blank" rel="noopener noreferrer">
+      <a className="nudges-cta" href={withDemoUtm(APPLY_URL, { utm_campaign: "nudges_panel" })} target="_blank" rel="noopener noreferrer">
         Open an account <Icon.arrowRight style={{ width: 12, height: 12 }} />
+      </a>
+      <a className="nudges-secondary" href={withDemoUtm(SALES_CALL_URL, { utm_campaign: "nudges_panel_call" })} target="_blank" rel="noopener noreferrer">
+        Prefer to talk? Book a call with sales
       </a>
       <button className="nudges-dismiss" onClick={() => setDismissed(true)}>Hide for this visit</button>
     </div>

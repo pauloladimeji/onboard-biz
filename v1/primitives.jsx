@@ -12,13 +12,17 @@ const XIcon = (p) => (
 
 const shortRef = r => r.length > 22 ? r.slice(0, 22) + "…" : r;
 
-// Real signup — off-app via Tally. Shared so every "Open account" CTA (auth, demo chrome,
-// demo conversion moments) points at the same place, not a copy each screen could drift from.
+// Public apply page — where every outbound "Open an account" CTA sends the visitor (demo chrome,
+// nudges, completion moments). Shared so they never drift apart.
+const APPLY_URL = "https://business.onboard.xyz/apply";
+// Raw Tally form — used only as the embedded iframe in the real "Apply for access" auth flow
+// (the apply page above is a full page, not embeddable), so keep it separate.
 const TALLY_URL = "https://tally.so/r/5BMoRP";
 const CONSUMER_APP_LINKS = {
   android: "https://play.google.com/store/apps/details?id=com.onboard.wallet&hl=en",
   ios: "https://apps.apple.com/us/app/onboard-global/id1665198778",
 };
+const SALES_CALL_URL = "https://calendar.app.google/u5Nx8oTyomazzE1h7";
 
 // ---------- Demo mode ----------
 // Public lead-gen surface — on when `?demo=1` (local/preview testing) or the deployed demo
@@ -52,7 +56,7 @@ function DemoCta({ message, campaign }) {
   return (
     <div className="demo-cta">
       <span>{message}</span>
-      <a href={withDemoUtm(TALLY_URL, { utm_campaign: campaign })} target="_blank" rel="noopener noreferrer" className="btn btn-dark btn-sm">
+      <a href={withDemoUtm(APPLY_URL, { utm_campaign: campaign })} target="_blank" rel="noopener noreferrer" className="btn btn-dark btn-sm">
         Open an account
       </a>
     </div>
@@ -440,5 +444,5 @@ function Toast({ msg, onDone }) {
 window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
-  TALLY_URL, CONSUMER_APP_LINKS, isDemoMode, withDemoUtm, DemoCta,
+  TALLY_URL, APPLY_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta,
 };

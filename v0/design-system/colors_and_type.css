@@ -39,6 +39,22 @@
   font-display: swap;
 }
 
+/* Display serif — demo landing/entry headline only, not part of the core UI type scale. */
+@font-face {
+  font-family: "Feature Display Trial";
+  src: url("./fonts/FeatureDisplay-Regular-Trial.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Feature Display Trial";
+  src: url("./fonts/FeatureDisplay-Medium-Trial.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ---------- Brand purple (primary) ---------- */
   /* Logo files use #5E1FEC and #5720F5; tailwind uses #5433FF as DEFAULT.

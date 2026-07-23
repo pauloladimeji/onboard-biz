@@ -104,37 +104,84 @@ button { font-family: var(--font-sans); }
 /* ---------- Demo entry gate ---------- */
 .demo-entry {
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 28px; padding: 24px; background: var(--gray-50);
+  gap: 24px; padding: 24px; background: var(--gray-100);
 }
 .demo-entry-logo img { height: 22px; }
+.demo-entry-logo svg { height: 22px; width: auto; display: block; color: var(--primary-logo); }
+.demo-entry-hero .demo-entry-logo svg { color: #fff; }
+.demo-entry-card-shell { position: relative; width: 100%; max-width: 420px; }
+.demo-entry-card-shell::before {
+  content: ""; position: absolute; left: 6px; right: 6px; bottom: -10px; height: 40px;
+  background: #C6FF00; border-radius: 16px; z-index: 0;
+}
 .demo-entry-card {
-  width: 100%; max-width: 420px; background: #fff; border: 1px solid var(--gray-200); border-radius: 16px;
-  padding: 32px 28px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  position: relative; z-index: 1;
+  width: 100%; background: #fff; border-radius: 16px;
+  padding: 33px 36px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
   display: flex; flex-direction: column; align-items: stretch; text-align: center;
 }
 .demo-entry-eyebrow {
-  align-self: center; display: inline-flex; align-items: center; gap: 5px;
-  background: var(--primary-50, #F5F3FF); color: var(--primary-700, #6D28D9);
-  font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase;
-  padding: 4px 10px; border-radius: 999px; margin-bottom: 14px;
+  align-self: center; display: inline-flex; align-items: center; gap: 8px;
+  background: #fff; color: #1D1700; box-shadow: 0 0 0 1px #1D1700, inset 0 -2px 6px rgba(255, 255, 255, .1);
+  font-family: "Euclid Circular A", sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0;
+  text-transform: none; padding: 8px 16px 8px 14px; border-radius: 999px; margin-bottom: 16px;
 }
-.demo-entry-card h1 { font-size: 21px; font-weight: 600; color: var(--gray-900); margin: 0 0 10px; line-height: 1.3; letter-spacing: -0.01em; }
+.demo-entry-dot { position: relative; width: 8px; height: 8px; flex-shrink: 0; }
+.demo-entry-dot-core, .demo-entry-dot-ring { position: absolute; inset: 0; border-radius: 50%; background: #FF3600; }
+.demo-entry-dot-ring { animation: demo-dot-pulse 1.8s ease-out infinite; }
+@keyframes demo-dot-pulse {
+  0% { transform: scale(1); opacity: .7; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .demo-entry-dot-ring { animation: none; opacity: .35; } }
+.demo-entry-card h1 {
+  font-family: "Feature Display Trial", Georgia, serif;
+  font-size: 27px; font-weight: 400; color: #000; margin: 0 0 12px; line-height: 1.22; letter-spacing: -0.01em;
+}
 .demo-entry-lede { font-size: 13.5px; color: var(--gray-500); margin: 0 0 20px; line-height: 1.55; }
 .demo-entry-features {
-  display: flex; flex-direction: column; gap: 9px; text-align: left;
-  background: var(--gray-50); border-radius: 10px; padding: 14px 16px; margin-bottom: 22px;
+  display: flex; flex-direction: column; gap: 12px; text-align: left;
+  background: var(--gray-50); border-radius: 10px; padding: 16px; margin-bottom: 22px;
 }
-.demo-entry-feature { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--gray-700); font-weight: 500; }
-.demo-entry-feature svg { color: var(--primary-600, #7C3AED); flex-shrink: 0; }
+.demo-entry-feature { display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: #000; font-weight: 300; }
 .demo-entry-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--gray-400); font-size: 12px; }
 .demo-entry-divider::before, .demo-entry-divider::after { content: ""; flex: 1; height: 1px; background: var(--gray-200); }
-.demo-entry-personal-lbl { font-size: 12.5px; font-weight: 600; color: var(--gray-700); margin-bottom: 10px; }
+.demo-entry-personal-lbl { font-size: 12.5px; font-weight: 600; color: #2A313C; margin-bottom: 10px; }
 .demo-entry-stores { display: flex; gap: 8px; }
 .demo-entry-store {
-  flex: 1; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px;
-  font-size: 12.5px; font-weight: 600; color: var(--gray-700); text-decoration: none;
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px;
+  font-size: 12.5px; font-weight: 600; color: #2A313C; text-decoration: none;
 }
+.demo-entry-store svg { flex-shrink: 0; }
 .demo-entry-store:hover { border-color: var(--gray-300); background: var(--gray-50); }
+
+/* Desktop: photo is full-bleed behind everything, card floats on top of it — matches the
+   design reference (not a two-column split). */
+.demo-entry.demo-entry-hero {
+  position: relative; min-height: 100vh; overflow: hidden;
+  display: block; padding: 0; background: #0c1a2e;
+}
+.demo-entry-hero-photo {
+  position: absolute; inset: 0; z-index: 0;
+  background-image: url("../v0/design-system/assets/demo-entry-hero.jpg");
+  background-size: cover; background-position: center;
+}
+.demo-entry-hero-scrim {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 55%; z-index: 1;
+  background: linear-gradient(180deg, rgba(12, 26, 46, 0) 0%, rgba(12, 26, 46, .82) 100%);
+}
+.demo-entry-hero .demo-entry-accent {
+  position: absolute; right: 0; bottom: 0; width: 50%; height: auto; z-index: 1; pointer-events: none;
+}
+.demo-entry-hero .demo-entry-logo {
+  position: absolute; top: 44px; left: 64px; z-index: 2;
+}
+.demo-entry-hero .demo-entry-card-shell {
+  position: relative; z-index: 2; margin: 168px 0 0 64px; max-width: 460px;
+}
+.demo-entry-hero .demo-entry-card { box-shadow: 0 12px 40px rgba(12, 26, 46, .22); }
+.demo-entry-hero .demo-entry-card h1 { font-size: 32px; }
 
 /* ---------- Demo completion-moment CTA ---------- */
 .demo-cta {
@@ -189,6 +236,12 @@ button { font-family: var(--font-sans); }
   margin: 6px 10px 0; padding: 10px; background: var(--gray-900); color: #fff;
   border-radius: 9px; font-size: 12.5px; font-weight: 600; text-decoration: none;
 }
+.nudges-secondary {
+  display: block; text-align: center; margin: 8px 10px 0; padding: 8px;
+  font-size: 11.5px; font-weight: 600; color: var(--gray-600); text-decoration: none;
+  border: 1px solid var(--gray-200); border-radius: 9px;
+}
+.nudges-secondary:hover { background: var(--gray-50); }
 .nudges-dismiss {
   display: block; width: 100%; text-align: center; border: 0; background: transparent;
   color: var(--gray-400); font-size: 11.5px; padding: 10px 0 12px; cursor: pointer;
