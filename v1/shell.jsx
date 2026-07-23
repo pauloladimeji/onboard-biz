@@ -32,7 +32,7 @@ const NAV = [
 ];
 // Cards sits inline in the desktop sidebar (not a 6th bottom tab — would crowd the tab bar);
 // mobile reaches it through the "More" sheet instead.
-const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card };
+const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card, badge: "Soon" };
 const WORKSPACE_NAV = [
   { id: "settings",  label: "Settings",  icon: Icon.cog },
   { id: "developer", label: "Developer", icon: Icon.doc },
@@ -150,6 +150,7 @@ function SidebarV1({ active, onNavigate }) {
     <div key={n.id} className={`sb-item ${active === n.id ? "active" : ""}`} onClick={() => onNavigate(n.id)}>
       <n.icon />
       <span>{n.label}</span>
+      {n.badge && <span className="nav-badge">{n.badge}</span>}
     </div>
   );
   return (
@@ -206,6 +207,7 @@ function MoreSheet({ open, onClose, onNavigate }) {
           <div key={n.id} className="sb-item" style={{ borderRight: "none", borderRadius: 8 }} onClick={() => { onNavigate(n.id); onClose(); }}>
             <n.icon />
             <span>{n.label}</span>
+            {n.badge && <span className="nav-badge">{n.badge}</span>}
           </div>
         ))}
       </div>
