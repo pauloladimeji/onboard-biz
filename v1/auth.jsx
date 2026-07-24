@@ -523,15 +523,18 @@ function TotpRecoverySentScreen({ onBack }) {
   );
 }
 
-function TotpRecoveryInvalidScreen({ onBackToSignIn }) {
+function TotpRecoveryInvalidScreen({ onRequestNew, onBackToSignIn }) {
   return (
     <AuthShell>
       <div className="auth-status-icon danger"><Icon.alert /></div>
-      <h1>This recovery link has expired</h1>
-      <p className="auth-lede">For your security, recovery links are only valid for a short window. Sign in again to request a new one.</p>
-      <button className="btn btn-lg btn-block btn-dark" onClick={onBackToSignIn} style={{ marginTop: 20 }}>
-        Back to sign in
+      <h1>This recovery link is invalid</h1>
+      <p className="auth-lede">It may have expired or already been used. Request a new one below — no need to sign in again.</p>
+      <button className="btn btn-lg btn-block btn-dark" onClick={onRequestNew} style={{ marginTop: 20 }}>
+        Send me a new recovery link
       </button>
+      <div className="auth-foot">
+        <a onClick={onBackToSignIn} style={{ color: "var(--gray-600)" }}>← Back to sign in</a>
+      </div>
     </AuthShell>
   );
 }

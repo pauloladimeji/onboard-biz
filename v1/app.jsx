@@ -195,7 +195,7 @@ function MockControls({
           <button className={flow === "signin-set-password" ? "on" : ""} onClick={() => onFlow("signin-set-password")} style={{ opacity: .55 }} title="Password reset landing page — reached via email link in real app">Set pw (ref)</button>
           <button
             className={(flow === "signin-totp-recovery-setup" || flow === "signin-totp-recovery-invalid") ? "on" : ""}
-            onClick={() => onFlow(recoveryLink === "expired" ? "signin-totp-recovery-invalid" : "signin-totp-recovery-setup")}
+            onClick={() => onFlow(recoveryLink === "invalid" ? "signin-totp-recovery-invalid" : "signin-totp-recovery-setup")}
             style={{ opacity: .55 }}
             title="TOTP-recovery link landing — reached via email link in real app; destination depends on the Recovery link toggle below">
             Recovery link (ref)
@@ -222,7 +222,7 @@ function MockControls({
             <div className="mock-label">Recovery link ("lost authenticator")</div>
             <div className="mock-row">
               <button className={recoveryLink === "valid" ? "on" : ""} onClick={() => onRecoveryLink("valid")}>Valid</button>
-              <button className={recoveryLink === "expired" ? "on" : ""} onClick={() => onRecoveryLink("expired")}>Expired</button>
+              <button className={recoveryLink === "invalid" ? "on" : ""} onClick={() => onRecoveryLink("invalid")}>Invalid</button>
             </div>
           </div>
         </>
@@ -365,7 +365,7 @@ function App() {
   const [authEmail, setAuthEmail] = useState("finance@acmetrading.com");
   const [signinAccountStatus, setSigninAccountStatus] = useState("verified_active");
   const [totpState, setTotpState] = useState("verify"); // "setup" = first sign-in, "verify" = returning
-  const [recoveryLink, setRecoveryLink] = useState("valid"); // "valid" | "expired" — drives the recovery-link landing
+  const [recoveryLink, setRecoveryLink] = useState("valid"); // "valid" | "invalid" — drives the recovery-link landing
   const [withdrawalHold, setWithdrawalHold] = useState(null); // end-of-hold timestamp (ms), or null
 
   const [route, setRoute] = useState("dashboard");
@@ -494,7 +494,9 @@ function App() {
   if (flow === "signin-totp-recovery-invalid") {
     return (
       <AuthMockWrap mockControls={mockControls}>
-        <TotpRecoveryInvalidScreen onBackToSignIn={() => setFlow("signin")} />
+        <TotpRecoveryInvalidScreen
+          onRequestNew={() => setFlow("signin-totp-recovery-sent")}
+          onBackToSignIn={() => setFlow("signin")} />
       </AuthMockWrap>
     );
   }
