@@ -13,7 +13,15 @@ const { CardsScreen } = window.OBCards;
 const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
   TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
+  TotpRecoveryStartScreen, TotpRecoverySentScreen, TotpRecoveryInvalidScreen, TotpRecoveryDoneScreen,
 } = window.OBAuth;
+
+// 24h withdrawal-hold end time → "Jul 24, 3:42 PM" for the recovery-done screen + in-app banner.
+function formatHoldUntil(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
 const { Page, Toast, Sheet, isDemoMode, withDemoUtm, TALLY_URL, CONSUMER_APP_LINKS, useIsDesktop } = window.OBPrimitives;
 const { RECIPIENTS_FULL } = window.OBData;
 
@@ -173,6 +181,7 @@ function MockControls({
   complianceHold, onComplianceHold, route, nameLookupMock, onNameLookupMock,
   apiAccess, onApiAccess, cardsAccess, onCardsAccess,
   flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState,
+  recoveryLink, onRecoveryLink, withdrawalHoldActive, onWithdrawalHoldTest,
 }) {
   const inSignin = flow.startsWith("signin") || flow === "forgot-password";
   return (
@@ -184,6 +193,13 @@ function MockControls({
           <button className={flow === "app" ? "on" : ""} onClick={() => onFlow("app")}>App</button>
           <button className={flow === "apply-for-access" ? "on" : ""} onClick={() => onFlow("apply-for-access")}>Apply for access</button>
           <button className={flow === "signin-set-password" ? "on" : ""} onClick={() => onFlow("signin-set-password")} style={{ opacity: .55 }} title="Password reset landing page — reached via email link in real app">Set pw (ref)</button>
+          <button
+            className={(flow === "signin-totp-recovery-setup" || flow === "signin-totp-recovery-invalid") ? "on" : ""}
+            onClick={() => onFlow(recoveryLink === "expired" ? "signin-totp-recovery-invalid" : "signin-totp-recovery-setup")}
+            style={{ opacity: .55 }}
+            title="TOTP-recovery link landing — reached via email link in real app; destination depends on the Recovery link toggle below">
+            Recovery link (ref)
+          </button>
         </div>
       </div>
       {inSignin && (
@@ -202,6 +218,13 @@ function MockControls({
               <button className={totpState === "verify" ? "on" : ""} onClick={() => onTotpState("verify")}>Verify 2FA</button>
             </div>
           </div>
+          <div className="mock-group">
+            <div className="mock-label">Recovery link ("lost authenticator")</div>
+            <div className="mock-row">
+              <button className={recoveryLink === "valid" ? "on" : ""} onClick={() => onRecoveryLink("valid")}>Valid</button>
+              <button className={recoveryLink === "expired" ? "on" : ""} onClick={() => onRecoveryLink("expired")}>Expired</button>
+            </div>
+          </div>
         </>
       )}
       <div className="mock-group">
@@ -216,6 +239,13 @@ function MockControls({
         <div className="mock-row">
           <button className={accountStatus === "active" ? "on" : ""} onClick={() => onAccountStatus("active")}>Active</button>
           <button className={accountStatus === "suspended" ? "on" : ""} onClick={() => onAccountStatus("suspended")}>Suspended</button>
+        </div>
+      </div>
+      <div className="mock-group">
+        <div className="mock-label">Withdrawal hold (post-recovery)</div>
+        <div className="mock-row">
+          <button className={!withdrawalHoldActive ? "on" : ""} onClick={() => onWithdrawalHoldTest(false)}>Off</button>
+          <button className={withdrawalHoldActive ? "on" : ""} onClick={() => onWithdrawalHoldTest(true)}>Active (24h banner)</button>
         </div>
       </div>
       <div className="mock-group">
@@ -325,7 +355,8 @@ function PlaceholderScreen({ title }) {
 
 function App() {
   // Top-level flow: signin | signin-password | forgot-password | signin-totp-setup |
-  // signin-totp-verify | signin-set-password | apply-for-access | app.
+  // signin-totp-verify | signin-set-password | apply-for-access | app, plus the TOTP-recovery
+  // sub-flow: signin-totp-recovery-{start,sent,invalid,setup,done}.
   // Sign-up is off-app via Tally, so it's not part of this state machine.
   const [flow, setFlow] = useState("app"); // start in app for review
   // Demo mode only: gates everything behind a Personal/Business choice first. Non-demo
@@ -334,6 +365,8 @@ function App() {
   const [authEmail, setAuthEmail] = useState("finance@acmetrading.com");
   const [signinAccountStatus, setSigninAccountStatus] = useState("verified_active");
   const [totpState, setTotpState] = useState("verify"); // "setup" = first sign-in, "verify" = returning
+  const [recoveryLink, setRecoveryLink] = useState("valid"); // "valid" | "expired" — drives the recovery-link landing
+  const [withdrawalHold, setWithdrawalHold] = useState(null); // end-of-hold timestamp (ms), or null
 
   const [route, setRoute] = useState("dashboard");
   const [dataState, setDataState] = useState("full");
@@ -370,7 +403,10 @@ function App() {
       cardsAccess={cardsAccess} onCardsAccess={setCardsAccess}
       flow={flow} onFlow={setFlow}
       signinAccountStatus={signinAccountStatus} onSigninAccountStatus={setSigninAccountStatus}
-      totpState={totpState} onTotpState={setTotpState} />
+      totpState={totpState} onTotpState={setTotpState}
+      recoveryLink={recoveryLink} onRecoveryLink={setRecoveryLink}
+      withdrawalHoldActive={!!(withdrawalHold && Date.now() < withdrawalHold)}
+      onWithdrawalHoldTest={(on) => setWithdrawalHold(on ? Date.now() + 24 * 60 * 60 * 1000 : null)} />
   );
 
   // ---------- DEMO ENTRY GATE (demo mode only, ahead of everything else) ----------
@@ -422,7 +458,10 @@ function App() {
   if (flow === "signin-totp-verify") {
     return (
       <AuthMockWrap mockControls={mockControls}>
-        <TotpVerifyScreen onSubmit={() => setFlow("app")} onBack={() => setFlow("signin")} />
+        <TotpVerifyScreen
+          onSubmit={() => setFlow("app")}
+          onBack={() => setFlow("signin")}
+          onLostAccess={() => setFlow("signin-totp-recovery-start")} />
       </AuthMockWrap>
     );
   }
@@ -430,6 +469,47 @@ function App() {
     return (
       <AuthMockWrap mockControls={mockControls}>
         <TotpSetupScreen email={authEmail} onSubmit={() => setFlow("app")} />
+      </AuthMockWrap>
+    );
+  }
+  // ---------- TOTP RECOVERY (lost authenticator) ----------
+  if (flow === "signin-totp-recovery-start") {
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <TotpRecoveryStartScreen
+          onContinue={() => setFlow("signin-totp-recovery-sent")}
+          onBack={() => setFlow("signin-totp-verify")} />
+      </AuthMockWrap>
+    );
+  }
+  if (flow === "signin-totp-recovery-sent") {
+    // Dead-ends here in the live UI, same as ForgotPasswordScreen's "check your email" state —
+    // the link is only reachable via the "Recovery link (ref)" mock-controls entry below.
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <TotpRecoverySentScreen onBack={() => setFlow("signin")} />
+      </AuthMockWrap>
+    );
+  }
+  if (flow === "signin-totp-recovery-invalid") {
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <TotpRecoveryInvalidScreen onBackToSignIn={() => setFlow("signin")} />
+      </AuthMockWrap>
+    );
+  }
+  if (flow === "signin-totp-recovery-setup") {
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <TotpSetupScreen email={authEmail}
+          onSubmit={() => { setWithdrawalHold(Date.now() + 24 * 60 * 60 * 1000); setFlow("signin-totp-recovery-done"); }} />
+      </AuthMockWrap>
+    );
+  }
+  if (flow === "signin-totp-recovery-done") {
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <TotpRecoveryDoneScreen holdUntilLabel={formatHoldUntil(withdrawalHold)} onContinue={() => setFlow("app")} />
       </AuthMockWrap>
     );
   }
@@ -530,9 +610,17 @@ function App() {
 
   const navigate = (r) => { setRoute(r); setOpenTx(null); };
 
+  const holdActive = withdrawalHold && Date.now() < withdrawalHold;
+  const holdBanner = holdActive ? (
+    <div className="wd-hold-banner">
+      <Icon.clock />
+      <span><strong>Withdrawals are paused until {formatHoldUntil(withdrawalHold)}</strong> - this is a 24-hour security hold after your authenticator reset. Everything else works as normal.</span>
+    </div>
+  ) : null;
+
   return (
     <>
-      <Shell active={route} onNavigate={navigate} mockControls={mockControls}>
+      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner}>
         {screen}
       </Shell>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}

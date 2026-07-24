@@ -218,7 +218,7 @@ function MoreSheet({ open, onClose, onNavigate }) {
 // Adaptive shell: sidebar+topnav on desktop, bottom tabs+topbar on mobile. Same route state either way.
 // Mock controls open from the same small gear icon in the top bar on both breakpoints, as a Sheet —
 // except in demo mode, where the gear (and the whole harness) doesn't render at all. See HANDOFF.md.
-function Shell({ active, onNavigate, mockControls, children }) {
+function Shell({ active, onNavigate, mockControls, banner, children }) {
   const isDesktop = useIsDesktop();
   const isDemo = isDemoMode();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -230,7 +230,7 @@ function Shell({ active, onNavigate, mockControls, children }) {
         {isDemo && <DemoBanner />}
         <TopBar onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
         <SidebarV1 active={active} onNavigate={onNavigate} />
-        <div className="content-desktop">{children}</div>
+        <div className="content-desktop">{banner}{children}</div>
         {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
         {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
       </div>
@@ -240,7 +240,7 @@ function Shell({ active, onNavigate, mockControls, children }) {
     <div className="shell is-mobile">
       {isDemo && <DemoBanner />}
       <TopBarMobile onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
-      <div className="content-mobile">{children}</div>
+      <div className="content-mobile">{banner}{children}</div>
       <BottomTabs active={active} onNavigate={onNavigate} onMore={() => setMoreOpen(true)} />
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} onNavigate={onNavigate} />
       {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}

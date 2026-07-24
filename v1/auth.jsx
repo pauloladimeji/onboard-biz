@@ -435,7 +435,7 @@ function OtpBoxes({ digits, setDigits }) {
 // =====================================================
 // TOTP verify — returning users, 2FA already set up
 // =====================================================
-function TotpVerifyScreen({ onSubmit, onBack }) {
+function TotpVerifyScreen({ onSubmit, onBack, onLostAccess }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const codeStr = code.join("");
   const valid = codeStr.length === 6;
@@ -458,6 +458,99 @@ function TotpVerifyScreen({ onSubmit, onBack }) {
       <div className="auth-foot">
         <a onClick={onBack} style={{ color: "var(--gray-600)" }}>← Use a different account</a>
       </div>
+      {onLostAccess && (
+        <div className="auth-foot" style={{ marginTop: 14 }}>
+          <a onClick={onLostAccess} style={{ color: "var(--info-700)", textDecoration: "underline" }}>I have lost access to my authenticator app</a>
+        </div>
+      )}
+    </AuthShell>
+  );
+}
+
+// =====================================================
+// TOTP recovery — lost-access flow
+// =====================================================
+
+// Upfront disclosure (Paul's flag): tell the user about the 24h withdrawal hold BEFORE they
+// commit, not just after re-setup — so a business can decide whether to reset now or wait.
+function AuthHoldNotice({ tone = "warning", title, children }) {
+  const iconMap = { warning: <Icon.shield />, done: <Icon.clock /> };
+  return (
+    <div className={`auth-hold-notice ${tone}`}>
+      <div className="auth-hold-notice-ic">{iconMap[tone]}</div>
+      <div>
+        <div className="auth-hold-notice-title">{title}</div>
+        <div className="auth-hold-notice-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function TotpRecoveryStartScreen({ onContinue, onBack }) {
+  return (
+    <AuthShell>
+      <h1>Reset your authenticator</h1>
+      <p className="auth-lede">We'll email a recovery link to your registered email so you can set up a new authenticator.</p>
+
+      <AuthHoldNotice tone="warning" title="This will pause withdrawals for 24 hours">
+        This is a security measure to protect your account — deposits and everything else continue as normal.
+      </AuthHoldNotice>
+
+      <button className="btn btn-lg btn-block btn-dark" onClick={onContinue} style={{ marginTop: 20 }}>
+        Email me a recovery link
+      </button>
+      <div className="auth-foot">
+        <a onClick={onBack} style={{ color: "var(--gray-600)" }}>← Back</a>
+      </div>
+    </AuthShell>
+  );
+}
+
+function TotpRecoverySentScreen({ onBack }) {
+  return (
+    <AuthShell>
+      <h1>Check your email</h1>
+      <p className="auth-lede">A recovery link has been sent to your registered email. Follow the instructions to set up a new authenticator.</p>
+
+      <div className="auth-hold-reminder">
+        Reminder: withdrawals are held for 24 hours once your new authenticator is set up.
+      </div>
+
+      <div className="auth-foot" style={{ marginTop: 20 }}>
+        <a onClick={onBack} style={{ color: "var(--gray-600)" }}>← Back to sign in</a>
+      </div>
+    </AuthShell>
+  );
+}
+
+function TotpRecoveryInvalidScreen({ onBackToSignIn }) {
+  return (
+    <AuthShell>
+      <div className="auth-status-icon danger"><Icon.alert /></div>
+      <h1>This recovery link has expired</h1>
+      <p className="auth-lede">For your security, recovery links are only valid for a short window. Sign in again to request a new one.</p>
+      <button className="btn btn-lg btn-block btn-dark" onClick={onBackToSignIn} style={{ marginTop: 20 }}>
+        Back to sign in
+      </button>
+    </AuthShell>
+  );
+}
+
+function TotpRecoveryDoneScreen({ onContinue, holdUntilLabel }) {
+  return (
+    <AuthShell>
+      <div className="auth-status-icon success"><Icon.check /></div>
+      <h1>Authenticator reset</h1>
+      <p className="auth-lede">Your new authenticator is set up — use it to sign in from now on.</p>
+
+      <AuthHoldNotice tone="done" title={`Withdrawals paused until ${holdUntilLabel}`}>
+        As a security measure after an authenticator reset, withdrawals are on hold for 24 hours.
+        Everything else on your account works as normal.
+      </AuthHoldNotice>
+
+      <button className="btn btn-lg btn-block btn-dark" onClick={onContinue} style={{ marginTop: 20 }}>
+        Continue to dashboard
+      </button>
     </AuthShell>
   );
 }
@@ -465,6 +558,9 @@ function TotpVerifyScreen({ onSubmit, onBack }) {
 // =====================================================
 // TOTP setup — first sign-in
 // =====================================================
+// Reused as-is for TOTP recovery (setting up a replacement authenticator) — same component,
+// same copy, no recovery-specific variant. Keeps the two flows visually and behaviourally
+// identical, which is the point: recovery is "do the setup screen again," not a different screen.
 function TotpSetupScreen({ onSubmit, onSkip, email }) {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const mockSecret = "JBSWY3DPEHPK3PXP";
@@ -548,4 +644,8 @@ window.OBAuth = {
   TotpVerifyScreen,
   TotpSetupScreen,
   SetPasswordScreen,
+  TotpRecoveryStartScreen,
+  TotpRecoverySentScreen,
+  TotpRecoveryInvalidScreen,
+  TotpRecoveryDoneScreen,
 };
