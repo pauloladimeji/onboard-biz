@@ -13,7 +13,7 @@ const { CardsScreen } = window.OBCards;
 const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
   TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
-  TotpRecoveryStartScreen, TotpRecoverySentScreen, TotpRecoveryInvalidScreen, TotpRecoveryDoneScreen,
+  TotpRecoveryStartScreen, TotpRecoveryInvalidScreen, TotpRecoveryDoneScreen,
 } = window.OBAuth;
 
 // 24h withdrawal-hold end time → "Jul 24, 3:42 PM" for the recovery-done screen + in-app banner.
@@ -197,8 +197,8 @@ function MockControls({
             className={(flow === "signin-totp-recovery-setup" || flow === "signin-totp-recovery-invalid") ? "on" : ""}
             onClick={() => onFlow(recoveryLink === "invalid" ? "signin-totp-recovery-invalid" : "signin-totp-recovery-setup")}
             style={{ opacity: .55 }}
-            title="TOTP-recovery link landing — reached via email link in real app; destination depends on the Recovery link toggle below">
-            Recovery link (ref)
+            title="TOTP-recovery approval link — sent after our team manually reviews and approves the request; destination depends on the Recovery link toggle below">
+            Recovery approval link (ref)
           </button>
         </div>
       </div>
@@ -219,7 +219,7 @@ function MockControls({
             </div>
           </div>
           <div className="mock-group">
-            <div className="mock-label">Recovery link ("lost authenticator")</div>
+            <div className="mock-label">Recovery approval link (back office)</div>
             <div className="mock-row">
               <button className={recoveryLink === "valid" ? "on" : ""} onClick={() => onRecoveryLink("valid")}>Valid</button>
               <button className={recoveryLink === "invalid" ? "on" : ""} onClick={() => onRecoveryLink("invalid")}>Invalid</button>
@@ -386,6 +386,14 @@ function App() {
   const [toast, setToast] = useState(null);
   const [recipients, setRecipients] = useState(() => [...RECIPIENTS_FULL]);
 
+  // Submitting a 2FA-reset request has no on-screen "next step" — approval happens outside the
+  // app, hours later — so a toast + drop back to sign-in beats parking the user on a dedicated
+  // confirmation screen (which is what a first pass at this did).
+  const submitRecoveryRequest = () => {
+    setToast("Request submitted — we'll email you once it's reviewed.");
+    setFlow("signin");
+  };
+
   const mockControls = (
     <MockControls
       dataState={dataState} onDataState={setDataState}
@@ -428,6 +436,7 @@ function App() {
         <SignInScreen
           onSubmit={({ email }) => { setAuthEmail(email); setFlow("signin-password"); }}
           onApplyForAccess={() => setFlow("apply-for-access")} />
+        {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
       </AuthMockWrap>
     );
   }
@@ -473,21 +482,15 @@ function App() {
     );
   }
   // ---------- TOTP RECOVERY (lost authenticator) ----------
+  // Note: the approval link (sent after manual review) is only reachable via the "Recovery
+  // approval link (ref)" mock-controls entry below — there's no in-app "sent" screen to click
+  // through, since approval happens outside the app, sometimes hours later.
   if (flow === "signin-totp-recovery-start") {
     return (
       <AuthMockWrap mockControls={mockControls}>
         <TotpRecoveryStartScreen
-          onContinue={() => setFlow("signin-totp-recovery-sent")}
+          onContinue={submitRecoveryRequest}
           onBack={() => setFlow("signin-totp-verify")} />
-      </AuthMockWrap>
-    );
-  }
-  if (flow === "signin-totp-recovery-sent") {
-    // Dead-ends here in the live UI, same as ForgotPasswordScreen's "check your email" state —
-    // the link is only reachable via the "Recovery link (ref)" mock-controls entry below.
-    return (
-      <AuthMockWrap mockControls={mockControls}>
-        <TotpRecoverySentScreen onBack={() => setFlow("signin")} />
       </AuthMockWrap>
     );
   }
@@ -495,7 +498,7 @@ function App() {
     return (
       <AuthMockWrap mockControls={mockControls}>
         <TotpRecoveryInvalidScreen
-          onRequestNew={() => setFlow("signin-totp-recovery-sent")}
+          onRequestNew={submitRecoveryRequest}
           onBackToSignIn={() => setFlow("signin")} />
       </AuthMockWrap>
     );

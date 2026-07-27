@@ -486,19 +486,26 @@ function AuthHoldNotice({ tone = "warning", title, children }) {
   );
 }
 
+// 2FA reset is treated as a last-resort, high-risk action (an attacker who's compromised email
+// could otherwise swap 2FA and walk away with the account) — so this is a manual-review request,
+// not an instant self-serve link. No state is tracked per request; every visit shows this same
+// screen, and the fallback contact-support text on the next screen covers repeat visitors.
 function TotpRecoveryStartScreen({ onContinue, onBack }) {
   return (
     <AuthShell>
-      <h1>Reset your authenticator</h1>
-      <p className="auth-lede">We'll email a recovery link to your registered email so you can set up a new authenticator.</p>
+      <h1>Request a 2FA reset</h1>
+      <p className="auth-lede">Requesting a 2FA reset starts a manual review. We'll follow up by email or WhatsApp to confirm it's really you — once approved, we'll email you a link to set up your new authenticator.</p>
 
-      <AuthHoldNotice tone="warning" title="This will pause withdrawals for 24 hours">
+      <AuthHoldNotice tone="warning" title="Withdrawals are paused for 24 hours once your reset is complete">
         This is a security measure to protect your account — deposits and everything else continue as normal.
       </AuthHoldNotice>
 
       <button className="btn btn-lg btn-block btn-dark" onClick={onContinue} style={{ marginTop: 20 }}>
-        Email me a recovery link
+        Send request
       </button>
+      <div className="auth-foot">
+        <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", fontWeight: 500 }}>Already sent a request? Message support on WhatsApp</a>
+      </div>
       <div className="auth-foot">
         <a onClick={onBack} style={{ color: "var(--gray-600)" }}>← Back</a>
       </div>
@@ -506,23 +513,9 @@ function TotpRecoveryStartScreen({ onContinue, onBack }) {
   );
 }
 
-function TotpRecoverySentScreen({ onBack }) {
-  return (
-    <AuthShell>
-      <h1>Check your email</h1>
-      <p className="auth-lede">A recovery link has been sent to your registered email. Follow the instructions to set up a new authenticator.</p>
-
-      <div className="auth-hold-reminder">
-        Reminder: withdrawals are held for 24 hours once your new authenticator is set up.
-      </div>
-
-      <div className="auth-foot" style={{ marginTop: 20 }}>
-        <a onClick={onBack} style={{ color: "var(--gray-600)" }}>← Back to sign in</a>
-      </div>
-    </AuthShell>
-  );
-}
-
+// Landing for the back-office-approval email link (sent once our team reviews and approves the
+// request) — a link can still expire/already-be-used, same as any other. "Send a new request"
+// just resubmits; there's no pending-request state to check against.
 function TotpRecoveryInvalidScreen({ onRequestNew, onBackToSignIn }) {
   return (
     <AuthShell>
@@ -530,7 +523,7 @@ function TotpRecoveryInvalidScreen({ onRequestNew, onBackToSignIn }) {
       <h1>This recovery link is invalid</h1>
       <p className="auth-lede">It may have expired or already been used. Request a new one below — no need to sign in again.</p>
       <button className="btn btn-lg btn-block btn-dark" onClick={onRequestNew} style={{ marginTop: 20 }}>
-        Send me a new recovery link
+        Send a new request
       </button>
       <div className="auth-foot">
         <a onClick={onBackToSignIn} style={{ color: "var(--gray-600)" }}>← Back to sign in</a>
@@ -648,7 +641,6 @@ window.OBAuth = {
   TotpSetupScreen,
   SetPasswordScreen,
   TotpRecoveryStartScreen,
-  TotpRecoverySentScreen,
   TotpRecoveryInvalidScreen,
   TotpRecoveryDoneScreen,
 };
