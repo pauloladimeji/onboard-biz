@@ -856,7 +856,7 @@ table.records-table th.num { text-align: right; }
 .pay-confirm-sub { font-size: 14px; color: var(--gray-700); max-width: 480px; margin: 0 auto 28px; line-height: 1.55; }
 .pay-confirm-ref { background: #F8FAFE; border: 1px solid #DBEAFE; text-align: center; border-radius: 12px; padding: 16px 22px; margin-bottom: 20px; display: inline-block; }
 .pay-confirm-ref .lb { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--info-700); margin-bottom: 4px; }
-.pay-confirm-ref .ref { font-size: 20px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.pay-confirm-ref .ref { display: inline-flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 .pay-confirm-meta { display: flex; flex-direction: column; gap: 8px; margin: 14px auto 0; width: max-content; max-width: 100%; padding-top: 14px; border-top: 1px dashed #DBEAFE; }
 .pay-confirm-meta .m { display: flex; align-items: center; gap: 8px; }
 .pay-confirm-meta .m svg { width: 14px; height: 14px; color: var(--gray-500); flex-shrink: 0; }
@@ -1336,21 +1336,21 @@ table.records-table th.num { text-align: right; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  background:
-    radial-gradient(ellipse 900px 600px at 50% -5%, rgba(84, 51, 255, 0.06) 0%, transparent 70%),
-    var(--bg-canvas);
+  background: #fff;
   padding: 32px 20px 24px;
 }
-.auth-centered-logo { margin-bottom: 32px; }
-.auth-centered-logo img { height: 22px; width: auto; display: block; }
+.auth-centered-logo { margin-bottom: 24px; }
+.auth-centered-logo img { height: 17px; width: auto; display: block; }
 .auth-centered-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+/* Card bg matches the page here, so a border/shadow would just read as a stray box — same
+   reasoning as .auth-split-left's card override on desktop. */
 .auth-card-wrap {
   width: 100%;
   max-width: 100%;
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid var(--gray-200);
-  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 8px 32px rgba(15,23,42,.06);
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
   padding: 28px 22px 24px;
 }
 .auth-card-wrap h1 { font-size: 21px; font-weight: 700; color: var(--gray-900); margin: 0 0 6px; letter-spacing: -0.015em; text-align: center; }

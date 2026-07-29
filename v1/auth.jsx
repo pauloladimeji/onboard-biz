@@ -4,7 +4,7 @@
    stay v0-only reference material and are not ported here. */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
-const { useIsDesktop, QrCode, TALLY_URL } = window.OBPrimitives;
+const { useIsDesktop, QrCode, TALLY_URL, DEMO_URL } = window.OBPrimitives;
 
 const SUPPORT_WA = "https://wa.me/14313404484";
 const TOS_URL = "https://www.onboard.xyz/terms";
@@ -63,6 +63,8 @@ function AuthInfoPanel() {
 
 // Desktop: split two-column (form left, marketing panel right). Mobile: single centered
 // column, no right panel — same shell v0 used for its "centered" variant, tuned for phone widths.
+// Mobile is flat white with a small logo (not the earlier tinted canvas) — matches desktop,
+// which is already flat white via .auth-split-left.
 function AuthShell({ children }) {
   const isDesktop = useIsDesktop();
   if (isDesktop) {
@@ -98,9 +100,9 @@ function ApplyForAccessScreen({ onSignIn }) {
   const [showForm, setShowForm] = useState(false);
   const isDesktop = useIsDesktop();
   const steps = [
-    { n: 1, title: "Complete the KYB form", desc: "Tell us about your business and use case. Takes about 5 minutes." },
-    { n: 2, title: "Review & verification", desc: "We review your application and send KYC links to each UBO." },
-    { n: 3, title: "Account provisioned", desc: "Once approved, your account is ready. Sign-in credentials arrive by email." },
+    { n: 1, text: "Complete the KYB form — about 5 minutes" },
+    { n: 2, text: "We review it and send KYC links to each UBO" },
+    { n: 3, text: "Once approved, sign-in details arrive by email" },
   ];
 
   if (showForm) {
@@ -146,6 +148,11 @@ function ApplyForAccessScreen({ onSignIn }) {
         Start your application
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}><polyline points="9 18 15 12 9 6" /></svg>
       </button>
+      <a href={DEMO_URL} target="_blank" rel="noopener noreferrer"
+        className="btn btn-lg btn-block btn-ghost"
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8, textDecoration: "none", border: "1px solid var(--gray-300)", background: "#fff" }}>
+        Try the live demo
+      </a>
       <LegalConsent action="starting your application" />
       <div style={{ marginBottom: 26 }} />
 
@@ -153,18 +160,15 @@ function ApplyForAccessScreen({ onSignIn }) {
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-800)", marginBottom: 14 }}>
           Here&rsquo;s how it works
         </div>
-        {steps.map(({ n, title, desc }) => (
-          <div key={n} style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+        {steps.map(({ n, text }) => (
+          <div key={n} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
             <div style={{
               width: 22, height: 22, borderRadius: "50%",
               background: "var(--gray-100)", color: "var(--gray-600)",
               display: "grid", placeItems: "center",
-              fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 1,
+              fontSize: 11, fontWeight: 700, flexShrink: 0,
             }}>{n}</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--gray-900)", marginBottom: 2 }}>{title}</div>
-              <div style={{ fontSize: 12.5, color: "var(--gray-600)", lineHeight: 1.55 }}>{desc}</div>
-            </div>
+            <div style={{ fontSize: 13, color: "var(--gray-800)", lineHeight: 1.4 }}>{text}</div>
           </div>
         ))}
       </div>

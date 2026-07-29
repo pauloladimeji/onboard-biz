@@ -18,6 +18,9 @@ const APPLY_URL = "https://business.onboard.xyz/apply";
 // Raw Tally form — used only as the embedded iframe in the real "Apply for access" auth flow
 // (the apply page above is a full page, not embeddable), so keep it separate.
 const TALLY_URL = "https://tally.so/r/5BMoRP";
+// The reverse direction of APPLY_URL — from the real "Apply for access" screen, a "not ready yet"
+// visitor can try the interactive demo instead of committing to KYB.
+const DEMO_URL = "https://demo.business.onboard.xyz";
 const CONSUMER_APP_LINKS = {
   android: "https://play.google.com/store/apps/details?id=com.onboard.wallet&hl=en",
   ios: "https://apps.apple.com/us/app/onboard-global/id1665198778",
@@ -444,5 +447,5 @@ function Toast({ msg, onDone }) {
 window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
-  TALLY_URL, APPLY_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta,
+  TALLY_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta,
 };

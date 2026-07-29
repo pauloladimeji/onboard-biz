@@ -3,7 +3,7 @@ const { useState: useStateP, useMemo: useMemoP, useRef: useRefP, useEffect: useE
 const PIcon = window.OBIcon;
 const PNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: PCCY, V0_USD_BALANCE, NETWORK_TOKENS } = window.OBData;
-const { Page, Sheet, Banner, useIsDesktop, CcyFlag, Flag: PFlag, FlowShell, DemoCta } = window.OBPrimitives;
+const { Page, Sheet, Banner, useIsDesktop, CcyFlag, Flag: PFlag, FlowShell, DemoCta, truncateMiddle, CopyInline } = window.OBPrimitives;
 
 const PAGE_SIZE = 8;
 const REASONS = ["Supplier payment", "Payroll", "Contractor / freelancer", "Intercompany transfer", "Logistics & shipping", "Tax & government", "Refund", "Other"];
@@ -564,7 +564,7 @@ function PaymentApprovalStep({ method: defaultMethod, payment, onBack, onApprove
 // =====================================================
 // Confirmation
 // =====================================================
-function SendConfirmation({ payment, reference, onDone, onNewPayment }) {
+function SendConfirmation({ payment, reference, onDone, onNewPayment, onToast }) {
   const { recipient, srcCcy, dstCcy, amount, receive } = payment;
   return (
     <div className="pay-confirm">
@@ -575,7 +575,7 @@ function SendConfirmation({ payment, reference, onDone, onNewPayment }) {
 
         <div className="pay-confirm-ref">
           <div className="lb">Reference number</div>
-          <div className="ref">{reference}</div>
+          <div className="ref"><span title={reference}>{truncateMiddle(reference, 8, 6)}</span><CopyInline value={reference} onCopy={() => onToast && onToast("Copied")} /></div>
           <div className="pay-confirm-meta">
             <div className="m"><PIcon.clock /><span className="t">Expected settlement</span><span className="s">Within 0–10 minutes</span></div>
             <div className="m"><PIcon.email /><span className="t">Receipt sent to</span><span className="s">finance@acmetrading.com</span></div>
@@ -652,7 +652,16 @@ function SendPayment({ recipients, onAddRecipient, onToast, defaultMode = "recip
 
   const goReview = () => { if (canReview) setStep(2); };
   const goApprove = () => { hasApproval ? setStep(3) : doConfirm(); };
-  const doConfirm = () => { setReference("PAY-2026-" + String(Math.floor(Math.random() * 90000) + 10000)); setStep(hasApproval ? 4 : 3); };
+  // Longer than the ledger spec's actual reference format (~9 chars, e.g. "REF123456") so the
+  // truncate-with-copy treatment on the confirmation screen is visible in the mock, not just
+  // built for a case that never shows up here.
+  const genReference = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let suffix = "";
+    for (let i = 0; i < 14; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
+    return `PAY-2026-${suffix}`;
+  };
+  const doConfirm = () => { setReference(genReference()); setStep(hasApproval ? 4 : 3); };
   const reset = () => { setStep(0); setRecipient(null); setSrcCcy("USD"); setDstCcy("NGN"); setAmount(""); setReason(""); setMemo(""); setReference(null); };
 
   const isConfirmStep = (hasApproval && step === 4) || (!hasApproval && step === 3);
@@ -666,7 +675,8 @@ function SendPayment({ recipients, onAddRecipient, onToast, defaultMode = "recip
           payment={{ recipient, srcCcy, dstCcy: dstFinal, amount, reason, memo, receive: convert(srcCcy, dstFinal, amount), fee: FEE[srcCcy] || 0 }}
           reference={reference}
           onDone={() => onToast && onToast("Transaction details — phase 2")}
-          onNewPayment={reset} />
+          onNewPayment={reset}
+          onToast={onToast} />
       </Page>
     );
   }
