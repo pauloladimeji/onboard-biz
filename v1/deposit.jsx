@@ -3,7 +3,7 @@ const { useState, useEffect } = React;
 const Icon = window.OBIcon;
 const NetworkIcon = window.OBNetworkIcon;
 const { STABLECOIN_CHAINS } = window.OBData;
-const { Page, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle } = window.OBPrimitives;
+const { Page, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel } = window.OBPrimitives;
 const Combobox = window.OBCombobox;
 
 function CoinBadge({ coin, size = 26 }) {
@@ -179,163 +179,36 @@ function StablecoinPanel({ coin, issuance = "ready", onCopy }) {
   );
 }
 
-// ---------- USD account application ----------
-function UsdStepper({ step }) {
-  const steps = ["Initiate application", "Verify with partner", "Review"];
-  return (
-    <div className="stepper">
-      {steps.map((label, i) => {
-        const done = i < step;
-        const active = i === step;
-        return (
-          <React.Fragment key={i}>
-            {i > 0 && <div className="stepper-line" style={{ background: done || active ? "var(--gray-400)" : "var(--gray-200)" }} />}
-            <div className="stepper-node">
-              <div className="stepper-dot" style={{
-                background: done || active ? "var(--gray-900)" : "transparent",
-                border: done || active ? "none" : "1.5px solid var(--gray-300)",
-                color: done || active ? "#fff" : "var(--gray-400)",
-              }}>
-                {done ? <Icon.check /> : i + 1}
-              </div>
-              <span className="stepper-label" style={{ fontWeight: active ? 600 : 400, color: done || active ? "var(--gray-900)" : "var(--gray-400)" }}>{label}</span>
-            </div>
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-const USD_RAILS = ["ACH", "Domestic Fedwire", "SWIFT"];
-const USD_BANK_DETAILS_FIELDS = [
-  { k: "Account holder", v: "Acme Trading Co" },
-  { k: "Bank name", v: "SSB Bank" },
-  { k: "ABA / Routing number", v: "101019644" },
-  { k: "Account number", v: "8841 0029 4471", copy: true },
-  { k: "Account type", v: "Checking · Business" },
-  { k: "SWIFT / BIC", v: "LEADUSAA" },
-  { k: "Bank address", v: "1801 Main Street, Kansas City, MO 64108, USA" },
-];
-const USD_BANK_FEES = [
-  { rail: "ACH", fee: "0.5% + $1", timing: "1–3 business days" },
-  { rail: "Domestic Fedwire", fee: "0.5% + $20", timing: "Same day" },
-  { rail: "International SWIFT", fee: "0.5% + $25", timing: "1–2 business days" },
-];
-
-function UsdPanel({ status, onCopy }) {
-  const [localStep, setLocalStep] = useState(null); // null | "submitting" | "ready" | "opened"
-  useEffect(() => setLocalStep(null), [status]);
-
-  if (status === "approved") {
-    return (
-      <div className="rail-panel">
-        <div className="panel-intro-desc" style={{ marginBottom: 18 }}>
-          Receive USD via ACH, domestic wire (Fedwire), or international SWIFT transfer — all to the same account.
-        </div>
-        <FieldGrid fields={USD_BANK_DETAILS_FIELDS} onCopy={onCopy} />
-        <FeeGrid fees={USD_BANK_FEES} />
-        <PanelActions fields={USD_BANK_DETAILS_FIELDS} onCopy={onCopy} />
-      </div>
-    );
-  }
-
-  if (status === "not_applied" && localStep === "submitting") {
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={0} />
-        <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<span className="spin" style={{ width: 24, height: 24 }} />}
-          title="Submitting your details" desc="We're sending your business information to our banking partner. This only takes a moment.">
-          <div className="gen-progress"><span /></div>
-        </StatusPanel>
-      </div>
-    );
-  }
-
-  if (status === "not_applied" && localStep === "ready") {
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={1} />
-        <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.external />}
-          title="One more step" desc="Complete a short verification with our banking partner to activate your USD account. This opens in a new tab.">
-          <button className="btn btn-lg" onClick={() => setLocalStep("opened")}><Icon.external /> Open verification</button>
-        </StatusPanel>
-      </div>
-    );
-  }
-
-  if (status === "not_applied" && localStep === "opened") {
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={1} />
-        <StatusPanel iconBg="#FFF6E5" iconColor="#A16207" icon={<Icon.clock />}
-          title="Verification incomplete" desc="You started the verification process but didn't finish. Pick up where you left off — our banking partner still needs a few details from you.">
-          <button className="btn btn-lg"><Icon.external /> Continue verification</button>
-        </StatusPanel>
-      </div>
-    );
-  }
-
-  if (status === "not_applied") {
-    const apply = () => { setLocalStep("submitting"); setTimeout(() => setLocalStep("ready"), 2000); };
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={0} />
-        <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.bank />}
-          title="Apply for USD banking" desc="Receive USD deposits into your Onboard account. We'll submit your business details to our banking partner — you'll then complete a short verification with them.">
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-            {USD_RAILS.map(r => <span key={r} className="usd-rail-badge">{r}</span>)}
-          </div>
-          <button className="btn btn-lg" onClick={apply}>Apply for USD account</button>
-        </StatusPanel>
-      </div>
-    );
-  }
-
-  if (status === "incomplete") {
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={1} />
-        <StatusPanel iconBg="#FFF6E5" iconColor="#A16207" icon={<Icon.clock />}
-          title="Verification incomplete" desc="You started the verification process but didn't finish. Pick up where you left off — our banking partner still needs a few details from you.">
-          <button className="btn btn-lg"><Icon.external /> Continue verification</button>
-        </StatusPanel>
-      </div>
-    );
-  }
-
-  if (status === "under_review") {
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={2} />
-        <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.shield />}
-          title="Application under review" desc="Your application is being reviewed — this usually takes 1–2 business days. We'll email you when your account is ready, or if we need any additional info. Keep an eye on your email, including spam.">
-          <TimingChip tone="slow" label="1–2 business days" />
-        </StatusPanel>
-      </div>
-    );
-  }
-
-  if (status === "declined") {
-    return (
-      <div className="rail-panel">
-        <UsdStepper step={2} />
-        <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
-          title="Application declined"
-          desc={<>Unfortunately, our banking partner was unable to approve your USD account at this time. <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">Message your dedicated account team on WhatsApp</a> for more information.</>} />
-      </div>
-    );
-  }
-
-  return null;
-}
-
-// ---------- EUR / GBP (dedicated receiving account, convert-on-deposit) ----------
-// Both created via the same account-details endpoint as the USD VA. GBP returns a
-// CashLocalBankAccount (account number + sort code = bankCode); EUR returns a
-// CashSepaBankAccount (IBAN = accountNumber, + BIC). Allocation isn't instant — details come
-// back null for <1 min, so creation goes: create → allocating → ready (or error).
-const FIAT_CONVERT_DATA = {
+// ---------- Fiat account provisioning (USD, EUR, GBP) ----------
+// One shared pattern for all three, since all three are realistically partner-review processes,
+// not instant provisioning: not_requested → submitting (brief, real API call, can fail fast) →
+// under_review (days, with the partner — not a spinner, nothing is actively happening moment to
+// moment) → ready, or declined after review. USD additionally gates on a whitelist before any
+// request can even be made. If anything's needed mid-review, we reach out to the business's
+// registered email — never a link out to the partner's own site.
+const FIAT_ACCOUNT_DATA = {
+  USD: {
+    fields: [
+      { k: "Account holder", v: "Acme Trading Co" },
+      { k: "Bank name", v: "SSB Bank" },
+      { k: "ABA / Routing number", v: "101019644" },
+      { k: "Account number", v: "8841 0029 4471", copy: true },
+      { k: "Account type", v: "Checking · Business" },
+      { k: "SWIFT / BIC", v: "LEADUSAA" },
+      { k: "Bank address", v: "1801 Main Street, Kansas City, MO 64108, USA" },
+    ],
+    fees: [
+      { rail: "ACH", fee: "0.5% + $1", timing: "1–3 business days" },
+      { rail: "Domestic Fedwire", fee: "0.5% + $20", timing: "Same day" },
+      { rail: "International SWIFT", fee: "0.5% + $25", timing: "1–2 business days" },
+    ],
+    rails: ["ACH", "Domestic Fedwire", "SWIFT"],
+    readyDesc: "Receive USD via ACH, domestic wire (Fedwire), or international SWIFT transfer — all to the same account.",
+    requestTitle: "Request your USD account",
+    requestDesc: "We'll submit your business for USD account provisioning. This is reviewed by our banking partner and typically takes 1–3 business days.",
+    reviewDesc: "Your USD account request is with our banking partner for review. If we need anything else while reviewing, we'll reach out to your registered business email — keep an eye on it, including spam.",
+    reviewTiming: "1–3 business days",
+  },
   EUR: {
     fields: [
       { k: "Account name", v: "Acme Trading Co", copy: true },
@@ -345,12 +218,15 @@ const FIAT_CONVERT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = €0.88" },
     ],
-    createDesc: "We'll allocate a dedicated EUR IBAN for your business. EUR deposits are converted to USD at the live rate when they clear.",
-    desc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
-    timingTone: "med",
-    timing: "1–2 business days",
-    banner: "The exchange rate is locked when your EUR deposit is received — not when you initiate the transfer.",
     fees: [{ rail: "SEPA", fee: "€0.50", timing: "1–2 business days" }],
+    readyDesc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
+    readyTiming: "1–2 business days",
+    readyTimingTone: "med",
+    readyBanner: "The exchange rate is locked when your EUR deposit is received — not when you initiate the transfer.",
+    requestTitle: "Request your EUR account",
+    requestDesc: "We'll allocate a dedicated EUR IBAN for your business. This is reviewed by our banking partner and typically takes 1–3 business days.",
+    reviewDesc: "Your EUR IBAN is being allocated and approved by our banking partner. If we need anything else while reviewing, we'll reach out to your registered business email.",
+    reviewTiming: "1–3 business days",
   },
   GBP: {
     fields: [
@@ -363,63 +239,95 @@ const FIAT_CONVERT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = £0.75" },
     ],
-    createDesc: "We'll allocate a dedicated GBP account number & sort code for your business. GBP deposits are converted to USD at the live rate when they clear.",
-    desc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
-    timingTone: null,
-    timing: null,
-    banner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
     fees: [
       { rail: "SEPA", fee: "£0.50 – £1.00", timing: "1–2 business days" },
       { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "Under 2 hours" },
     ],
+    readyDesc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
+    readyBanner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
+    requestTitle: "Request your GBP account",
+    requestDesc: "We'll allocate a dedicated GBP account number & sort code for your business. This is reviewed by our banking partner and typically takes 1–3 business days.",
+    reviewDesc: "Your GBP account details are being allocated and approved by our banking partner. If we need anything else while reviewing, we'll reach out to your registered business email.",
+    reviewTiming: "1–3 business days",
   },
 };
 
-function FiatConvertPanel({ ccy, state: initialState = "ready", onCopy }) {
-  const data = FIAT_CONVERT_DATA[ccy];
+function WhitelistRequestPanel({ ccy }) {
+  return (
+    <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.shield />}
+      title={`${ccy} accounts are invite-only right now`}
+      desc={`We're rolling out ${ccy} accounts to select businesses first, and expanding access over time.`}>
+      <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" className="btn btn-lg">Request access from your account manager</a>
+    </StatusPanel>
+  );
+}
+
+function FiatAccountPanel({ ccy, state: initialState, onCopy }) {
+  const data = FIAT_ACCOUNT_DATA[ccy];
   const [state, setState] = useState(initialState);
   useEffect(() => setState(initialState), [initialState]);
   if (!data) return null;
 
-  // Mirrors the real create → poll-until-allocated flow. Details are null while allocating;
-  // 10s here stands in for the <1 min staging allocation.
-  const create = () => { setState("processing"); setTimeout(() => setState("ready"), 10000); };
+  const submit = () => { setState("submitting"); setTimeout(() => setState("under_review"), 1400); };
 
-  if (state === "not_generated") {
+  if (state === "not_whitelisted") return <WhitelistRequestPanel ccy={ccy} />;
+
+  if (state === "not_requested") {
     return (
       <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.bank />}
-        title={`Create your ${ccy} account`} desc={data.createDesc}>
-        <button className="btn btn-lg" onClick={create}>Create {ccy} account</button>
-      </StatusPanel>
-    );
-  }
-  if (state === "processing") {
-    return (
-      <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<span className="spin" style={{ width: 24, height: 24 }} />}
-        title={`Setting up your ${ccy} account…`}
-        desc={`Your ${ccy === "EUR" ? "IBAN is" : "account details are"} being allocated by our banking partner. This usually takes under a minute — you can leave this page and come back.`}>
-        <div className="gen-progress"><span /></div>
-      </StatusPanel>
-    );
-  }
-  if (state === "error") {
-    return (
-      <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
-        title={`Couldn't set up your ${ccy} account`}
-        desc={<>Something went wrong while allocating your {ccy} account details. Please try again — if it keeps happening, <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">message your dedicated account team on WhatsApp</a>.</>}>
-        <button className="btn btn-lg" onClick={create}><Icon.refresh /> Try again</button>
+        title={data.requestTitle} desc={data.requestDesc}>
+        {data.rails && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+            {data.rails.map(r => <span key={r} className="usd-rail-badge">{r}</span>)}
+          </div>
+        )}
+        <button className="btn btn-lg" onClick={submit}>Begin request</button>
       </StatusPanel>
     );
   }
 
+  if (state === "submitting") {
+    return (
+      <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<span className="spin" style={{ width: 24, height: 24 }} />}
+        title="Submitting your request…" desc="This only takes a moment — we're sending it for review." />
+    );
+  }
+
+  if (state === "error") {
+    return <ErrorPanel onRetry={submit} />;
+  }
+
+  if (state === "under_review") {
+    return (
+      <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.shield />}
+        title={`${ccy} account under review`} desc={data.reviewDesc}>
+        <TimingChip tone="slow" label={data.reviewTiming} />
+        <div style={{ marginTop: 28, fontSize: 12.5, color: "var(--gray-600)" }}>
+          Taking longer than expected? <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", textDecoration: "underline", fontWeight: 500 }}>Message your account manager</a>
+        </div>
+      </StatusPanel>
+    );
+  }
+
+  if (state === "declined") {
+    return (
+      <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
+        title={`${ccy} account request declined`}
+        desc={`Unfortunately, our banking partner was unable to approve your ${ccy} account at this time. You can still receive and send in your other supported currencies in the meantime.`}>
+        <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" className="btn btn-lg">Message your account manager</a>
+      </StatusPanel>
+    );
+  }
+
+  // ready
   const copyableFields = data.fields.filter(f => f.copy);
   return (
     <div className="rail-panel">
       <div className="panel-intro">
-        <div className="panel-intro-desc">{data.desc}</div>
-        {data.timing && <TimingChip tone={data.timingTone} label={data.timing} />}
+        <div className="panel-intro-desc">{data.readyDesc}</div>
+        {data.readyTiming && <TimingChip tone={data.readyTimingTone} label={data.readyTiming} />}
       </div>
-      <Banner tone="info" icon={<Icon.info />}>{data.banner}</Banner>
+      {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
       <FeeGrid fees={data.fees} />
       <PanelActions fields={copyableFields} onCopy={onCopy} />
@@ -428,7 +336,7 @@ function FiatConvertPanel({ ccy, state: initialState = "ready", onCopy }) {
 }
 
 // ---------- Deposit page ----------
-function DepositPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
+function DepositPage({ onBack, onToast, usdAccountStatus = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
   const tabs = [
     { id: "ngn", name: "NGN", full: "Nigerian Naira", method: "Bank transfer", flag: "ng", type: "ngn" },
     { id: "usdc", name: "USDC", full: "USD Coin", method: "Stablecoin", coin: "USDC", type: "stablecoin" },
@@ -486,8 +394,8 @@ function DepositPage({ onBack, onToast, usdAccountStatus = "approved", ngnIssuan
 
           {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} />}
           {activeTab.type === "stablecoin" && <StablecoinPanel coin={activeTab.coin} issuance={stablecoinIssuance} onCopy={handleCopy} />}
-          {activeTab.type === "usd" && <UsdPanel status={usdAccountStatus} onCopy={handleCopy} />}
-          {activeTab.type === "fiat-convert" && <FiatConvertPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} />}
+          {activeTab.type === "usd" && <FiatAccountPanel ccy="USD" state={usdAccountStatus} onCopy={handleCopy} />}
+          {activeTab.type === "fiat-convert" && <FiatAccountPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} />}
         </div>
       )}
     </Page>

@@ -17,6 +17,7 @@ button { font-family: var(--font-sans); }
   border: 0; cursor: pointer; color: #fff; background: var(--info-700);
   transition: background-color .15s ease;
   display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none; /* .btn is also used on <a> tags — anchors underline by default */
 }
 .btn:hover { background: #1E40AF; }
 .btn:disabled { background: var(--gray-300); color: var(--gray-500); cursor: not-allowed; }

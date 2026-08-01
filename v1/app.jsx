@@ -251,11 +251,13 @@ function MockControls({
       <div className="mock-group">
         <div className="mock-label">USD account status</div>
         <div className="mock-row">
-          <button className={usdAccountStatus === "not_applied" ? "on" : ""} onClick={() => onUsdAccountStatus("not_applied")}>Not applied</button>
-          <button className={usdAccountStatus === "incomplete" ? "on" : ""} onClick={() => onUsdAccountStatus("incomplete")}>Incomplete</button>
+          <button className={usdAccountStatus === "not_whitelisted" ? "on" : ""} onClick={() => onUsdAccountStatus("not_whitelisted")}>Not whitelisted</button>
+          <button className={usdAccountStatus === "not_requested" ? "on" : ""} onClick={() => onUsdAccountStatus("not_requested")}>Not requested</button>
+          <button className={usdAccountStatus === "submitting" ? "on" : ""} onClick={() => onUsdAccountStatus("submitting")}>Submitting</button>
           <button className={usdAccountStatus === "under_review" ? "on" : ""} onClick={() => onUsdAccountStatus("under_review")}>Under review</button>
-          <button className={usdAccountStatus === "approved" ? "on" : ""} onClick={() => onUsdAccountStatus("approved")}>Approved</button>
+          <button className={usdAccountStatus === "ready" ? "on" : ""} onClick={() => onUsdAccountStatus("ready")}>Ready</button>
           <button className={usdAccountStatus === "declined" ? "on" : ""} onClick={() => onUsdAccountStatus("declined")}>Declined</button>
+          <button className={usdAccountStatus === "error" ? "on" : ""} onClick={() => onUsdAccountStatus("error")}>Error</button>
         </div>
       </div>
       <div className="mock-group">
@@ -275,9 +277,12 @@ function MockControls({
       <div className="mock-group">
         <div className="mock-label">EUR / GBP account</div>
         <div className="mock-row">
-          <button className={fiatConvert === "not_generated" ? "on" : ""} onClick={() => onFiatConvert("not_generated")}>Not created</button>
+          <button className={fiatConvert === "not_requested" ? "on" : ""} onClick={() => onFiatConvert("not_requested")}>Not requested</button>
+          <button className={fiatConvert === "submitting" ? "on" : ""} onClick={() => onFiatConvert("submitting")}>Submitting</button>
+          <button className={fiatConvert === "under_review" ? "on" : ""} onClick={() => onFiatConvert("under_review")}>Under review</button>
           <button className={fiatConvert === "ready" ? "on" : ""} onClick={() => onFiatConvert("ready")}>Ready</button>
-          <button className={fiatConvert === "error" ? "on" : ""} onClick={() => onFiatConvert("error")}>Alloc. error</button>
+          <button className={fiatConvert === "declined" ? "on" : ""} onClick={() => onFiatConvert("declined")}>Declined</button>
+          <button className={fiatConvert === "error" ? "on" : ""} onClick={() => onFiatConvert("error")}>Error</button>
         </div>
       </div>
       <div className="mock-group">
@@ -371,7 +376,7 @@ function App() {
   const [route, setRoute] = useState("dashboard");
   const [dataState, setDataState] = useState("full");
   const [accountStatus, setAccountStatus] = useState("active");
-  const [usdAccountStatus, setUsdAccountStatus] = useState("approved");
+  const [usdAccountStatus, setUsdAccountStatus] = useState("ready");
   const [ngnIssuance, setNgnIssuance] = useState("ready");
   const [stablecoinIssuance, setStablecoinIssuance] = useState("ready");
   const [fiatConvert, setFiatConvert] = useState("ready");

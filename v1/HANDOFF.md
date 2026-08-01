@@ -120,6 +120,7 @@ These are the reusable pieces. Where behaviour differs by breakpoint it's called
 | `RailTabs` | Horizontally scrollable tab strip (desktop Deposit picker). |
 | `Banner` | Inline notice (info/warn/danger/success/neutral). Title-less variant centers its icon. |
 | `StatusPanel` | Centered icon + title + copy block (empty / apply / waiting states). |
+| `ErrorPanel` | Error-code → friendly-copy lookup (generic fallback for unmapped codes) wrapped in a `StatusPanel`. See §11 Deposit for the seed registry entry and where it's used. |
 | `Pill` | Status pill (success/warn/danger/info/neutral). |
 | `TimingChip` | Small clock-labelled chip (fast/med/slow). |
 | `CopyInline` / copy buttons | Copy-to-clipboard affordances. |
@@ -198,10 +199,11 @@ Each toggle just flips prototype state so a reviewer can see a given screen vari
 | **After password** | Which TOTP screen follows a correct password: first-time setup (QR) vs returning (code entry) |
 | **Data state** | Populated vs empty-account (zero balances / empty states) |
 | **Account status** | Active vs suspended (global suspended banner, disabled actions) |
-| **USD account status** | KYB/onboarding state of the USD bank rail: not applied / incomplete / under review / approved / declined |
+| **USD account status** | Whitelist + provisioning state: not whitelisted / not requested / submitting / under review / ready / declined / error |
 | **NGN account details** | Whether the NGN virtual account is provisioned (not generated / ready) |
 | **Stablecoin addresses** | Whether USDC/USDT deposit addresses are provisioned |
-| **EUR / GBP account** | Allocation state of the EUR/GBP receiving account: not created / ready / allocation error |
+| **EUR / GBP account** | Provisioning state: not requested / submitting / under review / ready / declined / error |
+| **Account-request error message** | Which error the error-registry demo shows: a known code (UBO KYC) vs an unmapped one (generic fallback) |
 | **Send payment order** | Default step order: recipient-first vs amount-first |
 | **2FA on payments** | Whether the payment-approval step is required |
 | **2FA method** | Default approval method: authenticator (TOTP) vs email OTP |
@@ -327,23 +329,57 @@ All the below are built.
 - **Home** — Global USD balance hero, Deposit / Send actions, Recent activity (`Records`). Mobile rows
   show a small pulsing amber dot for *processing* and a red X badge for *failed*.
 - **Deposit** — Adaptive funding-method picker (**tabs desktop / currency selector mobile**). Rails:
-  NGN (convert-on-deposit), USDC/USDT (network picker + deposit address + decorative QR), USD (bank
-  application flow with not-applied → submitting → verify → under review / approved / declined), EUR/GBP
-  (self-serve dedicated receiving account, convert-on-deposit — see below). Suspended-account state.
-  - **EUR/GBP creation flow.** EUR and GBP are dedicated receiving accounts a business creates
-    itself, through the *same* endpoint as the USD virtual account (`POST`/`GET
-    /accounts/{accountId}/account-details` → `CashDepositPaymentDetails`). GBP returns a
-    `CashLocalBankAccount` (account number + sort code, which is the `bankCode` field); EUR returns
-    a `CashSepaBankAccount` (IBAN = `accountNumber`, optional `bic`). Allocation is **not instant** —
-    `details` comes back `null` for up to ~1 min while the banking partner allocates, so the panel
-    runs **create → allocating (pending spinner) → ready**, with an **allocation-error** state
-    (retry + support fallback) if it fails. The mock toggle (§8, *EUR / GBP account*) jumps to any
-    of not-created / ready / error; the create button runs the pending→ready transition live (10s
-    stand-in for the real allocation window). Funds still credit the single **USD** balance at the
-    live rate on receipt — no per-currency balances (confirmed product decision). Displayed detail
-    fields are intentionally richer than the bare schema (bank name/address, account type, both
-    IBAN and sort code for GBP) — kept deliberately, not an oversight. **Fees/limits shown are
-    placeholders** pending real specs from the ledger team.
+  NGN (convert-on-deposit), USDC/USDT (network picker + deposit address + decorative QR), USD/EUR/GBP
+  (unified fiat-account provisioning — see below). Suspended-account state.
+  - **Fiat account provisioning (USD, EUR, GBP) — one shared pattern (`FiatAccountPanel`).** All
+    three are realistically partner-review processes, not instant provisioning, so all three share
+    one state model: **not requested → submitting (brief, a real API call that can fail fast) →
+    under review (1–3 business days, static icon + `TimingChip` — deliberately **not** a spinner,
+    since nothing is actively happening moment-to-moment) → ready**, or **declined** after review.
+    The "if we need anything else" line is anchored specifically to the **under-review** state (not
+    shown pre-submission, where it'd be unclear what "anything else" even refers to) — it means
+    anything needed *during* the partner's review, and says we reach out to the business's
+    **registered email**, never a link to the banking partner's own site (there isn't one; USD
+    previously modeled an "Open verification" external-redirect step that doesn't reflect how this
+    actually works, and has been removed).
+    - Every non-terminal-success state gives a way to reach a human, not just information: **under
+      review** has a "Taking longer than expected? Message us on WhatsApp" link alongside the
+      timing chip; **not whitelisted** and **declined** are each a real WhatsApp CTA button, not
+      just an inline mention.
+    - **USD additionally gates on a whitelist**, checked before any request can even be made. Not
+      whitelisted → no request flow at all, just an info panel ("USD accounts are invite-only right
+      now") with a "Request access on WhatsApp" CTA — no form, no submitted-state, nothing to track.
+    - **EUR/GBP** are dedicated receiving accounts via the *same* endpoint as the USD virtual
+      account (`POST`/`GET /accounts/{accountId}/account-details` → `CashDepositPaymentDetails`).
+      GBP returns a `CashLocalBankAccount` (account number + sort code = `bankCode`); EUR returns a
+      `CashSepaBankAccount` (IBAN = `accountNumber`, optional `bic`). Real allocation can run
+      **longer than a minute** — ClearJunction can hand back an IBAN that's still pending approval,
+      and since that IBAN is what's used for withdrawals, the "ready" gate must be an explicit
+      approval status from the backend, not "details exist." (Exact status field TBC with Eno —
+      flagged, not invented here.) EUR/GBP can be **declined** too, same as USD — not a
+      USD-exclusive outcome.
+    - Funds still credit the single **USD** balance at the live rate on receipt — no per-currency
+      balances (confirmed product decision).
+    - Mock toggles (§8): *USD account status* (not whitelisted / not requested / submitting / under
+      review / ready / declined / error) and *EUR / GBP account* (not requested / submitting /
+      under review / ready / declined / error) jump straight to any state; "Send request" runs the
+      submitting→under_review transition live.
+    - Displayed detail fields are intentionally richer than the bare schema (bank name/address,
+      account type, both IBAN and sort code for GBP) — kept deliberately, not an oversight.
+      **Fees/limits shown are placeholders** pending real specs from the ledger team.
+  - **Error-message registry (`ErrorPanel`, in `primitives.jsx`).** A small error-code → friendly
+    copy lookup with a generic "Something went wrong" fallback for anything unmapped, used by the
+    fiat-account error state (mock toggle: *Account-request error message*). Meant to grow — add an
+    entry whenever a new backend error code turns up, rather than hardcoding a one-off message per
+    screen. **Every** error — known code or fallback — gets the same two actions: **Try again** +
+    **Message us on WhatsApp**, never a dead end. Registry copy is deliberately generic, not
+    diagnostic: the seed entry (`UBO_KYC_INCOMPLETE`) mirrors a real staging error
+    (`"KYC record for UBO ... has no personal data or date of birth"`), but that internal specific
+    (which record, which field) is a back-office concern — the business-facing copy just says
+    something needs verifying and that we'll follow up by email, not the raw reason. Worth noting
+    that specific error is also more likely to surface during KYC review via the Tally-embedded
+    flow (a back-office concern) than something this screen would naturally hit — the registry
+    pattern is general-purpose, this was just the seed example.
 - **Send payment** — Recipient-first or amount-first (mock toggle); FX send/receive fields with live
   rate + countdown + over-balance guard; required reason + optional memo; review; 2FA approval
   (authenticator / email, method-switch Sheet); confirmation. Empty (no recipients) + suspended states.

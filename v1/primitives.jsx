@@ -307,6 +307,28 @@ function StatusPanel({ iconBg, iconColor, icon, title, desc, children }) {
   );
 }
 
+// Error-code → friendly-copy registry — empty for now, deliberately. We have no visibility into
+// which backend error actually occurred in a way we could act on (nothing logs it anywhere we'd
+// see it to follow up), so promising "we'll reach out to you" would be a promise we can't keep.
+// Every error, whatever the code, gets the same honest message: something went wrong, and it's on
+// the business to reach out to us — not the other way round — plus a retry. Add a real entry here
+// only once a specific error becomes something we can reliably detect and act on ourselves.
+const ERROR_REGISTRY = {};
+
+function ErrorPanel({ code, onRetry }) {
+  const known = ERROR_REGISTRY[code];
+  const title = known ? known.title : "Something went wrong";
+  const desc = known ? known.desc : "Please try again, or reach out to your dedicated account team and we'll help resolve it.";
+  return (
+    <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />} title={title} desc={desc}>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+        {onRetry && <button className="btn btn-lg" onClick={onRetry}><Icon.refresh /> Try again</button>}
+        <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-soft">Message your account manager</a>
+      </div>
+    </StatusPanel>
+  );
+}
+
 // 2-col grid on desktop, stacked single column on mobile.
 function FieldGrid({ fields, onCopy }) {
   const isDesktop = useIsDesktop();
@@ -447,5 +469,5 @@ function Toast({ msg, onDone }) {
 window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
-  TALLY_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta,
+  TALLY_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
 };
