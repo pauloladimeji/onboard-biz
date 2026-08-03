@@ -63,7 +63,11 @@ const ALL_CRYPTO_NETWORKS = [
   { id: "tron", name: "Tron", short: "TRC-20", addressPlaceholder: "T… address", maxLength: 34, arrival: "~1 min" },
 ];
 
-function isLookupReady(railKey, fields) {
+// "Ready" = enough entered to move past the account fields — for lookup rails that means enough
+// to actually attempt the lookup; for every other rail it just means the required fields are in,
+// at which point the flow falls through to manual name entry. Returning false by default here
+// used to strand those rails (EUR, SWIFT, TZS, MZN) with Continue permanently disabled.
+function isLookupReady(railKey, fields, schema = []) {
   switch (railKey) {
     case "NGN-bank": return !!fields.bank && (fields.accNo || "").length === 10;
     case "NGN-momo": return !!fields.wallet && (fields.accNo || "").length >= 10;
@@ -74,7 +78,8 @@ function isLookupReady(railKey, fields) {
     case "GBP-fps": return !!fields.sortCode && (fields.accNo || "").length === 8;
     case "USD-wire":
     case "USD-ach": return (fields.routing || "").length === 9 && (fields.accNo || "").length >= 6;
-    default: return false;
+    default:
+      return schema.length > 0 && schema.every(f => f.optional || (fields[f.k] && String(fields[f.k]).trim() !== ""));
   }
 }
 
@@ -214,7 +219,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
   useEffectA(() => {
     if (!railKey) return;
-    if (!isLookupReady(railKey, fields)) { setLookup({ status: "idle", name: null }); return; }
+    if (!isLookupReady(railKey, fields, schema)) { setLookup({ status: "idle", name: null }); return; }
     if (!lookupAvailable) { setLookup({ status: "unsupported", name: null }); return; }
     setLookup({ status: "loading", name: null });
     const t = setTimeout(() => {
