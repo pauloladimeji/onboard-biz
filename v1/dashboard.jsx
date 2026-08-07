@@ -2,8 +2,9 @@
 const Icon = window.OBIcon;
 const { TXNS } = window.OBData;
 const { CcyFlag, Page, Records } = window.OBPrimitives;
+const { SubAccountsHomeSection } = window.OBSubAccounts;
 
-function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll }) {
+function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, subAccountsOn = false, onOpenSubAccounts }) {
   const isEmpty = dataState === "empty";
   const balance = isEmpty ? "0.00" : "84,231.50";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
@@ -36,6 +37,8 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
         <div className="home-divider" />
         <div className="home-rails-note">Fund with USD, GBP, EUR, NGN, or stablecoins — all deposits are held as USD</div>
       </div>
+
+      {subAccountsOn && !isEmpty && <SubAccountsHomeSection onOpen={onOpenSubAccounts} />}
 
       <Records
         title="Recent activity"

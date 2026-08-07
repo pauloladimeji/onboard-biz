@@ -63,6 +63,7 @@ add-recipient.jsx  → window.OBAddRecipient — 3-step add-recipient wizard
 transactions.jsx   → window.OBTransactions — Transactions list + detail
 settings.jsx       → window.OBSettings — Settings + Developer
 cards.jsx          → window.OBCards — Flex Business Cards: list, detail, create/fund/withdraw/freeze
+subaccounts.jsx    → window.OBSubAccounts — EXPLORATORY, hidden by default (see §11)
 app.jsx            → root App: auth flow state machine, post-login routing, mock-control state, toast
 ```
 
@@ -211,6 +212,7 @@ Each toggle just flips prototype state so a reviewer can see a given screen vari
 | **Name lookup** (Add Recipient only) | Forces the account-name verification path on/off |
 | **API access** | Developer API entitlement: granted / pending / not requested |
 | **Cards** | Whether the business has applied for Flex Business Cards: not applied (shows `CardsApplyPage`) vs active |
+| **Sub-accounts (exploratory)** | Hidden / Business units / Many customers. Hidden by default — adds/removes the nav item and swaps the whole layout + fixtures. Not a shipped feature; see §11 |
 
 > **For eng:** ignore this panel entirely when scoping. It corresponds to **backend/account and
 > auth states** your real system already owns, surfaced here only so design could demo each branch
@@ -398,6 +400,35 @@ All the below are built.
   withdraw/freeze flows, spending limits, fee schedule, and a not-applied landing page — all 7
   modals are `Sheet`-based. See §4 for the touch-adapted card visual (reveal/copy) and §6 for
   where Cards sits in navigation.
+- **Sub-accounts — EXPLORATORY, not a shipped feature.** Hidden entirely unless the *Sub-accounts
+  (exploratory)* mock toggle (§8) is switched on, which adds the nav item (desktop sidebar inline,
+  mobile "More" sheet). Built for customer/prospect conversations, **not** scoped for build — treat
+  it as a sketch in the prototype rather than a spec.
+  - Modelled on the ledger spec + public docs: sub-accounts are **always USD** (the only supported
+    account currency for both main and sub); funded by **internal transfer from the main account**,
+    since USD/EUR/GBP account numbers are **main-account only** — NGN is the one currency whose
+    account numbers can sit on a sub-account, and crypto funding addresses are per-sub-account too.
+    They can **pay out directly in every supported corridor** (`CreateCashPaymentRequest.accountId`
+    accepts a sub-account ID), can be **frozen**, and can only be **closed at zero balance**.
+  - `reference` is a **client-supplied unique key** (6–36 chars, `^[a-zA-Z0-9_-]{6,36}$`) — the
+    mapping key back to the business's own customer or cost-centre ID. It's surfaced as the
+    secondary identifier throughout, and auto-slugged from the name on create.
+  - **Two modes, because the two use cases want genuinely different UIs** — and different
+    *placement*, which is the more interesting finding:
+    - **Business units** (a handful of departments/budgets): browse-first. Card grid with avatars
+      and an **allocation bar** showing how the balance is split. Also renders a compact
+      **section on Home** (`SubAccountsHomeSection`) — for a few units this belongs where the
+      balance already is, not behind its own nav item.
+    - **Many customers** (thousands, API-created): search-first. Metric row (count / active /
+      total held), search over name + reference, dense rows, "showing N of 4,812". No Home
+      section — you can't put thousands of anything on a dashboard.
+  - Screens: list (per mode above), detail (balance, move money, freeze, close, funding explainer,
+    activity feed via `Records`), plus create/move/freeze/close `Sheet`s.
+  - **Fixtures are local to `subaccounts.jsx`**, deliberately — nothing in `v0/` needs them, so
+    the shared `v0/data.jsx` stays untouched.
+  - `INTERNAL_TRANSFER` is the activity type sub-accounts generate most, and it's the one type
+    deliberately deferred from the taxonomy work (§10) — it would need to come back if this is
+    ever built for real.
 
 ---
 

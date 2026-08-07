@@ -10,6 +10,7 @@ const { AddRecipientScreen } = window.OBAddRecipient;
 const { TransactionsScreen, TransactionDetailScreen } = window.OBTransactions;
 const { SettingsScreen, DeveloperSection } = window.OBSettings;
 const { CardsScreen } = window.OBCards;
+const { SubAccountsScreen } = window.OBSubAccounts;
 const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
   TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
@@ -179,7 +180,7 @@ function MockControls({
   stablecoinIssuance, onStablecoinIssuance, fiatConvert, onFiatConvert,
   payMode, onPayMode, paymentApproval, onPaymentApproval, paymentApprovalMethod, onPaymentApprovalMethod,
   complianceHold, onComplianceHold, route, nameLookupMock, onNameLookupMock,
-  apiAccess, onApiAccess, cardsAccess, onCardsAccess,
+  apiAccess, onApiAccess, cardsAccess, onCardsAccess, subAccountsOn, onSubAccountsOn,
   flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState,
   recoveryLink, onRecoveryLink, withdrawalHoldActive, onWithdrawalHoldTest,
 }) {
@@ -338,6 +339,14 @@ function MockControls({
           <button className={cardsAccess === "active" ? "on" : ""} onClick={() => onCardsAccess("active")}>Active</button>
         </div>
       </div>
+      <div className="mock-group">
+        <div className="mock-label">Sub-accounts (exploratory)</div>
+        <div className="mock-row">
+          <button className={subAccountsOn === "off" ? "on" : ""} onClick={() => onSubAccountsOn("off")}>Hidden</button>
+          <button className={subAccountsOn === "units" ? "on" : ""} onClick={() => onSubAccountsOn("units")}>Business units</button>
+          <button className={subAccountsOn === "customers" ? "on" : ""} onClick={() => onSubAccountsOn("customers")}>Many customers</button>
+        </div>
+      </div>
     </>
   );
 }
@@ -387,6 +396,7 @@ function App() {
   const [nameLookupMock, setNameLookupMock] = useState("default");
   const [apiAccess, setApiAccess] = useState("granted");
   const [cardsAccess, setCardsAccess] = useState("active");
+  const [subAccountsOn, setSubAccountsOn] = useState("off"); // "off" | "units" | "customers"
   const [openTx, setOpenTx] = useState(null);
   const [toast, setToast] = useState(null);
   const [recipients, setRecipients] = useState(() => [...RECIPIENTS_FULL]);
@@ -414,6 +424,7 @@ function App() {
       route={route} nameLookupMock={nameLookupMock} onNameLookupMock={setNameLookupMock}
       apiAccess={apiAccess} onApiAccess={setApiAccess}
       cardsAccess={cardsAccess} onCardsAccess={setCardsAccess}
+      subAccountsOn={subAccountsOn} onSubAccountsOn={setSubAccountsOn}
       flow={flow} onFlow={setFlow}
       signinAccountStatus={signinAccountStatus} onSigninAccountStatus={setSigninAccountStatus}
       totpState={totpState} onTotpState={setTotpState}
@@ -542,7 +553,9 @@ function App() {
         onAddMoney={() => setRoute("add-money")}
         onSendPayment={() => setRoute("payments")}
         onOpenTx={() => {}}
-        onViewAll={() => setRoute("activity")} />
+        onViewAll={() => setRoute("activity")}
+        subAccountsOn={subAccountsOn === "units"}
+        onOpenSubAccounts={() => setRoute("subaccounts")} />
     );
   } else if (route === "add-money") {
     screen = (
@@ -599,6 +612,8 @@ function App() {
         onOpenTx={setOpenTx}
         onToast={setToast} />
     );
+  } else if (route === "subaccounts") {
+    screen = <SubAccountsScreen key={subAccountsOn} onToast={setToast} mode={subAccountsOn === "customers" ? "customers" : "units"} />;
   } else if (route === "cards") {
     screen = <CardsScreen onToast={setToast} cardsAccess={cardsAccess} />;
   } else if (route === "settings") {
@@ -630,7 +645,7 @@ function App() {
 
   return (
     <>
-      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner}>
+      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner} subAccountsOn={subAccountsOn !== "off"}>
         {screen}
       </Shell>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}

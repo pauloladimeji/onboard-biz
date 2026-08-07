@@ -33,6 +33,9 @@ const NAV = [
 // Cards sits inline in the desktop sidebar (not a 6th bottom tab — would crowd the tab bar);
 // mobile reaches it through the "More" sheet instead.
 const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card, badge: "Soon" };
+// Sub-accounts is exploratory — hidden unless the mock toggle turns it on, so it never shows
+// in the demo or a normal review pass. Same placement rules as Cards.
+const SUBACCOUNTS_NAV = { id: "subaccounts", label: "Sub-accounts", icon: Icon.wallet };
 const WORKSPACE_NAV = [
   { id: "settings",  label: "Settings",  icon: Icon.cog },
   { id: "developer", label: "Developer", icon: Icon.doc },
@@ -145,7 +148,7 @@ function TopBar({ onOpenMock, isDemo }) {
   );
 }
 
-function SidebarV1({ active, onNavigate }) {
+function SidebarV1({ active, onNavigate, subAccountsOn }) {
   const item = (n) => (
     <div key={n.id} className={`sb-item ${active === n.id ? "active" : ""}`} onClick={() => onNavigate(n.id)}>
       <n.icon />
@@ -156,6 +159,7 @@ function SidebarV1({ active, onNavigate }) {
   return (
     <aside className="sidebar-v1">
       {NAV.map(item)}
+      {subAccountsOn && item(SUBACCOUNTS_NAV)}
       {item(CARDS_NAV)}
       <div className="sb-group">Workspace</div>
       {WORKSPACE_NAV.map(item)}
@@ -199,11 +203,12 @@ function BottomTabs({ active, onNavigate, onMore }) {
   );
 }
 
-function MoreSheet({ open, onClose, onNavigate }) {
+function MoreSheet({ open, onClose, onNavigate, subAccountsOn }) {
+  const items = subAccountsOn ? [SUBACCOUNTS_NAV, ...MORE_NAV] : MORE_NAV;
   return (
     <Sheet open={open} onClose={onClose} title="More">
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {MORE_NAV.map(n => (
+        {items.map(n => (
           <div key={n.id} className="sb-item" style={{ borderRight: "none", borderRadius: 8 }} onClick={() => { onNavigate(n.id); onClose(); }}>
             <n.icon />
             <span>{n.label}</span>
@@ -218,7 +223,7 @@ function MoreSheet({ open, onClose, onNavigate }) {
 // Adaptive shell: sidebar+topnav on desktop, bottom tabs+topbar on mobile. Same route state either way.
 // Mock controls open from the same small gear icon in the top bar on both breakpoints, as a Sheet —
 // except in demo mode, where the gear (and the whole harness) doesn't render at all. See HANDOFF.md.
-function Shell({ active, onNavigate, mockControls, banner, children }) {
+function Shell({ active, onNavigate, mockControls, banner, subAccountsOn = false, children }) {
   const isDesktop = useIsDesktop();
   const isDemo = isDemoMode();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -229,7 +234,7 @@ function Shell({ active, onNavigate, mockControls, banner, children }) {
       <div className={`shell is-desktop ${isDemo ? "has-demo-banner" : ""}`}>
         {isDemo && <DemoBanner />}
         <TopBar onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
-        <SidebarV1 active={active} onNavigate={onNavigate} />
+        <SidebarV1 active={active} onNavigate={onNavigate} subAccountsOn={subAccountsOn} />
         <div className="content-desktop">{banner}{children}</div>
         {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
         {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
@@ -242,7 +247,7 @@ function Shell({ active, onNavigate, mockControls, banner, children }) {
       <TopBarMobile onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
       <div className="content-mobile">{banner}{children}</div>
       <BottomTabs active={active} onNavigate={onNavigate} onMore={() => setMoreOpen(true)} />
-      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} onNavigate={onNavigate} />
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} onNavigate={onNavigate} subAccountsOn={subAccountsOn} />
       {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
       {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
     </div>

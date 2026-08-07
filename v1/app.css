@@ -288,6 +288,15 @@ button { font-family: var(--font-sans); }
 .sb-item:hover { background: var(--row-hover); }
 .sb-item.active { color: var(--info-700); border-right-color: var(--info-700); font-weight: 500; background: #F8FAFD; }
 .sb-item svg { width: 18px; height: 18px; }
+.sa-card { transition: border-color .15s ease, box-shadow .15s ease; }
+.sa-card:hover { border-color: var(--gray-300); box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.sa-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer;
+  border-bottom: 1px solid var(--gray-100); transition: background-color .12s ease;
+}
+.sa-row:last-child { border-bottom: none; }
+.sa-row:hover { background: var(--row-hover); }
+
 .nav-badge {
   margin-left: -8px; flex-shrink: 0;
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
@@ -584,15 +593,38 @@ table.records-table th.num { text-align: right; }
 .field-v { font-size: 13.5px; color: var(--gray-900); font-weight: 500; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
 .field-v span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.fee-section { border-top: 1px solid var(--gray-200); padding-top: 18px; margin-bottom: 20px; }
+.fee-section { border-top: 1px solid var(--gray-200); margin-top: 24px; padding-top: 18px; margin-bottom: 4px; }
 .fee-section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--gray-500); text-transform: uppercase; margin-bottom: 12px; }
-.fee-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+/* auto-fill (not auto-fit) so tracks stay put when there are fewer cards than columns — a
+   single-rail currency like EUR keeps a card-sized card instead of stretching across the panel. */
+.fee-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .fee-grid-mobile { grid-template-columns: 1fr; }
-.fee-card { padding: 12px 14px; background: var(--gray-50); border-radius: 10px; border: 1px solid var(--gray-200); }
-.fee-rail { font-size: 12.5px; font-weight: 600; color: var(--gray-900); margin-bottom: 8px; }
-.fee-line { font-size: 12px; color: var(--gray-600); margin-bottom: 4px; }
+.fee-card { padding: 14px 16px; background: var(--gray-50); border-radius: 10px; border: 1px solid var(--gray-200); }
+.fee-rail { font-size: 13.5px; font-weight: 600; color: var(--gray-900); margin-bottom: 10px; }
+.fee-line { font-size: 13px; color: var(--gray-600); margin-bottom: 5px; }
 .fee-line span { font-weight: 500; color: var(--gray-900); }
 .fee-line:last-child { margin-bottom: 0; }
+
+.fee-limits { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray-200); }
+.fee-limit-row { margin-bottom: 18px; }
+.fee-limit-row:last-child { margin-bottom: 0; }
+.fee-limit-row .k { font-size: 12px; color: var(--gray-600); margin-bottom: 6px; }
+.fee-limit-row .v { font-size: 13px; font-weight: 500; color: var(--gray-900); line-height: 1.45; }
+.fee-limit-row .v em { font-style: normal; font-weight: 400; color: var(--gray-500); }
+.fee-limit-none { font-weight: 400; color: var(--gray-500); }
+/* NGN carries both a per-transaction and a daily cap; everything else is per-transaction only. */
+.fee-limit-lines { display: flex; flex-direction: column; gap: 7px; }
+.fee-limit-lines .lbl { font-weight: 400; color: var(--gray-600); }
+.fee-review-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+  background: #FFF8EB; color: #92400E; font-size: 11px; font-weight: 500; white-space: nowrap;
+}
+.fee-about {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 12px;
+  font-size: 12.5px; font-weight: 500; color: var(--info-700); cursor: pointer; text-decoration: none;
+}
+.fee-about:hover { text-decoration: underline; }
+.fee-about svg { width: 12px; height: 12px; }
 
 .rail-panel { padding: 24px 28px 28px; }
 .page-mobile .rail-panel { padding: 18px 16px 24px; }

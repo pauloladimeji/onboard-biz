@@ -3,7 +3,7 @@ const { useState, useEffect } = React;
 const Icon = window.OBIcon;
 const NetworkIcon = window.OBNetworkIcon;
 const { STABLECOIN_CHAINS } = window.OBData;
-const { Page, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel } = window.OBPrimitives;
+const { Page, Sheet, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel } = window.OBPrimitives;
 const Combobox = window.OBCombobox;
 
 function CoinBadge({ coin, size = 26 }) {
@@ -23,17 +23,65 @@ function PanelActions({ fields, onCopy, showPdf = true }) {
         const lines = fields.map(f => `${f.k}: ${f.v}`).join("\n");
         if (navigator.clipboard) navigator.clipboard.writeText(lines).catch(() => {});
         onCopy();
-      }}><Icon.copy /> Copy all details</button>
+      }}><Icon.copy /> Copy account details</button>
       {showPdf && <button className="btn btn-ghost btn-sm"><Icon.doc /> Download as PDF</button>}
     </div>
   );
 }
 
+// The detail behind the two limit rows on each rail card. Lives in a Sheet rather than on the
+// page: four lines per rail stay scannable, and anyone who actually needs the rules gets them
+// in one tap. Same pattern as the Cards fee schedule.
+function DepositLimitsSheet({ onClose }) {
+  const row = (title, body) => (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", marginBottom: 4 }}>{title}</div>
+      <div style={{ fontSize: 12.5, color: "var(--gray-600)", lineHeight: 1.6 }}>{body}</div>
+    </div>
+  );
+  return (
+    <Sheet open onClose={onClose} title="About deposit limits">
+      {row("From your own account",
+        "A bank account in your registered business name. Highest limits apply.")}
+      {row("From anyone else",
+        "A customer, client, or any other payer. Lower limits apply.")}
+      {row("What \"may need review\" means",
+        "We may hold a third-party deposit briefly to check it, and ask for documents showing who sent the funds and why. We'll email your registered business address.")}
+      {row("USD amounts",
+        "Figures marked ≈ are approximate and move with the rate. Limits are enforced in the deposit currency.")}
+      <div className="td-banner info" style={{ marginTop: 4 }}>
+        <Icon.info />
+        <div><div className="s">Limits are set per business. If you need higher limits, <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">message your account manager</a>.</div></div>
+      </div>
+      <div className="set-modal-foot">
+        <button className="btn btn-lg" onClick={onClose}>Got it</button>
+      </div>
+    </Sheet>
+  );
+}
+
 // ---------- NGN (convert-on-deposit) ----------
 const NGN_ACCOUNT = { bank: "Aella Microfinance Bank", name: "GFS / Acme Trading Co", number: "5200 0443 12" };
+// One rail — Nigerian bank transfer. Third-party deposits are supported here; the restriction
+// in the docs applies to cash deposits on OTA, not to this flow.
+const NGN_FEES = [
+  { rail: "Bank transfer", fee: "Free", timing: "Minutes",
+    limits: {
+      own: [
+        { label: "Per transaction", local: "₦500,000,000", usd: "$357,000" },
+        { label: "Per day", local: "₦2,000,000,000", usd: "$1,428,000" },
+      ],
+      other: [
+        { label: "Per transaction", local: "₦50,000,000", usd: "$35,700" },
+        { label: "Per day", local: "₦200,000,000", usd: "$142,800" },
+      ],
+      otherReview: true,
+    } },
+];
 
 function NgnPanel({ issuance = "ready", onCopy }) {
   const [state, setState] = useState(issuance);
+  const [showLimits, setShowLimits] = useState(false);
   useEffect(() => setState(issuance), [issuance]);
 
   const generate = () => { setState("processing"); setTimeout(() => setState("ready"), 2500); };
@@ -61,8 +109,6 @@ function NgnPanel({ issuance = "ready", onCopy }) {
     { k: "Account name", v: NGN_ACCOUNT.name },
     { k: "Account number", v: NGN_ACCOUNT.number, copy: true },
     { k: "Conversion rate", v: "1 USD = ₦1,400.50" },
-    { k: "Deposit fee", v: "Free" },
-    { k: "Minimum deposit", v: "₦50,000" },
   ];
   return (
     <div className="rail-panel">
@@ -75,6 +121,8 @@ function NgnPanel({ issuance = "ready", onCopy }) {
       </Banner>
       <FieldGrid fields={fields} onCopy={onCopy} />
       <PanelActions fields={fields} onCopy={onCopy} showPdf={false} />
+      <FeeGrid fees={NGN_FEES} onAbout={() => setShowLimits(true)} />
+      {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
     </div>
   );
 }
@@ -198,9 +246,12 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "1801 Main Street, Kansas City, MO 64108, USA" },
     ],
     fees: [
-      { rail: "ACH", fee: "0.5% + $1", timing: "1–3 business days" },
-      { rail: "Domestic Fedwire", fee: "0.5% + $20", timing: "Same day" },
-      { rail: "International SWIFT", fee: "0.5% + $25", timing: "1–2 business days" },
+      { rail: "ACH", fee: "0.5% + $1", timing: "1–3 business days",
+        limits: { own: { local: "$250,000" }, other: { local: "$50,000" }, otherReview: true } },
+      { rail: "Domestic Fedwire", fee: "0.5% + $20", timing: "Same day",
+        limits: { own: { local: "$1,000,000" }, other: { local: "$100,000" }, otherReview: true } },
+      { rail: "International SWIFT", fee: "0.5% + $25", timing: "1–2 business days",
+        limits: { own: { local: "$1,000,000" }, other: { local: "$100,000" }, otherReview: true } },
     ],
     rails: ["ACH", "Domestic Fedwire", "SWIFT"],
     readyDesc: "Receive USD via ACH, domestic wire (Fedwire), or international SWIFT transfer — all to the same account.",
@@ -218,7 +269,10 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = €0.88" },
     ],
-    fees: [{ rail: "SEPA", fee: "€0.50", timing: "1–2 business days" }],
+    fees: [
+      { rail: "SEPA", fee: "€0.50", timing: "1–2 business days",
+        limits: { own: { local: "€500,000", usd: "$543,000" }, other: { local: "€50,000", usd: "$54,300" }, otherReview: true } },
+    ],
     readyDesc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
     readyTiming: "1–2 business days",
     readyTimingTone: "med",
@@ -240,8 +294,10 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Conversion rate", v: "$1 = £0.75" },
     ],
     fees: [
-      { rail: "SEPA", fee: "£0.50 – £1.00", timing: "1–2 business days" },
-      { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "Under 2 hours" },
+      { rail: "SEPA", fee: "£0.50 – £1.00", timing: "1–2 business days",
+        limits: { own: { local: "£250,000", usd: "$316,000" }, other: { local: "£50,000", usd: "$63,300" }, otherReview: true } },
+      { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "Under 2 hours",
+        limits: { own: { local: "£250,000", usd: "$316,000" }, other: { local: "£50,000", usd: "$63,300" }, otherReview: true } },
     ],
     readyDesc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     readyBanner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
@@ -265,6 +321,7 @@ function WhitelistRequestPanel({ ccy }) {
 function FiatAccountPanel({ ccy, state: initialState, onCopy }) {
   const data = FIAT_ACCOUNT_DATA[ccy];
   const [state, setState] = useState(initialState);
+  const [showLimits, setShowLimits] = useState(false);
   useEffect(() => setState(initialState), [initialState]);
   if (!data) return null;
 
@@ -329,8 +386,9 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy }) {
       </div>
       {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
-      <FeeGrid fees={data.fees} />
       <PanelActions fields={copyableFields} onCopy={onCopy} />
+      <FeeGrid fees={data.fees} onAbout={() => setShowLimits(true)} />
+      {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
     </div>
   );
 }
