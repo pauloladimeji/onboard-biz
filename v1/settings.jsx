@@ -3,12 +3,22 @@ const { useState: useStateS, useEffect: useEffectS } = React;
 const SIcon = window.OBIcon;
 const { BUSINESS_PROFILE } = window.OBData;
 const { Page, Sheet } = window.OBPrimitives;
+const { WaIcon } = window.OBShell;
 
 const SECTIONS = [
   { id: "profile", label: "Business profile", icon: "bank", blurb: "Business name, contact, verification" },
+  { id: "limits", label: "Limits", icon: "swap", blurb: "Deposit and withdrawal limits" },
   { id: "security", label: "Security", icon: "shield", blurb: "Authentication and password" },
 ];
 const SUPPORT_EMAIL = "support@onboard.xyz";
+const ACCOUNT_MANAGER_WA = "https://wa.me/14313404484";
+
+// Outbound limits don't vary by rail or by who you're paying — one set covers everything.
+// (They are affected by liquidity in practice, which isn't something we surface.)
+const WITHDRAWAL_LIMITS = [
+  { label: "Per transaction", value: "$50,000" },
+  { label: "Per day", value: "$100,000" },
+];
 
 function SettingsBodySkeleton() {
   return (
@@ -59,6 +69,7 @@ function SettingsScreen({ onToast, apiAccess = "granted" }) {
           {bodyLoading ? <SettingsBodySkeleton /> : (
             <>
               {active === "profile" && <ProfileSection onToast={onToast} />}
+              {active === "limits" && <LimitsSection />}
               {active === "security" && <SecuritySection onToast={onToast} />}
             </>
           )}
@@ -116,6 +127,112 @@ function ProfileSection({ onToast }) {
 
       {supportNote}
     </>
+  );
+}
+
+// Renders the same `{ usd, local }` / array-of-them shape the deposit rail cards use. Every limit
+// is held in USD; `local` is only ever an approximate conversion for orientation.
+function LimitAmount({ v }) {
+  if (!v) return <span className="lim-none">No limits apply</span>;
+  const rows = Array.isArray(v) ? v : [v];
+  // Amount first, period after — a bare number reads ambiguously next to NGN, which has both a
+  // per-transaction and a daily cap. Unlabelled limits are always per-transaction.
+  return (
+    <span className={rows.length > 1 ? "lim-multi" : null}>
+      {rows.map(r => (
+        <span key={r.label || "one"}>
+          {r.usd}{r.local ? <em> (≈ {r.local})</em> : null} <span className="lbl">{r.label || "per transaction"}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function LimitsSection() {
+  const [requestFor, setRequestFor] = useStateS(null);
+  const deposits = (window.OBDeposit && window.OBDeposit.DEPOSIT_LIMITS) || [];
+
+  return (
+    <>
+      <div className="set-card">
+        <div className="set-card-head">
+          <div>
+            <h2 className="set-card-title">Deposit limits</h2>
+            <p className="set-card-sub">How much you can receive, by currency and who's sending.</p>
+          </div>
+          <button className="btn btn-soft btn-sm" onClick={() => setRequestFor("deposit")}>Request an increase</button>
+        </div>
+
+        <div className="lim-list">
+          {deposits.map(group => (
+            <div key={group.ccy} className="lim-ccy">
+              <div className="lim-ccy-head">{group.ccy}</div>
+              <div className="lim-line">
+                <span className="k">From your own account</span>
+                <span className="v"><LimitAmount v={group.limits && group.limits.first} /></span>
+              </div>
+              <div className="lim-line">
+                <span className="k">From anyone else</span>
+                <span className="v"><LimitAmount v={group.limits && group.limits.third} /></span>
+              </div>
+            </div>
+          ))}
+          <div className="lim-ccy">
+            <div className="lim-ccy-head">Stablecoins</div>
+            <div className="lim-line">
+              <span className="k">USDC and USDT</span>
+              <span className="v">No limit</span>
+            </div>
+          </div>
+        </div>
+        <p className="lim-note">No monthly cap. Deposits may be reviewed by our systems before they clear.</p>
+      </div>
+
+      <div className="set-card">
+        <div className="set-card-head">
+          <div>
+            <h2 className="set-card-title">Withdrawal limits</h2>
+            <p className="set-card-sub">The same limits apply to every payout currency and recipient.</p>
+          </div>
+          <button className="btn btn-soft btn-sm" onClick={() => setRequestFor("withdrawal")}>Request an increase</button>
+        </div>
+        <div className="lim-list">
+          <div className="lim-ccy">
+            {WITHDRAWAL_LIMITS.map(l => (
+              <div key={l.label} className="lim-line">
+                <span className="k">{l.label}</span>
+                <span className="v">{l.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="lim-note">No monthly cap. Transfers may be reviewed by our systems before they're sent.</p>
+      </div>
+
+      {requestFor && <RequestLimitSheet kind={requestFor} onClose={() => setRequestFor(null)} />}
+    </>
+  );
+}
+
+// Pre-filled with which limit is being asked about, so ops doesn't have to chase the two things
+// they always need — which limit, and what target.
+function RequestLimitSheet({ kind, onClose }) {
+  const waHref = ACCOUNT_MANAGER_WA + "?text=" + encodeURIComponent(
+    `Hi, I'd like to request a higher ${kind} limit for ${BUSINESS_PROFILE.legalName}.`
+  );
+  return (
+    <Sheet open onClose={onClose} title={`Request a higher ${kind} limit`}>
+      <p className="set-sheet-lede">Your account team reviews increases case by case. Have these ready and it'll move faster:</p>
+      <ul className="lim-need-list">
+        <li>The limit you need — per transaction and per day</li>
+        <li>Your expected monthly volume, and what the {kind}s are for</li>
+        <li>Recent statements or source-of-funds documents, if we ask for them</li>
+      </ul>
+      <a className="btn btn-lg btn-block" href={waHref} target="_blank" rel="noopener noreferrer">
+        <WaIcon style={{ width: 16, height: 16 }} />
+        Message your account team
+      </a>
+    </Sheet>
   );
 }
 

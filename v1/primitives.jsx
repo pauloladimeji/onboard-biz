@@ -348,58 +348,56 @@ function FieldGrid({ fields, onCopy }) {
 }
 
 // 3-col fee/timeline cards on desktop, stacked on mobile.
-// A limit is `{ local, usd }`, or an array of them when a rail has more than one kind of cap
-// (NGN has per-transaction *and* daily; everything else is per-transaction only). `usd` is the
-// approximate conversion, omitted for USD itself and marked "≈" since whichever side the backend
-// holds as source of truth, the other drifts with FX. `null` means not permitted on that rail,
-// which is a different thing from a lower limit.
+// A limit is `{ usd, local }`, or an array of them when a currency has more than one kind of cap
+// (NGN has per-transaction *and* daily; everything else is per-transaction only). Every limit is
+// held in USD, so `usd` leads; `local` is an approximate conversion for orientation, marked "≈"
+// because it drifts with FX, and omitted for USD itself. `null` means the limit doesn't apply —
+// NGN has no first-party limit at all.
 function LimitValue({ v }) {
-  if (!v) return <span className="fee-limit-none">Not permitted</span>;
+  if (!v) return <span className="fee-limit-none">No limits apply</span>;
   const rows = Array.isArray(v) ? v : [v];
-  if (rows.length === 1 && !rows[0].label) {
-    return <>Up to {rows[0].local}{rows[0].usd ? <em> (≈ {rows[0].usd})</em> : null}</>;
-  }
   return (
-    <div className="fee-limit-lines">
+    <span className={rows.length > 1 ? "fee-limit-lines" : null}>
       {rows.map(r => (
-        <div key={r.label}>
-          <span className="lbl">{r.label}:</span> {r.local}{r.usd ? <em> (≈ {r.usd})</em> : null}
-        </div>
+        <span key={r.label || "one"}>
+          {r.usd}{r.local ? <em> (≈ {r.local})</em> : null} <span className="lbl">{r.label || "per transaction"}</span>
+        </span>
       ))}
-    </div>
+    </span>
   );
 }
 
-function FeeGrid({ fees, onAbout }) {
+// Limits sit at the currency level, not the rail level — they're identical across a currency's
+// rails, so repeating them per card was pure noise. Rails carry fee + timeline only.
+function FeeGrid({ fees, limits, onAbout }) {
   const isDesktop = useIsDesktop();
-  const hasLimits = fees.some(f => f.limits);
   return (
     <div className="fee-section">
-      <div className="fee-section-label">{hasLimits ? "Fees, timelines & limits by payment method" : "Fees & timelines by payment method"}</div>
+      <div className="fee-section-label">Fees & timelines by payment method</div>
       <div className={`fee-grid ${isDesktop ? "" : "fee-grid-mobile"}`}>
         {fees.map(r => (
           <div key={r.rail} className="fee-card">
             <div className="fee-rail">{r.rail}</div>
             <div className="fee-line">Fee: <span>{r.fee}</span></div>
             <div className="fee-line">Arrives: <span>{r.timing}</span></div>
-            {r.limits && (
-              <div className="fee-limits">
-                <div className="fee-limit-row">
-                  <div className="k">From your own account</div>
-                  <div className="v"><LimitValue v={r.limits.own} /></div>
-                </div>
-                <div className="fee-limit-row">
-                  <div className="k">
-                    From anyone else
-                    {r.limits.otherReview && <span className="fee-review-tag">may need review</span>}
-                  </div>
-                  <div className="v"><LimitValue v={r.limits.other} /></div>
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>
+
+      {limits && (
+        <div className="fee-limits">
+          <div className="fee-section-label" style={{ marginBottom: 10 }}>Deposit limits</div>
+          <div className="fee-limit-row">
+            <div className="k">From your own account</div>
+            <div className="v"><LimitValue v={limits.first} /></div>
+          </div>
+          <div className="fee-limit-row">
+            <div className="k">From anyone else</div>
+            <div className="v"><LimitValue v={limits.third} /></div>
+          </div>
+        </div>
+      )}
+
       {onAbout && <a className="fee-about" onClick={onAbout}>About deposit limits <Icon.arrowRight /></a>}
     </div>
   );

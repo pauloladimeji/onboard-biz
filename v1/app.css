@@ -611,14 +611,11 @@ table.records-table th.num { text-align: right; }
 .fee-limit-row .k { font-size: 12px; color: var(--gray-600); margin-bottom: 6px; }
 .fee-limit-row .v { font-size: 13px; font-weight: 500; color: var(--gray-900); line-height: 1.45; }
 .fee-limit-row .v em { font-style: normal; font-weight: 400; color: var(--gray-500); }
+.fee-limit-row .v .lbl { font-weight: 400; color: var(--gray-600); }
 .fee-limit-none { font-weight: 400; color: var(--gray-500); }
 /* NGN carries both a per-transaction and a daily cap; everything else is per-transaction only. */
 .fee-limit-lines { display: flex; flex-direction: column; gap: 7px; }
 .fee-limit-lines .lbl { font-weight: 400; color: var(--gray-600); }
-.fee-review-tag {
-  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
-  background: #FFF8EB; color: #92400E; font-size: 11px; font-weight: 500; white-space: nowrap;
-}
 .fee-about {
   display: inline-flex; align-items: center; gap: 5px; margin-top: 12px;
   font-size: 12.5px; font-weight: 500; color: var(--info-700); cursor: pointer; text-decoration: none;
@@ -1265,6 +1262,37 @@ table.records-table th.num { text-align: right; }
 .set-row-v .strong { font-size: 14px; font-weight: 500; color: var(--gray-900); }
 .set-row-help { font-size: 11.5px; color: var(--gray-600); margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; }
 .set-row-help svg { width: 12px; height: 12px; }
+/* Settings → Limits. Limits are per-currency (identical across a currency's rails), so one block
+   per currency — fees and timelines live on the Deposit screen, not here. */
+.lim-ccy { padding: 14px 0; border-top: 1px solid var(--gray-100); }
+.lim-ccy:first-child { border-top: 0; padding-top: 2px; }
+.lim-ccy:last-child { padding-bottom: 2px; }
+.lim-ccy-head { font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-600); margin-bottom: 8px; }
+.lim-line { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 4px 0; }
+.lim-line .k { font-size: 13px; color: var(--gray-600); }
+.lim-line .v { font-size: 13.5px; font-weight: 500; color: var(--gray-900); text-align: right; }
+.lim-line .v em { font-style: normal; font-weight: 400; color: var(--gray-500); }
+.lim-line .v .lbl { font-weight: 400; color: var(--gray-600); }
+/* NGN is the only currency with more than one cap — stack them rather than running them
+   together on one line, since the value column is narrow and right-aligned. */
+.lim-multi { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.lim-none { font-weight: 400; color: var(--gray-500); }
+/* With the USD equivalent appended, NGN's values are too long to sit opposite their label on a
+   phone — stack instead of letting the number wrap mid-figure. */
+.page-mobile .lim-line { flex-direction: column; align-items: flex-start; gap: 3px; }
+.page-mobile .lim-line .v { text-align: left; }
+.page-mobile .lim-multi { align-items: flex-start; }
+/* The two questions the table can't answer — "is there a monthly cap?" and "will this get held?" —
+   answered in place rather than in a separate card below. */
+.lim-note { font-size: 12.5px; line-height: 1.5; color: var(--gray-600); margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--gray-100); }
+
+/* Requesting an increase is a conversation with the account team, not a form we can validate —
+   so the sheet just sets expectations and hands off. */
+.set-sheet-lede { font-size: 13.5px; line-height: 1.6; color: var(--gray-700); margin: 0 0 14px; }
+.lim-need-list { margin: 0 0 20px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.lim-need-list li { position: relative; padding-left: 22px; font-size: 13px; line-height: 1.5; color: var(--gray-700); }
+.lim-need-list li::before { content: ""; position: absolute; left: 6px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--gray-400); }
+
 .set-row-edit { background: transparent; border: 0; cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--info-700); padding: 6px 10px; border-radius: 6px; font-family: inherit; }
 .set-row-edit:hover { background: var(--info-100); }
 

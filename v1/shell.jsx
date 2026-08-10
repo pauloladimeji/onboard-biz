@@ -254,4 +254,4 @@ function Shell({ active, onNavigate, mockControls, banner, subAccountsOn = false
   );
 }
 
-window.OBShell = { Shell, NAV, MORE_NAV };
+window.OBShell = { Shell, NAV, MORE_NAV, WaIcon };

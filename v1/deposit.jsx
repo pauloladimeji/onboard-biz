@@ -42,13 +42,13 @@ function DepositLimitsSheet({ onClose }) {
   return (
     <Sheet open onClose={onClose} title="About deposit limits">
       {row("From your own account",
-        "A bank account in your registered business name. Highest limits apply.")}
+        "A bank account in your registered business name. Higher limits apply.")}
       {row("From anyone else",
         "A customer, client, or any other payer. Lower limits apply.")}
-      {row("What \"may need review\" means",
-        "We may hold a third-party deposit briefly to check it, and ask for documents showing who sent the funds and why. We'll email your registered business address.")}
-      {row("USD amounts",
-        "Figures marked ≈ are approximate and move with the rate. Limits are enforced in the deposit currency.")}
+      {row("Reviews and holds",
+        "We may hold any deposit briefly to check it, and ask for documents showing where the funds came from and what they're for. We'll email your registered business address.")}
+      {row("Local currency amounts",
+        "Limits are held in USD. The bracketed figure is the rough equivalent in the currency you're depositing, and moves with the rate.")}
       <div className="td-banner info" style={{ marginTop: 4 }}>
         <Icon.info />
         <div><div className="s">Limits are set per business. If you need higher limits, <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">message your account manager</a>.</div></div>
@@ -64,20 +64,17 @@ function DepositLimitsSheet({ onClose }) {
 const NGN_ACCOUNT = { bank: "Aella Microfinance Bank", name: "GFS / Acme Trading Co", number: "5200 0443 12" };
 // One rail — Nigerian bank transfer. Third-party deposits are supported here; the restriction
 // in the docs applies to cash deposits on OTA, not to this flow.
-const NGN_FEES = [
-  { rail: "Bank transfer", fee: "Free", timing: "Minutes",
-    limits: {
-      own: [
-        { label: "Per transaction", local: "₦500,000,000", usd: "$357,000" },
-        { label: "Per day", local: "₦2,000,000,000", usd: "$1,428,000" },
-      ],
-      other: [
-        { label: "Per transaction", local: "₦50,000,000", usd: "$35,700" },
-        { label: "Per day", local: "₦200,000,000", usd: "$142,800" },
-      ],
-      otherReview: true,
-    } },
-];
+const NGN_FEES = [{ rail: "Bank transfer", fee: "Free", timing: "10 minutes" }];
+// NGN is the one currency with no first-party limit at all, and the only one with a daily cap.
+// Every limit is set in USD (confirmed with engineering) — the local figure is display-only,
+// converted at the same rate this panel quotes (1 USD = ₦1,400.50).
+const NGN_LIMITS = {
+  first: null,
+  third: [
+    { label: "per transaction", usd: "$6,000", local: "₦8,400,000" },
+    { label: "per day", usd: "$24,000", local: "₦33,600,000" },
+  ],
+};
 
 function NgnPanel({ issuance = "ready", onCopy }) {
   const [state, setState] = useState(issuance);
@@ -121,7 +118,7 @@ function NgnPanel({ issuance = "ready", onCopy }) {
       </Banner>
       <FieldGrid fields={fields} onCopy={onCopy} />
       <PanelActions fields={fields} onCopy={onCopy} showPdf={false} />
-      <FeeGrid fees={NGN_FEES} onAbout={() => setShowLimits(true)} />
+      <FeeGrid fees={NGN_FEES} limits={NGN_LIMITS} onAbout={() => setShowLimits(true)} />
       {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
     </div>
   );
@@ -246,13 +243,11 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "1801 Main Street, Kansas City, MO 64108, USA" },
     ],
     fees: [
-      { rail: "ACH", fee: "0.5% + $1", timing: "1–3 business days",
-        limits: { own: { local: "$250,000" }, other: { local: "$50,000" }, otherReview: true } },
-      { rail: "Domestic Fedwire", fee: "0.5% + $20", timing: "Same day",
-        limits: { own: { local: "$1,000,000" }, other: { local: "$100,000" }, otherReview: true } },
-      { rail: "International SWIFT", fee: "0.5% + $25", timing: "1–2 business days",
-        limits: { own: { local: "$1,000,000" }, other: { local: "$100,000" }, otherReview: true } },
+      { rail: "ACH", fee: "0.35% + $1.50", timing: "1–3 business days" },
+      { rail: "Wire", fee: "0.35% + $30", timing: "1–2 business days" },
+      { rail: "SWIFT", fee: "0.35% + $30", timing: "1–3 business days" },
     ],
+    limits: { first: { usd: "$250,000" }, third: { usd: "$10,000" } },
     rails: ["ACH", "Domestic Fedwire", "SWIFT"],
     readyDesc: "Receive USD via ACH, domestic wire (Fedwire), or international SWIFT transfer — all to the same account.",
     requestTitle: "Request your USD account",
@@ -269,10 +264,8 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = €0.88" },
     ],
-    fees: [
-      { rail: "SEPA", fee: "€0.50", timing: "1–2 business days",
-        limits: { own: { local: "€500,000", usd: "$543,000" }, other: { local: "€50,000", usd: "$54,300" }, otherReview: true } },
-    ],
+    fees: [{ rail: "SEPA", fee: "€1.00", timing: "1 business day" }],
+    limits: { first: { usd: "$100,000", local: "€92,000" }, third: { usd: "$10,000", local: "€9,200" } },
     readyDesc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
     readyTiming: "1–2 business days",
     readyTimingTone: "med",
@@ -294,11 +287,10 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Conversion rate", v: "$1 = £0.75" },
     ],
     fees: [
-      { rail: "SEPA", fee: "£0.50 – £1.00", timing: "1–2 business days",
-        limits: { own: { local: "£250,000", usd: "$316,000" }, other: { local: "£50,000", usd: "$63,300" }, otherReview: true } },
-      { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "Under 2 hours",
-        limits: { own: { local: "£250,000", usd: "$316,000" }, other: { local: "£50,000", usd: "$63,300" }, otherReview: true } },
+      { rail: "Faster Payments", fee: "£1.00", timing: "1 hour" },
+      { rail: "SEPA", fee: "£1.00", timing: "1 business day" },
     ],
+    limits: { first: { usd: "$100,000", local: "£79,000" }, third: { usd: "$10,000", local: "£7,900" } },
     readyDesc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     readyBanner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
     requestTitle: "Request your GBP account",
@@ -387,7 +379,7 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy }) {
       {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
       <PanelActions fields={copyableFields} onCopy={onCopy} />
-      <FeeGrid fees={data.fees} onAbout={() => setShowLimits(true)} />
+      <FeeGrid fees={data.fees} limits={data.limits} onAbout={() => setShowLimits(true)} />
       {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
     </div>
   );
@@ -460,4 +452,13 @@ function DepositPage({ onBack, onToast, usdAccountStatus = "ready", ngnIssuance 
   );
 }
 
-window.OBDeposit = { DepositPage };
+// Exported so Settings → Limits reads the same numbers rather than keeping a second copy that
+// drifts. Backend owns these for real; this is the prototype's single source.
+const DEPOSIT_LIMITS = [
+  { ccy: "USD", rails: FIAT_ACCOUNT_DATA.USD.fees, limits: FIAT_ACCOUNT_DATA.USD.limits },
+  { ccy: "EUR", rails: FIAT_ACCOUNT_DATA.EUR.fees, limits: FIAT_ACCOUNT_DATA.EUR.limits },
+  { ccy: "GBP", rails: FIAT_ACCOUNT_DATA.GBP.fees, limits: FIAT_ACCOUNT_DATA.GBP.limits },
+  { ccy: "NGN", rails: NGN_FEES, limits: NGN_LIMITS },
+];
+
+window.OBDeposit = { DepositPage, DEPOSIT_LIMITS };
