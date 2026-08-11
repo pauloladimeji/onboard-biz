@@ -40,8 +40,8 @@ function SettingsBodySkeleton() {
   );
 }
 
-function SettingsScreen({ onToast, apiAccess = "granted" }) {
-  const [active, setActive] = useStateS("profile");
+function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "profile" }) {
+  const [active, setActive] = useStateS(initialSection);
   const [bodyLoading, setBodyLoading] = useStateS(true);
   useEffectS(() => { const t = setTimeout(() => setBodyLoading(false), 700); return () => clearTimeout(t); }, []);
   const switchSection = (id) => { if (id === active) return; setActive(id); setBodyLoading(true); setTimeout(() => setBodyLoading(false), 350); };

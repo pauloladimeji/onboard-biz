@@ -76,7 +76,7 @@ const NGN_LIMITS = {
   ],
 };
 
-function NgnPanel({ issuance = "ready", onCopy }) {
+function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits }) {
   const [state, setState] = useState(issuance);
   const [showLimits, setShowLimits] = useState(false);
   useEffect(() => setState(issuance), [issuance]);
@@ -118,7 +118,7 @@ function NgnPanel({ issuance = "ready", onCopy }) {
       </Banner>
       <FieldGrid fields={fields} onCopy={onCopy} />
       <PanelActions fields={fields} onCopy={onCopy} showPdf={false} />
-      <FeeGrid fees={NGN_FEES} limits={NGN_LIMITS} onAbout={() => setShowLimits(true)} />
+      <FeeGrid fees={NGN_FEES} limits={NGN_LIMITS} onAbout={() => setShowLimits(true)} onSeeAll={onSeeAllLimits} />
       {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
     </div>
   );
@@ -243,9 +243,9 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "1801 Main Street, Kansas City, MO 64108, USA" },
     ],
     fees: [
-      { rail: "ACH", fee: "0.35% + $1.50", timing: "1–3 business days" },
-      { rail: "Wire", fee: "0.35% + $30", timing: "1–2 business days" },
-      { rail: "SWIFT", fee: "0.35% + $30", timing: "1–3 business days" },
+      { rail: "ACH", fee: "0.40% + $1.50", timing: "1–3 business days" },
+      { rail: "Wire", fee: "0.40% + $30", timing: "1–2 business days" },
+      { rail: "SWIFT", fee: "0.40% + $30", timing: "1–3 business days" },
     ],
     limits: { first: { usd: "$250,000" }, third: { usd: "$10,000" } },
     rails: ["ACH", "Domestic Fedwire", "SWIFT"],
@@ -265,7 +265,7 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Conversion rate", v: "$1 = €0.88" },
     ],
     fees: [{ rail: "SEPA", fee: "€1.00", timing: "1 business day" }],
-    limits: { first: { usd: "$100,000", local: "€92,000" }, third: { usd: "$10,000", local: "€9,200" } },
+    limits: { first: { usd: "$100,000", local: "€88,000" }, third: { usd: "$10,000", local: "€8,800" } },
     readyDesc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
     readyTiming: "1–2 business days",
     readyTimingTone: "med",
@@ -290,7 +290,7 @@ const FIAT_ACCOUNT_DATA = {
       { rail: "Faster Payments", fee: "£1.00", timing: "1 hour" },
       { rail: "SEPA", fee: "£1.00", timing: "1 business day" },
     ],
-    limits: { first: { usd: "$100,000", local: "£79,000" }, third: { usd: "$10,000", local: "£7,900" } },
+    limits: { first: { usd: "$100,000", local: "£75,000" }, third: { usd: "$10,000", local: "£7,500" } },
     readyDesc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     readyBanner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
     requestTitle: "Request your GBP account",
@@ -310,7 +310,7 @@ function WhitelistRequestPanel({ ccy }) {
   );
 }
 
-function FiatAccountPanel({ ccy, state: initialState, onCopy }) {
+function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits }) {
   const data = FIAT_ACCOUNT_DATA[ccy];
   const [state, setState] = useState(initialState);
   const [showLimits, setShowLimits] = useState(false);
@@ -379,14 +379,14 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy }) {
       {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
       <PanelActions fields={copyableFields} onCopy={onCopy} />
-      <FeeGrid fees={data.fees} limits={data.limits} onAbout={() => setShowLimits(true)} />
+      <FeeGrid fees={data.fees} limits={data.limits} onAbout={() => setShowLimits(true)} onSeeAll={onSeeAllLimits} />
       {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
     </div>
   );
 }
 
 // ---------- Deposit page ----------
-function DepositPage({ onBack, onToast, usdAccountStatus = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
+function DepositPage({ onBack, onToast, onSeeAllLimits, usdAccountStatus = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
   const tabs = [
     { id: "ngn", name: "NGN", full: "Nigerian Naira", method: "Bank transfer", flag: "ng", type: "ngn" },
     { id: "usdc", name: "USDC", full: "USD Coin", method: "Stablecoin", coin: "USDC", type: "stablecoin" },
@@ -442,10 +442,10 @@ function DepositPage({ onBack, onToast, usdAccountStatus = "ready", ngnIssuance 
             )}
           </div>
 
-          {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} />}
+          {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} />}
           {activeTab.type === "stablecoin" && <StablecoinPanel coin={activeTab.coin} issuance={stablecoinIssuance} onCopy={handleCopy} />}
-          {activeTab.type === "usd" && <FiatAccountPanel ccy="USD" state={usdAccountStatus} onCopy={handleCopy} />}
-          {activeTab.type === "fiat-convert" && <FiatAccountPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} />}
+          {activeTab.type === "usd" && <FiatAccountPanel ccy="USD" state={usdAccountStatus} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} />}
+          {activeTab.type === "fiat-convert" && <FiatAccountPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} />}
         </div>
       )}
     </Page>

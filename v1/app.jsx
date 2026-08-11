@@ -383,6 +383,7 @@ function App() {
   const [withdrawalHold, setWithdrawalHold] = useState(null); // end-of-hold timestamp (ms), or null
 
   const [route, setRoute] = useState("dashboard");
+  const [settingsSection, setSettingsSection] = useState("profile");
   const [dataState, setDataState] = useState("full");
   const [accountStatus, setAccountStatus] = useState("active");
   const [usdAccountStatus, setUsdAccountStatus] = useState("ready");
@@ -562,6 +563,7 @@ function App() {
       <DepositPage
         onBack={() => setRoute("dashboard")}
         onToast={setToast}
+        onSeeAllLimits={() => { setSettingsSection("limits"); setRoute("settings"); }}
         usdAccountStatus={usdAccountStatus}
         ngnIssuance={ngnIssuance}
         stablecoinIssuance={stablecoinIssuance}
@@ -617,7 +619,7 @@ function App() {
   } else if (route === "cards") {
     screen = <CardsScreen onToast={setToast} cardsAccess={cardsAccess} />;
   } else if (route === "settings") {
-    screen = <SettingsScreen onToast={setToast} />;
+    screen = <SettingsScreen key={settingsSection} onToast={setToast} initialSection={settingsSection} />;
   } else if (route === "developer") {
     screen = (
       <Page>
@@ -633,7 +635,7 @@ function App() {
     screen = <PlaceholderScreen title={route} />;
   }
 
-  const navigate = (r) => { setRoute(r); setOpenTx(null); };
+  const navigate = (r) => { if (r === "settings") setSettingsSection("profile"); setRoute(r); setOpenTx(null); };
 
   const holdActive = withdrawalHold && Date.now() < withdrawalHold;
   const holdBanner = holdActive ? (

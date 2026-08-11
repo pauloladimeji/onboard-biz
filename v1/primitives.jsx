@@ -369,7 +369,7 @@ function LimitValue({ v }) {
 
 // Limits sit at the currency level, not the rail level — they're identical across a currency's
 // rails, so repeating them per card was pure noise. Rails carry fee + timeline only.
-function FeeGrid({ fees, limits, onAbout }) {
+function FeeGrid({ fees, limits, onAbout, onSeeAll }) {
   const isDesktop = useIsDesktop();
   return (
     <div className="fee-section">
@@ -398,7 +398,12 @@ function FeeGrid({ fees, limits, onAbout }) {
         </div>
       )}
 
-      {onAbout && <a className="fee-about" onClick={onAbout}>About deposit limits <Icon.arrowRight /></a>}
+      {(onAbout || onSeeAll) && (
+        <div className="fee-links">
+          {onAbout && <a className="fee-about" onClick={onAbout}>About deposit limits <Icon.arrowRight /></a>}
+          {onSeeAll && <a className="fee-about" onClick={onSeeAll}>See all limits <Icon.arrowRight /></a>}
+        </div>
+      )}
     </div>
   );
 }
