@@ -3,7 +3,7 @@ const { useState, useEffect } = React;
 const Icon = window.OBIcon;
 const NetworkIcon = window.OBNetworkIcon;
 const { STABLECOIN_CHAINS } = window.OBData;
-const { Page, Sheet, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel } = window.OBPrimitives;
+const { Page, Sheet, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel, can, NoAccessNote } = window.OBPrimitives;
 const Combobox = window.OBCombobox;
 
 function CoinBadge({ coin, size = 26 }) {
@@ -32,7 +32,7 @@ function PanelActions({ fields, onCopy, showPdf = true }) {
 // The detail behind the two limit rows on each rail card. Lives in a Sheet rather than on the
 // page: four lines per rail stay scannable, and anyone who actually needs the rules gets them
 // in one tap. Same pattern as the Cards fee schedule.
-function DepositLimitsSheet({ onClose }) {
+function DepositLimitsSheet({ onClose, feeNote }) {
   const row = (title, body) => (
     <div style={{ marginBottom: 18 }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", marginBottom: 4 }}>{title}</div>
@@ -40,7 +40,8 @@ function DepositLimitsSheet({ onClose }) {
     </div>
   );
   return (
-    <Sheet open onClose={onClose} title="About deposit limits">
+    <Sheet open onClose={onClose} title={feeNote ? "About deposit fees and limits" : "About deposit limits"}>
+      {feeNote && row(feeNote.title, feeNote.body)}
       {row("From your own account",
         "A bank account in your registered business name. Higher limits apply.")}
       {row("From anyone else",
@@ -76,7 +77,7 @@ const NGN_LIMITS = {
   ],
 };
 
-function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits }) {
+function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits, role = "admin" }) {
   const [state, setState] = useState(issuance);
   const [showLimits, setShowLimits] = useState(false);
   useEffect(() => setState(issuance), [issuance]);
@@ -88,7 +89,9 @@ function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits }) {
       <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.plus />}
         title="Generate NGN account details"
         desc="We'll create a dedicated Naira virtual account for your business. NGN deposits are converted to USD at the live rate when they clear.">
-        <button className="btn" onClick={generate}>Generate NGN account</button>
+        {can(role, "provision")
+          ? <button className="btn" onClick={generate}>Generate NGN account</button>
+          : <NoAccessNote>Only operators and admins can open new accounts.</NoAccessNote>}
       </StatusPanel>
     );
   }
@@ -125,7 +128,7 @@ function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits }) {
 }
 
 // ---------- Stablecoins ----------
-function StablecoinPanel({ coin, issuance = "ready", onCopy }) {
+function StablecoinPanel({ coin, issuance = "ready", onCopy, role = "admin" }) {
   const chains = STABLECOIN_CHAINS[coin] || [];
   const [activeChain, setActiveChain] = useState(0);
   const chain = chains[activeChain];
@@ -140,7 +143,9 @@ function StablecoinPanel({ coin, issuance = "ready", onCopy }) {
       <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.plus />}
         title={`Generate ${coin} deposit address`}
         desc={`We'll provision a dedicated ${coin} wallet address for your business. Deposits are credited as USD at a 1:1 rate.`}>
-        <button className="btn" onClick={generate}>Generate {coin} address</button>
+        {can(role, "provision")
+          ? <button className="btn" onClick={generate}>Generate {coin} address</button>
+          : <NoAccessNote>Only operators and admins can open new accounts.</NoAccessNote>}
       </StatusPanel>
     );
   }
@@ -264,7 +269,7 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
       { k: "Conversion rate", v: "$1 = €0.88" },
     ],
-    fees: [{ rail: "SEPA", fee: "€1.00", timing: "1 business day" }],
+    fees: [{ rail: "SEPA", fee: "€0.50", timing: "1 business day" }],
     limits: { first: { usd: "$100,000", local: "€88,000" }, third: { usd: "$10,000", local: "€8,800" } },
     readyDesc: "Send EUR from any SEPA-connected bank to the details below. Your deposit is converted to USD at the live rate when received.",
     readyTiming: "1–2 business days",
@@ -287,11 +292,17 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Conversion rate", v: "$1 = £0.75" },
     ],
     fees: [
-      { rail: "Faster Payments", fee: "£1.00", timing: "1 hour" },
-      { rail: "SEPA", fee: "£1.00", timing: "1 business day" },
+      // Two fees under one rail name: plain domestic FPS is £0.50, cross-scheme inbound is £1.00
+      // per the Clear Junction agreement. The backend flags cross-scheme separately, so the exact
+      // fee lands on the transaction — the card can only show the range plus what drives it.
+      { rail: "Faster Payments", fee: "£0.50 – £1.00", timing: "1 hour", note: "£1.00 for cross-scheme payments" },
     ],
+    feeNote: {
+      title: "Why the Faster Payments fee is a range",
+      body: "Most Faster Payments deposits cost £0.50. Payments that reach us through another scheme (cross-scheme) cost £1.00. You'll see the exact fee charged on the transaction once the deposit lands.",
+    },
     limits: { first: { usd: "$100,000", local: "£75,000" }, third: { usd: "$10,000", local: "£7,500" } },
-    readyDesc: "Send GBP via SEPA or Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
+    readyDesc: "Send GBP via Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     readyBanner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
     requestTitle: "Request your GBP account",
     requestDesc: "We'll allocate a dedicated GBP account number & sort code for your business. This is reviewed by our banking partner and typically takes 1–3 business days.",
@@ -310,7 +321,7 @@ function WhitelistRequestPanel({ ccy }) {
   );
 }
 
-function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits }) {
+function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits, role = "admin" }) {
   const data = FIAT_ACCOUNT_DATA[ccy];
   const [state, setState] = useState(initialState);
   const [showLimits, setShowLimits] = useState(false);
@@ -330,7 +341,9 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits }) 
             {data.rails.map(r => <span key={r} className="usd-rail-badge">{r}</span>)}
           </div>
         )}
-        <button className="btn btn-lg" onClick={submit}>Begin request</button>
+        {can(role, "provision")
+          ? <button className="btn btn-lg" onClick={submit}>Begin request</button>
+          : <NoAccessNote>Only operators and admins can request new accounts.</NoAccessNote>}
       </StatusPanel>
     );
   }
@@ -379,14 +392,14 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits }) 
       {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
       <PanelActions fields={copyableFields} onCopy={onCopy} />
-      <FeeGrid fees={data.fees} limits={data.limits} onAbout={() => setShowLimits(true)} onSeeAll={onSeeAllLimits} />
-      {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
+      <FeeGrid fees={data.fees} limits={data.limits} aboutLabel={data.feeNote ? "About fees and limits" : "About deposit limits"} onAbout={() => setShowLimits(true)} onSeeAll={onSeeAllLimits} />
+      {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} feeNote={data.feeNote} />}
     </div>
   );
 }
 
 // ---------- Deposit page ----------
-function DepositPage({ onBack, onToast, onSeeAllLimits, usdAccountStatus = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
+function DepositPage({ onBack, onToast, onSeeAllLimits, role = "admin", usdAccountStatus = "ready", ngnIssuance = "ready", stablecoinIssuance = "ready", accountSuspended = false, fiatConvert = "ready" }) {
   const tabs = [
     { id: "ngn", name: "NGN", full: "Nigerian Naira", method: "Bank transfer", flag: "ng", type: "ngn" },
     { id: "usdc", name: "USDC", full: "USD Coin", method: "Stablecoin", coin: "USDC", type: "stablecoin" },
@@ -442,10 +455,10 @@ function DepositPage({ onBack, onToast, onSeeAllLimits, usdAccountStatus = "read
             )}
           </div>
 
-          {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} />}
-          {activeTab.type === "stablecoin" && <StablecoinPanel coin={activeTab.coin} issuance={stablecoinIssuance} onCopy={handleCopy} />}
-          {activeTab.type === "usd" && <FiatAccountPanel ccy="USD" state={usdAccountStatus} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} />}
-          {activeTab.type === "fiat-convert" && <FiatAccountPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} />}
+          {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
+          {activeTab.type === "stablecoin" && <StablecoinPanel coin={activeTab.coin} issuance={stablecoinIssuance} onCopy={handleCopy} role={role} />}
+          {activeTab.type === "usd" && <FiatAccountPanel ccy="USD" state={usdAccountStatus} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
+          {activeTab.type === "fiat-convert" && <FiatAccountPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
         </div>
       )}
     </Page>
@@ -455,10 +468,10 @@ function DepositPage({ onBack, onToast, onSeeAllLimits, usdAccountStatus = "read
 // Exported so Settings → Limits reads the same numbers rather than keeping a second copy that
 // drifts. Backend owns these for real; this is the prototype's single source.
 const DEPOSIT_LIMITS = [
-  { ccy: "USD", rails: FIAT_ACCOUNT_DATA.USD.fees, limits: FIAT_ACCOUNT_DATA.USD.limits },
-  { ccy: "EUR", rails: FIAT_ACCOUNT_DATA.EUR.fees, limits: FIAT_ACCOUNT_DATA.EUR.limits },
-  { ccy: "GBP", rails: FIAT_ACCOUNT_DATA.GBP.fees, limits: FIAT_ACCOUNT_DATA.GBP.limits },
-  { ccy: "NGN", rails: NGN_FEES, limits: NGN_LIMITS },
+  { ccy: "USD", limits: FIAT_ACCOUNT_DATA.USD.limits },
+  { ccy: "EUR", limits: FIAT_ACCOUNT_DATA.EUR.limits },
+  { ccy: "GBP", limits: FIAT_ACCOUNT_DATA.GBP.limits },
+  { ccy: "NGN", limits: NGN_LIMITS },
 ];
 
 window.OBDeposit = { DepositPage, DEPOSIT_LIMITS };

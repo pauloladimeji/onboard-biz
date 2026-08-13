@@ -95,6 +95,52 @@ function Flag({ cc, size = 22 }) {
   return <div className="ccy-flag" style={{ width: size, height: size, backgroundImage: `url(../v0/design-system/assets/flags/${cc}.svg)` }} />;
 }
 
+// ---------- Roles / ACL ----------
+// Four fixed roles against the business's single main account (see ACL-SPEC.md). Deliberately
+// coarse: no per-account scoping, no approval engine. `recipients` gates the whole screen rather
+// than just add/edit — transactions already carry the counterparty, so a read-only directory of
+// every payee earns nothing for the seats that can't pay them.
+const ROLES = [
+  { id: "viewer",    label: "Viewer",    blurb: "Accounts and transactions, read-only" },
+  { id: "developer", label: "Developer", blurb: "Viewer access plus API keys" },
+  { id: "operator",  label: "Operator",  blurb: "Recipients and payments, plus API keys" },
+  { id: "admin",     label: "Admin",     blurb: "Everything, including the team" },
+];
+const ROLE_LABEL = ROLES.reduce((m, r) => { m[r.id] = r.label; return m; }, {});
+const CAN = {
+  //           pay    recipients  apiKeys  team   provision
+  viewer:    { pay: false, recipients: false, apiKeys: false, team: false, provision: false },
+  developer: { pay: false, recipients: false, apiKeys: true,  team: false, provision: false },
+  operator:  { pay: true,  recipients: true,  apiKeys: true,  team: false, provision: true  },
+  admin:     { pay: true,  recipients: true,  apiKeys: true,  team: true,  provision: true  },
+};
+function can(role, action) {
+  const set = CAN[role] || CAN.admin;
+  return !!set[action];
+}
+
+// Landing state for a gated route reached by back button, bookmark, or a stale link. Never a
+// blank screen — say which role is missing and who can grant it.
+function NoAccess({ what = "this" }) {
+  return (
+    <Page>
+      <div className="card">
+        <div className="noaccess">
+          <div className="noaccess-ic"><Icon.lock /></div>
+          <div className="noaccess-t">You don't have access to {what}</div>
+          <div className="noaccess-s">Your role doesn't include this. Ask an admin on your team if you need it.</div>
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+// Inline replacement for an action a role can't take, used where the button's absence would
+// read as a bug rather than a restriction (a list with nothing to add to it).
+function NoAccessNote({ children }) {
+  return <div className="noaccess-note"><Icon.lock />{children}</div>;
+}
+
 function Page({ children }) {
   const isDesktop = useIsDesktop();
   return <div className={`page ${isDesktop ? "" : "page-mobile"}`}>{children}</div>;
@@ -369,7 +415,7 @@ function LimitValue({ v }) {
 
 // Limits sit at the currency level, not the rail level — they're identical across a currency's
 // rails, so repeating them per card was pure noise. Rails carry fee + timeline only.
-function FeeGrid({ fees, limits, onAbout, onSeeAll }) {
+function FeeGrid({ fees, limits, onAbout, onSeeAll, aboutLabel = "About deposit limits" }) {
   const isDesktop = useIsDesktop();
   return (
     <div className="fee-section">
@@ -380,6 +426,7 @@ function FeeGrid({ fees, limits, onAbout, onSeeAll }) {
             <div className="fee-rail">{r.rail}</div>
             <div className="fee-line">Fee: <span>{r.fee}</span></div>
             <div className="fee-line">Arrives: <span>{r.timing}</span></div>
+            {r.note && <div className="fee-note"><Icon.info /><span>{r.note}</span></div>}
           </div>
         ))}
       </div>
@@ -400,7 +447,7 @@ function FeeGrid({ fees, limits, onAbout, onSeeAll }) {
 
       {(onAbout || onSeeAll) && (
         <div className="fee-links">
-          {onAbout && <a className="fee-about" onClick={onAbout}>About deposit limits <Icon.arrowRight /></a>}
+          {onAbout && <a className="fee-about" onClick={onAbout}>{aboutLabel} <Icon.arrowRight /></a>}
           {onSeeAll && <a className="fee-about" onClick={onSeeAll}>See all limits <Icon.arrowRight /></a>}
         </div>
       )}
@@ -512,4 +559,5 @@ window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
   TALLY_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
+  ROLES, ROLE_LABEL, can, NoAccess, NoAccessNote,
 };

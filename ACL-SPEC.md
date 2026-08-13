@@ -1,7 +1,7 @@
 # Access Control (ACL) — Spec
 
-Status: **planning** — no implementation yet. Reflects the decisions from the
-Paul / Nonami call (Aug 11), which simplified the earlier draft.
+Status: **planning** — no implementation yet; prototyped in `v1/` for review. Reflects the
+decisions from the Paul / Nonami call (Aug 11), plus what the prototype settled (marked below).
 
 ## Goal
 
@@ -35,8 +35,9 @@ before letting businesses move large volume through the app.
 | | Viewer | Developer | Operator | Admin |
 |---|:---:|:---:|:---:|:---:|
 | View transactions / accounts | ✓ | ✓ | ✓ | ✓ |
-| Manage recipients (add / edit) | — | — | ✓ | ✓ |
+| Recipients (view **and** manage) | — | — | ✓ | ✓ |
 | Initiate **& complete** payments | — | — | ✓ | ✓ |
+| Open a new currency account | — | — | ✓ | ✓ |
 | Generate / manage API keys | — | ✓ | ✓ | ✓ |
 | Manage team (invite / edit / remove) | — | — | — | ✓ |
 
@@ -48,6 +49,17 @@ before letting businesses move large volume through the app.
   payments, and generate API keys.
 - **Admin** — everything an Operator/Developer can do, plus manage the team. The
   superset.
+
+> **Changed from v2 — recipients.** The earlier draft kept the recipients *list* readable for
+> Viewer and Developer and hid only add/edit. Dropped: transactions already carry the
+> counterparty on every row and in the detail view, so a read-only directory only adds payees
+> who've never been paid — not worth a gated screen, and it hands anyone on a Viewer seat the
+> full supplier book. Reverting is one line if compliance or finance wants the list back.
+
+> **Deposit was not covered by v2.** Resolved as: viewing account details (numbers, fees,
+> limits) is open to every role, since it's read-only and it's how a Viewer reconciles. Opening
+> a *new* currency account — the NGN/stablecoin generate step and the EUR/GBP/USD request step —
+> is Operator/Admin.
 
 ## Payments — no approval split (v1)
 
@@ -81,21 +93,47 @@ back to a user.
 **No net-new flows.** ACL is conditional rendering / hiding of existing screens by role,
 not new screens.
 
-- **Payments (initiate / complete)** — hidden for Viewer and Developer; unchanged for
-  Operator / Admin.
-- **Recipients** — add / edit hidden for Viewer and Developer; list stays read-only for
-  them.
-- **API keys** — screen visible to Operator / Developer / Admin, hidden from Viewer;
-  warning shown on generation.
-- **Team** — Admin only. Lives as a tab inside **Settings** (which already exists).
-  Invite / edit / remove members, assign role.
-- **Role visibility** — a small indication of the current user's role (e.g. in the
-  profile menu) so people understand why an action is or isn't available.
-- **Permission / empty states** — every gated action needs a defined "you can't do
-  this" state (a Viewer landing on a list with no create button, etc.).
+Three rules, applied in this order:
 
-The one genuinely new path is moving invites in-app — **invite → accept → account
-setup** — versus today's back-office step. Worth scoping within the sprint.
+1. **Nav → hide.** A role that can't reach a screen isn't shown a door to it. Send,
+   Recipients and Developer disappear from the sidebar / bottom tabs accordingly.
+2. **Route → guard state.** Back button, bookmark or stale link into a hidden route lands
+   on a "you don't have access to X" panel, never a blank screen.
+3. **Action inside a reachable screen → hide the button.** Disabled-with-tooltip invites
+   hover-hunting for a permission the user can't grant themselves. Where the button's
+   absence would read as a bug rather than a restriction, replace it with one grey line
+   ("Only operators and admins can open new accounts").
+
+- **Payments** — hidden for Viewer and Developer, including the dashboard CTA.
+- **Recipients** — screen hidden entirely for Viewer and Developer (see above).
+- **Deposit** — details readable by all; provisioning actions Operator/Admin.
+- **API keys** — visible to Operator / Developer / Admin, hidden from Viewer;
+  warning shown on generation.
+- **Team** — Admin only, a section inside **Settings**. Invite / edit role / remove /
+  resend. Two guards belong in the UI as well as the API, or the error only surfaces
+  after the click: **you can't act on your own row**, and **the last active admin can't
+  be demoted or removed**.
+- **Granting a money-capable role** — selecting Developer or Admin in the invite or
+  change-role sheet shows an inline warning. Developer is the non-obvious one: they can't
+  send a payment in the UI at all, but an unscoped key moves money, so the seat is much
+  heavier than "read-only plus keys".
+- **Role visibility** — a read-only row in Settings › Business profile, next to name and
+  email. Deliberately *not* a persistent chip in the header: it's a check-once fact, not
+  standing chrome.
+
+### Invites
+
+The one genuinely new path — in-app, versus today's back-office step.
+
+- **Admin sets first name, last name, email and role.** The invitee gets no profile step;
+  they set a password, then 2FA, then land on Home. Nothing else is editable by them.
+- **Invite lifetime is the backend's** — currently 3 days. The frontend must read it off
+  the invite and render it, never hardcode a number, or the copy drifts the day it's tuned.
+- **Resend** is available on any pending or dead invite from the Team list. It's the only
+  fix for a dead invite, since the invitee has no account to authenticate a self-serve one.
+- **One dead-invite state**, whatever killed it — expired, withdrawn, or already accepted.
+  Same screen, same exits (sign in, or ask an admin). Distinguishing them would let anyone
+  holding a stale link probe whether an address already has an account.
 
 ## Implementation notes (from the call)
 

@@ -636,6 +636,91 @@ function TotpSetupScreen({ onSubmit, onSkip, email }) {
   );
 }
 
+// =====================================================
+// Team invite — accept
+// The one net-new path in the ACL work: an admin invites from Settings > Team, the invitee lands
+// here from an email link. The admin has already set their name, email and role, and there's no
+// profile to edit yet — so the only thing left to collect is a password, then 2FA.
+// =====================================================
+
+// Stands in for what the invite token resolves to server-side.
+const INVITE = {
+  business: "Acme Trading Co",
+  name: "Ada Obi",
+  email: "ada@acme.co",
+};
+
+function InviteAcceptScreen({ onSubmit }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+  const mismatch = confirm && password !== confirm;
+  const valid = password.length >= 8 && password === confirm;
+
+  const submit = (e) => { e.preventDefault(); if (valid) onSubmit(); };
+
+  return (
+    <AuthShell>
+      <h1>Join {INVITE.business}</h1>
+      <p className="auth-lede">Set a password to finish setting up your account.</p>
+
+      <div className="invite-card">
+        <div className="invite-row"><span className="k">Name</span><span className="v">{INVITE.name}</span></div>
+        <div className="invite-row"><span className="k">Email</span><span className="v">{INVITE.email}</span></div>
+      </div>
+
+      <form onSubmit={submit}>
+        <div className="field">
+          <label className="lbl" style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>Password</span>
+            <span style={{ fontSize: 11.5, color: "var(--gray-500)", fontWeight: 400 }}>min 8 characters</span>
+          </label>
+          <div style={{ position: "relative" }}>
+            <input className="inp" type={show ? "text" : "password"} placeholder="••••••••" autoFocus
+                   value={password} onChange={(e) => setPassword(e.target.value)} style={{ paddingRight: 42 }} />
+            <button type="button" onClick={() => setShow(!show)}
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--gray-500)", padding: 4 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="field">
+          <label className="lbl">Confirm password</label>
+          <input className="inp" type={show ? "text" : "password"} placeholder="••••••••"
+                 value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                 style={{ borderColor: mismatch ? "var(--danger-700)" : "" }} />
+          {mismatch && <div style={{ fontSize: 12, color: "var(--danger-700)", marginTop: 5 }}>Passwords don&rsquo;t match</div>}
+        </div>
+
+        <button className="btn btn-lg btn-block btn-dark" type="submit" disabled={!valid}>Continue</button>
+      </form>
+
+      <p className="auth-lede" style={{ margin: "14px 0 0", fontSize: 12.5 }}>
+        Next you'll set up two-factor authentication. It's required for everyone on the team.
+      </p>
+      <LegalConsent action="joining" />
+    </AuthShell>
+  );
+}
+
+// One dead-invite state, whatever killed it — expired, withdrawn, or already accepted. The
+// remedy is the same in every case, and distinguishing them would let anyone holding a stale
+// link probe whether an address already has an account.
+function InviteInvalidScreen({ onSignIn }) {
+  return (
+    <AuthShell>
+      <div className="auth-status-icon danger"><Icon.alert /></div>
+      <h1>This invite is no longer valid</h1>
+      <p className="auth-lede">
+        It may have expired, been withdrawn, or already been used. If you've already set up your
+        account, sign in below. Otherwise ask an admin on your team to send you a new invite.
+      </p>
+      <button className="btn btn-lg btn-block btn-dark" onClick={onSignIn}>Go to sign in</button>
+    </AuthShell>
+  );
+}
+
 window.OBAuth = {
   ApplyForAccessScreen,
   SignInScreen,
@@ -647,4 +732,6 @@ window.OBAuth = {
   TotpRecoveryStartScreen,
   TotpRecoveryInvalidScreen,
   TotpRecoveryDoneScreen,
+  InviteAcceptScreen,
+  InviteInvalidScreen,
 };

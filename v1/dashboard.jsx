@@ -1,10 +1,10 @@
 /* global React */
 const Icon = window.OBIcon;
 const { TXNS } = window.OBData;
-const { CcyFlag, Page, Records } = window.OBPrimitives;
+const { CcyFlag, Page, Records, can } = window.OBPrimitives;
 const { SubAccountsHomeSection } = window.OBSubAccounts;
 
-function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, subAccountsOn = false, onOpenSubAccounts }) {
+function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, subAccountsOn = false, onOpenSubAccounts, role = "admin" }) {
   const isEmpty = dataState === "empty";
   const balance = isEmpty ? "0.00" : "84,231.50";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
@@ -32,7 +32,7 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
         </div>
         <div className="home-actions">
           <button className="btn btn-lg" onClick={onAddMoney}><Icon.plus /> Deposit</button>
-          <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}><Icon.paperplane /> Send money</button>
+          {can(role, "pay") && <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}><Icon.paperplane /> Send money</button>}
         </div>
         <div className="home-divider" />
         <div className="home-rails-note">Fund with USD, GBP, EUR, NGN, or stablecoins — all deposits are held as USD</div>

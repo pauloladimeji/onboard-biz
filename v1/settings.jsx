@@ -2,13 +2,28 @@
 const { useState: useStateS, useEffect: useEffectS } = React;
 const SIcon = window.OBIcon;
 const { BUSINESS_PROFILE } = window.OBData;
-const { Page, Sheet } = window.OBPrimitives;
+const { Page, Sheet, ROLES, ROLE_LABEL, can } = window.OBPrimitives;
 const { WaIcon } = window.OBShell;
 
 const SECTIONS = [
   { id: "profile", label: "Business profile", icon: "bank", blurb: "Business name, contact, verification" },
   { id: "limits", label: "Limits", icon: "swap", blurb: "Deposit and withdrawal limits" },
+  { id: "team", label: "Team", icon: "people", blurb: "Members and their roles", needs: "team" },
   { id: "security", label: "Security", icon: "shield", blurb: "Authentication and password" },
+];
+
+// Mock roster. "you" marks the signed-in member — an admin can't demote or remove themselves,
+// and the last admin can't be demoted or removed by anyone, or the business locks itself out
+// of team management with no in-app way back.
+// Backend owns the invite lifetime; the real app should read it off the invite rather than
+// assume it here, or the copy silently drifts the day someone tunes it.
+const INVITE_EXPIRY_DAYS = 3;
+const TEAM_MEMBERS = [
+  { id: "m1", name: "Jide Nwosu", email: "jide@acme.co", role: "admin", you: true, status: "active" },
+  { id: "m2", name: "Ada Obi", email: "ada@acme.co", role: "operator", status: "active" },
+  { id: "m3", name: "Tunde Kalu", email: "tunde@acme.co", role: "developer", status: "invited", invitedAgo: "2 days ago" },
+  { id: "m5", name: "Bola Adeyemi", email: "bola@acme.co", role: "operator", status: "expired", invitedAgo: "5 days ago" },
+  { id: "m4", name: "Ngozi Eze", email: "ngozi@acme.co", role: "viewer", status: "active" },
 ];
 const SUPPORT_EMAIL = "support@onboard.xyz";
 const ACCOUNT_MANAGER_WA = "https://wa.me/14313404484";
@@ -40,8 +55,9 @@ function SettingsBodySkeleton() {
   );
 }
 
-function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "profile" }) {
-  const [active, setActive] = useStateS(initialSection);
+function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "profile", role = "admin" }) {
+  const sections = SECTIONS.filter(s => !s.needs || can(role, s.needs));
+  const [active, setActive] = useStateS(sections.some(s => s.id === initialSection) ? initialSection : "profile");
   const [bodyLoading, setBodyLoading] = useStateS(true);
   useEffectS(() => { const t = setTimeout(() => setBodyLoading(false), 700); return () => clearTimeout(t); }, []);
   const switchSection = (id) => { if (id === active) return; setActive(id); setBodyLoading(true); setTimeout(() => setBodyLoading(false), 350); };
@@ -54,7 +70,7 @@ function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "prof
 
       <div className="settings-shell">
         <nav className="settings-rail" aria-label="Settings sections">
-          {SECTIONS.map((s) => {
+          {sections.map((s) => {
             const Ic = SIcon[s.icon] || SIcon.cog;
             return (
               <button key={s.id} className={`settings-rail-item ${active === s.id ? "on" : ""}`} onClick={() => switchSection(s.id)}>
@@ -68,8 +84,9 @@ function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "prof
         <div className="settings-body">
           {bodyLoading ? <SettingsBodySkeleton /> : (
             <>
-              {active === "profile" && <ProfileSection onToast={onToast} />}
+              {active === "profile" && <ProfileSection onToast={onToast} role={role} />}
               {active === "limits" && <LimitsSection />}
+              {active === "team" && can(role, "team") && <TeamSection onToast={onToast} />}
               {active === "security" && <SecuritySection onToast={onToast} />}
             </>
           )}
@@ -79,7 +96,7 @@ function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "prof
   );
 }
 
-function ProfileSection({ onToast }) {
+function ProfileSection({ onToast, role = "admin" }) {
   const p = BUSINESS_PROFILE;
   const supportNote = (
     <div className="set-support-note">
@@ -122,6 +139,8 @@ function ProfileSection({ onToast }) {
         <div className="set-list">
           <ReadOnlyRow label="Name" value={p.primaryContact.name} />
           <ReadOnlyRow label="Email" value={p.primaryContact.email} />
+          <ReadOnlyRow label="Your role" value={ROLE_LABEL[role]}
+            sub={`${(ROLES.find(r => r.id === role) || {}).blurb}. Only an admin can change this.`} />
         </div>
       </div>
 
@@ -232,6 +251,177 @@ function RequestLimitSheet({ kind, onClose }) {
         <WaIcon style={{ width: 16, height: 16 }} />
         Message your account team
       </a>
+    </Sheet>
+  );
+}
+
+function TeamSection({ onToast }) {
+  const [members, setMembers] = useStateS(TEAM_MEMBERS);
+  const [inviting, setInviting] = useStateS(false);
+  const [editing, setEditing] = useStateS(null);   // member being re-roled
+  const [removing, setRemoving] = useStateS(null);
+
+  const adminCount = members.filter(m => m.role === "admin" && m.status === "active").length;
+  // Guard in the UI, not just the API: a demote/remove that only fails server-side surfaces the
+  // problem after the click, which is exactly when it's most confusing.
+  const locked = (m) => m.you || (m.role === "admin" && adminCount < 2);
+
+  const changeRole = (id, role) => {
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, role } : m));
+    setEditing(null);
+    onToast("Role updated");
+  };
+  const remove = (m) => {
+    setMembers(prev => prev.filter(x => x.id !== m.id));
+    setRemoving(null);
+    onToast(`${m.name} removed`);
+  };
+  const resend = (m) => {
+    setMembers(prev => prev.map(x => x.id === m.id ? { ...x, status: "invited", invitedAgo: "just now" } : x));
+    onToast(`Invite resent to ${m.email}`);
+  };
+  // The admin sets the name here — the invitee never gets a profile step, only password + 2FA.
+  const invite = (name, email, role) => {
+    setMembers(prev => [...prev, {
+      id: `m${Date.now()}`, name, email, role,
+      status: "invited", invitedAgo: "just now",
+    }]);
+    setInviting(false);
+    onToast("Invite sent");
+  };
+
+  return (
+    <>
+      <div className="set-card">
+        <div className="set-card-head">
+          <div>
+            <h2 className="set-card-title">Team</h2>
+            <p className="set-card-sub">Who can access this business, and what they can do.</p>
+          </div>
+          <button className="btn btn-soft btn-sm" onClick={() => setInviting(true)}><SIcon.plus /> Invite member</button>
+        </div>
+
+        <div className="team-list">
+          {members.map(m => (
+            <div key={m.id} className="team-row">
+              <div className="team-ava">{m.name.split(" ").map(w => w[0]).slice(0, 2).join("")}</div>
+              <div className="team-meta">
+                <div className="t">{m.name}{m.you && <span className="team-you">You</span>}</div>
+                <div className="s">{m.email}</div>
+              </div>
+              <div className="team-role">
+                <span className="team-role-lbl">{ROLE_LABEL[m.role]}</span>
+                {m.status === "invited" && <span className="team-pending">Invited · {m.invitedAgo}</span>}
+                {m.status === "expired" && <span className="team-pending expired">Invite expired</span>}
+              </div>
+              {locked(m) ? <div className="team-actions-empty" /> : (
+                <div className="team-actions">
+                  {m.status !== "active" && (
+                    <button className="set-row-edit" title="Resend invite" onClick={() => resend(m)}><SIcon.refresh style={{ width: 13, height: 13 }} /></button>
+                  )}
+                  <button className="set-row-edit" title="Change role" onClick={() => setEditing(m)}><SIcon.pencil style={{ width: 13, height: 13 }} /></button>
+                  <button className="set-row-edit danger" title="Remove" onClick={() => setRemoving(m)}><SIcon.trash style={{ width: 13, height: 13 }} /></button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="lim-note">Removing someone signs them out everywhere. Any API keys they created stop working.</p>
+      </div>
+
+      {inviting && <InviteSheet onClose={() => setInviting(false)} onInvite={invite} />}
+      {editing && <RoleSheet member={editing} onClose={() => setEditing(null)} onPick={r => changeRole(editing.id, r)} />}
+      {removing && (
+        <Sheet open onClose={() => setRemoving(null)} title={`Remove ${removing.name}?`}>
+          <p className="set-sheet-lede">They lose access immediately and are signed out everywhere. Any API keys they created stop working. You can invite them again later.</p>
+          <div className="set-modal-foot">
+            <button className="btn btn-ghost" onClick={() => setRemoving(null)}>Cancel</button>
+            <button className="btn btn-lg btn-danger" onClick={() => remove(removing)}>Remove</button>
+          </div>
+        </Sheet>
+      )}
+    </>
+  );
+}
+
+// The role picker is the same control in both sheets — spelling out what each role can do at the
+// point of choosing beats making an admin remember the matrix.
+function RolePicker({ value, onChange }) {
+  const meta = ROLES.find(r => r.id === value) || {};
+  return (
+    <>
+      <select className="inp" value={value} onChange={e => onChange(e.target.value)}>
+        {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+      </select>
+      {meta.blurb && <div className="role-hint">{meta.blurb}</div>}
+    </>
+  );
+}
+
+// Both money-capable roles get called out at the point of granting. Developer is the
+// non-obvious one: they can't send a payment in the UI at all, but an unscoped API key lets
+// them move money programmatically, so the seat is far heavier than "read-only plus keys".
+function RoleWarning({ role }) {
+  if (role !== "developer" && role !== "admin") return null;
+  return (
+    <div className="set-support-note warn">
+      <SIcon.alert />
+      <div>{role === "admin"
+        ? "Admins can send payments, create API keys, and add or remove team members."
+        : "Developers can create API keys. A key gives full programmatic access to your account, including moving money."}</div>
+    </div>
+  );
+}
+
+function InviteSheet({ onClose, onInvite }) {
+  const [first, setFirst] = useStateS("");
+  const [last, setLast] = useStateS("");
+  const [email, setEmail] = useStateS("");
+  const [role, setRole] = useStateS("viewer");
+  const valid = first.trim() && last.trim() && /.+@.+\..+/.test(email.trim());
+  return (
+    <Sheet open onClose={onClose} title="Invite a team member">
+      <div className="field-pair">
+        <div className="field">
+          <div className="lbl">First name</div>
+          <input className="inp" placeholder="Ada" value={first} onChange={e => setFirst(e.target.value)} autoFocus />
+        </div>
+        <div className="field">
+          <div className="lbl">Last name</div>
+          <input className="inp" placeholder="Obi" value={last} onChange={e => setLast(e.target.value)} />
+        </div>
+      </div>
+      <div className="field">
+        <div className="lbl">Work email</div>
+        <input className="inp" type="email" placeholder="name@company.com" value={email} onChange={e => setEmail(e.target.value)} />
+      </div>
+      <div className="field">
+        <div className="lbl">Role</div>
+        <RolePicker value={role} onChange={setRole} />
+      </div>
+      <RoleWarning role={role} />
+      <p className="set-sheet-lede" style={{ marginTop: 14 }}>They'll get an email invite. It expires in {INVITE_EXPIRY_DAYS} days, and they'll set their own password and two-factor authentication. Only an admin can change their name or role.</p>
+      <div className="set-modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-lg" disabled={!valid} onClick={() => onInvite(`${first.trim()} ${last.trim()}`, email.trim(), role)}>Send invite</button>
+      </div>
+    </Sheet>
+  );
+}
+
+function RoleSheet({ member, onClose, onPick }) {
+  const [role, setRole] = useStateS(member.role);
+  return (
+    <Sheet open onClose={onClose} title={`Change ${member.name}'s role`}>
+      <div className="field">
+        <div className="lbl">Role</div>
+        <RolePicker value={role} onChange={setRole} />
+      </div>
+      {role !== member.role && <RoleWarning role={role} />}
+      <div className="set-modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-lg" disabled={role === member.role} onClick={() => onPick(role)}>Save role</button>
+      </div>
     </Sheet>
   );
 }

@@ -15,6 +15,7 @@ const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
   TotpVerifyScreen, TotpSetupScreen, SetPasswordScreen,
   TotpRecoveryStartScreen, TotpRecoveryInvalidScreen, TotpRecoveryDoneScreen,
+  InviteAcceptScreen, InviteInvalidScreen,
 } = window.OBAuth;
 
 // 24h withdrawal-hold end time → "Jul 24, 3:42 PM" for the recovery-done screen + in-app banner.
@@ -23,7 +24,7 @@ function formatHoldUntil(ts) {
   const d = new Date(ts);
   return `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
-const { Page, Toast, Sheet, isDemoMode, withDemoUtm, TALLY_URL, CONSUMER_APP_LINKS, useIsDesktop } = window.OBPrimitives;
+const { Page, Toast, Sheet, isDemoMode, withDemoUtm, TALLY_URL, CONSUMER_APP_LINKS, useIsDesktop, ROLES, can, NoAccess } = window.OBPrimitives;
 const { RECIPIENTS_FULL } = window.OBData;
 
 // ---------- Demo entry gate (demo mode only) ----------
@@ -180,9 +181,9 @@ function MockControls({
   stablecoinIssuance, onStablecoinIssuance, fiatConvert, onFiatConvert,
   payMode, onPayMode, paymentApproval, onPaymentApproval, paymentApprovalMethod, onPaymentApprovalMethod,
   complianceHold, onComplianceHold, route, nameLookupMock, onNameLookupMock,
-  apiAccess, onApiAccess, cardsAccess, onCardsAccess, subAccountsOn, onSubAccountsOn,
+  apiAccess, onApiAccess, cardsAccess, onCardsAccess, subAccountsOn, onSubAccountsOn, role, onRole,
   flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState,
-  recoveryLink, onRecoveryLink, withdrawalHoldActive, onWithdrawalHoldTest,
+  recoveryLink, onRecoveryLink, withdrawalHoldActive, onWithdrawalHoldTest, inviteLink, onInviteLink,
 }) {
   const inSignin = flow.startsWith("signin") || flow === "forgot-password";
   return (
@@ -201,8 +202,24 @@ function MockControls({
             title="TOTP-recovery approval link — sent after our team manually reviews and approves the request; destination depends on the Recovery link toggle below">
             Recovery approval link (ref)
           </button>
+          <button
+            className={(flow === "invite-accept" || flow === "invite-invalid") ? "on" : ""}
+            onClick={() => onFlow(inviteLink === "valid" ? "invite-accept" : "invite-invalid")}
+            style={{ opacity: .55 }}
+            title="Team invite link — sent by an admin from Settings › Team; destination depends on the Invite link toggle below">
+            Team invite link (ref)
+          </button>
         </div>
       </div>
+      {(flow === "invite-accept" || flow === "invite-invalid") && (
+        <div className="mock-group">
+          <div className="mock-label">Invite link</div>
+          <div className="mock-row">
+            <button className={inviteLink === "valid" ? "on" : ""} onClick={() => { onInviteLink("valid"); onFlow("invite-accept"); }}>Valid</button>
+            <button className={inviteLink === "invalid" ? "on" : ""} onClick={() => { onInviteLink("invalid"); onFlow("invite-invalid"); }}>Expired / used / withdrawn</button>
+          </div>
+        </div>
+      )}
       {inSignin && (
         <>
           <div className="mock-group">
@@ -325,6 +342,14 @@ function MockControls({
         </div>
       )}
       <div className="mock-group">
+        <div className="mock-label">Role (ACL)</div>
+        <div className="mock-row">
+          {ROLES.map(r => (
+            <button key={r.id} className={role === r.id ? "on" : ""} onClick={() => onRole(r.id)}>{r.label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="mock-group">
         <div className="mock-label">API access</div>
         <div className="mock-row">
           <button className={apiAccess === "granted" ? "on" : ""} onClick={() => onApiAccess("granted")}>Granted</button>
@@ -398,6 +423,8 @@ function App() {
   const [apiAccess, setApiAccess] = useState("granted");
   const [cardsAccess, setCardsAccess] = useState("active");
   const [subAccountsOn, setSubAccountsOn] = useState("off"); // "off" | "units" | "customers"
+  const [role, setRole] = useState("admin"); // ACL — see ACL-SPEC.md
+  const [inviteLink, setInviteLink] = useState("valid"); // "valid" | "invalid"
   const [openTx, setOpenTx] = useState(null);
   const [toast, setToast] = useState(null);
   const [recipients, setRecipients] = useState(() => [...RECIPIENTS_FULL]);
@@ -426,6 +453,8 @@ function App() {
       apiAccess={apiAccess} onApiAccess={setApiAccess}
       cardsAccess={cardsAccess} onCardsAccess={setCardsAccess}
       subAccountsOn={subAccountsOn} onSubAccountsOn={setSubAccountsOn}
+      role={role} onRole={setRole}
+      inviteLink={inviteLink} onInviteLink={setInviteLink}
       flow={flow} onFlow={setFlow}
       signinAccountStatus={signinAccountStatus} onSigninAccountStatus={setSigninAccountStatus}
       totpState={totpState} onTotpState={setTotpState}
@@ -535,6 +564,21 @@ function App() {
       </AuthMockWrap>
     );
   }
+  // Team invite — reached via email link in the real app; accessible here for design review
+  if (flow === "invite-accept") {
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <InviteAcceptScreen onSubmit={() => setFlow("signin-totp-setup")} />
+      </AuthMockWrap>
+    );
+  }
+  if (flow === "invite-invalid") {
+    return (
+      <AuthMockWrap mockControls={mockControls}>
+        <InviteInvalidScreen onSignIn={() => setFlow("signin")} />
+      </AuthMockWrap>
+    );
+  }
   // Password reset — reached via email link in the real app; accessible here for design review
   if (flow === "signin-set-password") {
     return (
@@ -556,7 +600,8 @@ function App() {
         onOpenTx={() => {}}
         onViewAll={() => setRoute("activity")}
         subAccountsOn={subAccountsOn === "units"}
-        onOpenSubAccounts={() => setRoute("subaccounts")} />
+        onOpenSubAccounts={() => setRoute("subaccounts")}
+        role={role} />
     );
   } else if (route === "add-money") {
     screen = (
@@ -564,12 +609,21 @@ function App() {
         onBack={() => setRoute("dashboard")}
         onToast={setToast}
         onSeeAllLimits={() => { setSettingsSection("limits"); setRoute("settings"); }}
+        role={role}
         usdAccountStatus={usdAccountStatus}
         ngnIssuance={ngnIssuance}
         stablecoinIssuance={stablecoinIssuance}
         accountSuspended={accountStatus === "suspended"}
         fiatConvert={fiatConvert} />
     );
+  } else if (route === "payments" && !can(role, "pay")) {
+    screen = <NoAccess what="sending payments" />;
+  } else if (route === "recipients" && !can(role, "recipients")) {
+    screen = <NoAccess what="recipients" />;
+  } else if (route === "developer" && !can(role, "apiKeys")) {
+    screen = <NoAccess what="API keys" />;
+  } else if (route === "add-recipient" && !can(role, "recipients")) {
+    screen = <NoAccess what="recipients" />;
   } else if (route === "payments") {
     screen = (
       <SendPayment
@@ -619,7 +673,7 @@ function App() {
   } else if (route === "cards") {
     screen = <CardsScreen onToast={setToast} cardsAccess={cardsAccess} />;
   } else if (route === "settings") {
-    screen = <SettingsScreen key={settingsSection} onToast={setToast} initialSection={settingsSection} />;
+    screen = <SettingsScreen key={`${settingsSection}-${role}`} onToast={setToast} initialSection={settingsSection} role={role} />;
   } else if (route === "developer") {
     screen = (
       <Page>
@@ -647,7 +701,7 @@ function App() {
 
   return (
     <>
-      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner} subAccountsOn={subAccountsOn !== "off"}>
+      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner} subAccountsOn={subAccountsOn !== "off"} role={role}>
         {screen}
       </Shell>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}

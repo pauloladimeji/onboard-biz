@@ -60,6 +60,13 @@ button { font-family: var(--font-sans); }
   transition: border-color .12s ease, box-shadow .12s ease;
 }
 .inp::placeholder { color: var(--gray-500); }
+/* .inp sets appearance:none, which also strips a <select>'s native chevron and leaves it looking
+   like a text field. Draw one back rather than making every dropdown a wrapper + absolute icon. */
+select.inp {
+  cursor: pointer; padding-right: 42px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 15px center; background-size: 15px;
+}
 .inp:focus { outline: none; border-color: var(--info-700); box-shadow: 0 0 0 3px rgba(29,78,216,.12); }
 .inp.inp-error { border-color: #DC2626; }
 .inp.inp-error:focus { border-color: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,.12); }
@@ -616,6 +623,13 @@ table.records-table th.num { text-align: right; }
 /* NGN carries both a per-transaction and a daily cap; everything else is per-transaction only. */
 .fee-limit-lines { display: flex; flex-direction: column; gap: 7px; }
 .fee-limit-lines .lbl { font-weight: 400; color: var(--gray-600); }
+/* Sits inside a fee card when one rail has more than one price — the range alone doesn't say
+   what moves it. */
+.fee-note { display: flex; align-items: flex-start; gap: 5px; margin-top: 7px; font-size: 11.5px; line-height: 1.45; color: var(--gray-600); }
+/* Centre the icon on the first line of text rather than its top edge: the line box is
+   11.5 × 1.45 ≈ 16.7px, so a 12px icon needs ~2.4px of offset. */
+.fee-note svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 2.4px; }
+
 .fee-about {
   display: inline-flex; align-items: center; gap: 5px; margin-top: 12px;
   font-size: 12.5px; font-weight: 500; color: var(--info-700); cursor: pointer; text-decoration: none;
@@ -1613,3 +1627,64 @@ table.records-table th.num { text-align: right; }
 .page-mobile .cards-apply { margin: 20px auto; }
 .page-mobile .cards-apply-h1 { font-size: 22px; }
 .page-mobile .cards-apply-visual { width: 100%; max-width: 280px; transform: none; }
+
+/* ---------- ACL: roles, gated states, team ---------- */
+/* A role that can't reach a screen never sees its nav item, so these two states only appear
+   where a screen IS reachable: a direct hit on a gated route, and an action removed from a
+   screen the role can otherwise use. */
+.noaccess { padding: 44px 24px; text-align: center; }
+.noaccess-ic { width: 42px; height: 42px; border-radius: 12px; background: var(--gray-100); color: var(--gray-600); display: grid; place-items: center; margin: 0 auto 14px; }
+.noaccess-ic svg { width: 19px; height: 19px; }
+.noaccess-t { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 6px; }
+.noaccess-s { font-size: 13px; color: var(--gray-600); line-height: 1.55; max-width: 340px; margin: 0 auto; }
+.noaccess-note { display: inline-flex; align-items: flex-start; gap: 7px; font-size: 12.5px; line-height: 1.5; color: var(--gray-600); }
+.noaccess-note svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 2px; }
+
+.team-list { display: flex; flex-direction: column; }
+.team-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid var(--gray-100); }
+.team-row:first-child { border-top: 0; }
+.team-ava { width: 34px; height: 34px; border-radius: 50%; background: var(--gray-100); color: var(--gray-700); display: grid; place-items: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.team-meta { flex: 1 1 auto; min-width: 0; }
+.team-meta .t { font-size: 13.5px; font-weight: 500; color: var(--gray-900); display: flex; align-items: center; gap: 7px; }
+.team-meta .s { font-size: 12px; color: var(--gray-600); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-you { padding: 1px 6px; border-radius: 999px; background: var(--gray-100); color: var(--gray-600); font-size: 10.5px; font-weight: 600; }
+.team-role { text-align: right; flex-shrink: 0; }
+.team-role-lbl { font-size: 13px; color: var(--gray-800); }
+.team-pending { display: block; font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+.team-pending.expired { color: var(--warn-700, #B45309); font-weight: 500; }
+.team-actions { display: flex; gap: 2px; flex-shrink: 0; justify-content: flex-end; min-width: 92px; }
+/* Reserves the same width the buttons would take, so locked rows don't shift the role column. */
+.team-actions-empty { width: 92px; flex-shrink: 0; }
+.set-row-edit.danger { color: var(--danger-700); }
+.set-row-edit.danger:hover { background: var(--danger-100); }
+.page-mobile .team-row { flex-wrap: wrap; }
+.page-mobile .team-role { text-align: left; width: 100%; padding-left: 46px; }
+/* Once the row wraps, actions get their own line at the left — the reserved 92px column is a
+   desktop concern, and keeping it here right-aligned the buttons inside it, so a 2-button row
+   sat further right than a 3-button one. Align them under the name instead (36px = the 46px
+   text indent minus the button's own 10px padding). */
+.page-mobile .team-actions { width: 100%; min-width: 0; justify-content: flex-start; padding-left: 36px; margin-top: 2px; }
+.page-mobile .team-actions-empty { display: none; }
+
+.role-hint { font-size: 12px; color: var(--gray-600); line-height: 1.45; margin-top: 7px; }
+
+.btn.btn-danger { background: var(--danger-700); border-color: var(--danger-700); color: #fff; }
+.btn.btn-danger:hover { filter: brightness(1.08); }
+
+/* Granting a money-capable role is the one place in Settings that warrants more than the neutral
+   dashed note — same shape, amber. */
+.set-support-note.warn { background: #FFF8EB; border-color: #FCD9A4; border-style: solid; color: #7C4A03; }
+.set-support-note.warn > svg { color: #B45309; }
+
+/* Invite landing — email and role are decided by whoever sent the invite, so they read as
+   confirmation rather than fields. */
+.invite-card { border: 1px solid var(--gray-200); border-radius: 12px; padding: 4px 14px; margin-bottom: 22px; background: var(--gray-50); }
+.invite-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--gray-200); }
+.invite-row:first-child { border-top: 0; }
+.invite-row .k { font-size: 12.5px; color: var(--gray-600); }
+.invite-row .v { font-size: 13px; font-weight: 500; color: var(--gray-900); text-align: right; word-break: break-word; }
+
+/* Two short fields on one line — first/last name. Collapses on narrow sheets so neither
+   input ends up too cramped to read what's in it. */
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+@media (max-width: 420px) { .field-pair { grid-template-columns: 1fr; } }
