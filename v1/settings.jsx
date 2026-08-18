@@ -527,10 +527,61 @@ function VerifyTotpSheet({ open, title, description, onClose, onVerified }) {
   );
 }
 
-function DeveloperSection({ onToast, apiAccess = "granted" }) {
-  const [apiKeys, setApiKeys] = useStateS([{ id: "k1", label: "Production", key: "onb_live_a7cdf7928fd2ce7300e37f94cd1ac556", secret: "03lHBHZl$XMffvzEsnTTZwtavmTvlQUm", ips: "203.0.113.10, 203.0.113.20", created: "Jun 2, 2026", secretVisible: false }]);
+// A key's role answers two questions and no others: can it move money, can it mint more keys.
+// Spelling that out for the *selected* role beats listing every permission for every role —
+// the roles nest (admin ⊇ operator ⊇ view-only), so full lists are mostly repetition.
+const KEY_ROLES = [
+  { id: "developer", label: "Developer",
+    effect: "This key can manage API keys and view accounts. It cannot move money.", movesMoney: false },
+  { id: "operator", label: "Operator",
+    effect: "This key can send payments and manage recipients. It cannot manage your team or API keys.", movesMoney: true },
+  { id: "admin", label: "Admin",
+    effect: "This key can do anything a person can, including sending payments and managing your team.", movesMoney: true },
+];
+const keyRole = (id) => KEY_ROLES.find(r => r.id === id) || KEY_ROLES[0];
+// A key must never out-rank the person creating it: a developer who could mint an admin key
+// would escalate straight past the UI roles.
+const rolesFor = (role) => role === "admin" ? KEY_ROLES : KEY_ROLES.filter(r => r.id !== "admin");
+
+function KeyRoleField({ value, onChange, role }) {
+  const options = rolesFor(role);
+  return (
+    <div className="field">
+      <div className="lbl">Access</div>
+      <div className="keyrole-list">
+        {options.map(r => (
+          <button key={r.id} type="button" className={`keyrole-opt ${value === r.id ? "on" : ""}`} onClick={() => onChange(r.id)}>
+            <span className="keyrole-dot" />
+            <span>{r.label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="keyrole-effect">{keyRole(value).effect}</div>
+    </div>
+  );
+}
+
+// IP restriction is only mandatory once the key can move money — so the field has to sit below
+// the role picker and react to it, not above it claiming to be optional.
+function KeyIpField({ value, onChange, required }) {
+  return (
+    <div className="field">
+      <div className="lbl">Allowed IP addresses {required ? <span className="req">· required</span> : <span className="opt">· optional</span>}</div>
+      <input className="inp" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Comma-separated, e.g. 203.0.113.10, 10.0.0.1" />
+      <div className="help" style={{ marginTop: 6, fontSize: 12, color: required ? "var(--gray-700)" : "var(--gray-500)", lineHeight: 1.5 }}>
+        {required
+          ? "This key can move money, so it has to be locked to specific IP addresses."
+          : "Leave blank to allow requests from any IP address."}
+      </div>
+    </div>
+  );
+}
+
+function DeveloperSection({ onToast, apiAccess = "granted", role = "admin" }) {
+  const [apiKeys, setApiKeys] = useStateS([{ id: "k1", label: "Production", key: "onb_live_a7cdf7928fd2ce7300e37f94cd1ac556", secret: "03lHBHZl$XMffvzEsnTTZwtavmTvlQUm", ips: "203.0.113.10, 203.0.113.20", keyRole: "operator", created: "Jun 2, 2026", secretVisible: false }]);
   const [createOpen, setCreateOpen] = useStateS(false);
   const [deleteTarget, setDeleteTarget] = useStateS(null);
+  const [editTarget, setEditTarget] = useStateS(null);
   const [webhookUrl, setWebhookUrl] = useStateS("https://api.acmetrading.co/webhooks/onboard");
   const [webhookEditing, setWebhookEditing] = useStateS(false);
   const [webhookDraft, setWebhookDraft] = useStateS("");
@@ -574,11 +625,23 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
 
   const copyText = (text, label) => { navigator.clipboard && navigator.clipboard.writeText(text); onToast && onToast(`${label} copied`); };
 
-  const handleCreate = (label, ips) => {
-    const newKey = { id: "k" + Date.now(), label: label || "Untitled", key: "onb_test_" + Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 18), secret: Array.from({ length: 32 }, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$#"[Math.floor(Math.random() * 64)]).join(""), ips: ips || "", created: "Just now", secretVisible: true };
+  const handleCreate = (label, ips, keyRoleId) => {
+    const newKey = { id: "k" + Date.now(), label: label || "Untitled", key: "onb_test_" + Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 18), secret: Array.from({ length: 32 }, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$#"[Math.floor(Math.random() * 64)]).join(""), ips: ips || "", keyRole: keyRoleId, created: "Just now", secretVisible: true };
     setApiKeys(prev => [...prev, newKey]);
     setCreateOpen(false);
     onToast && onToast("API key created");
+  };
+
+  // Label is cosmetic; changing the IP allowlist or the role changes what the key can do, so
+  // those go through the same 2FA gate as revoking.
+  const handleEdit = (id, next, securityChanged) => {
+    const apply = () => {
+      setApiKeys(prev => prev.map(k => k.id === id ? { ...k, ...next } : k));
+      setEditTarget(null); setTotpChallenge(null);
+      onToast && onToast("API key updated");
+    };
+    if (!securityChanged) return apply();
+    requireTotp("Update API key", "Verify your identity to change what this key can access.", apply);
   };
 
   const handleRevoke = (id) => {
@@ -637,6 +700,7 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
                 <div className="set-apikey-header">
                   <div className="set-apikey-label">{k.label}</div>
                   <div style={{ display: "flex", gap: 6 }}>
+                    <button className="set-apikey-action" title="Edit" onClick={() => setEditTarget(k)}><SIcon.pencil /></button>
                     <button className="set-apikey-action" title="Revoke" onClick={() => setDeleteTarget(k.id)}><SIcon.trash /></button>
                   </div>
                 </div>
@@ -652,7 +716,17 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
                     <button className="set-apikey-toggle" onClick={() => toggleKeySecret(k.id)}>{k.secretVisible ? "Hide" : "Show"}</button>
                   </div>
                 </div>
-                {k.ips && <div className="set-apikey-field"><div className="set-apikey-field-label">Allowed IPs</div><div className="set-apikey-field-value"><code>{k.ips}</code></div></div>}
+                <div className="set-apikey-field">
+                  <div className="set-apikey-field-label">Access</div>
+                  <div className="set-apikey-field-value" style={{ display: "block" }}>
+                    <div className="strong" style={{ fontSize: 13 }}>{keyRole(k.keyRole).label}</div>
+                    <div style={{ fontSize: 12, color: "var(--gray-600)", lineHeight: 1.5, marginTop: 2 }}>{keyRole(k.keyRole).effect}</div>
+                  </div>
+                </div>
+                <div className="set-apikey-field">
+                  <div className="set-apikey-field-label">Allowed IPs</div>
+                  <div className="set-apikey-field-value">{k.ips ? <code>{k.ips}</code> : <span style={{ fontSize: 12.5, color: "var(--gray-500)" }}>Any IP address</span>}</div>
+                </div>
                 <div className="set-apikey-meta">Created {k.created}</div>
               </div>
             ))}
@@ -712,7 +786,11 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
       </div>
 
       <Sheet open={createOpen} onClose={() => setCreateOpen(false)} title="Create API key">
-        <CreateApiKeyForm onCancel={() => setCreateOpen(false)} onCreate={handleCreate} />
+        <CreateApiKeyForm onCancel={() => setCreateOpen(false)} onCreate={handleCreate} role={role} />
+      </Sheet>
+
+      <Sheet open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit API key">
+        {editTarget && <EditApiKeyForm apiKey={editTarget} role={role} onCancel={() => setEditTarget(null)} onSave={handleEdit} />}
       </Sheet>
 
       <Sheet open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Revoke API key?">
@@ -740,18 +818,55 @@ function DeveloperSection({ onToast, apiAccess = "granted" }) {
 }
 
 // Create-key form lives inside the Sheet — step 0 (form) then step 1 (2FA confirm).
-function CreateApiKeyForm({ onCancel, onCreate }) {
+function EditApiKeyForm({ apiKey, role, onCancel, onSave }) {
+  const [label, setLabel] = useStateS(apiKey.label);
+  const [ips, setIps] = useStateS(apiKey.ips || "");
+  const [keyRoleId, setKeyRoleId] = useStateS(apiKey.keyRole || "developer");
+  const needsIps = keyRole(keyRoleId).movesMoney;
+  const securityChanged = ips !== (apiKey.ips || "") || keyRoleId !== apiKey.keyRole;
+  const changed = securityChanged || label !== apiKey.label;
+  const canSave = changed && (!needsIps || ips.trim().length > 0);
+
+  return (
+    <>
+      <div className="field" style={{ marginBottom: 16 }}>
+        <div className="lbl">Label <span className="opt">· optional</span></div>
+        <input className="inp" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Production, Staging" />
+      </div>
+      <KeyRoleField value={keyRoleId} onChange={setKeyRoleId} role={role} />
+      <KeyIpField value={ips} onChange={setIps} required={needsIps} />
+
+      {securityChanged && (
+        <div className="set-support-note warn">
+          <SIcon.alert />
+          <div>This changes what the key can access. It takes effect immediately for every integration using it.</div>
+        </div>
+      )}
+
+      <div className="set-modal-foot">
+        <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+        <button className="btn btn-lg" disabled={!canSave} onClick={() => onSave(apiKey.id, { label: label || "Untitled", ips, keyRole: keyRoleId }, securityChanged)}>Save changes</button>
+      </div>
+    </>
+  );
+}
+
+function CreateApiKeyForm({ onCancel, onCreate, role }) {
   const [step, setStep] = useStateS(0);
   const [label, setLabel] = useStateS("");
   const [ips, setIps] = useStateS("");
+  // Least-privileged option is the default, so the safe path is also the path of least effort.
+  const [keyRoleId, setKeyRoleId] = useStateS("developer");
   const [code, setCode] = useStateS("");
   const [busy, setBusy] = useStateS(false);
   const [error, setError] = useStateS("");
+  const needsIps = keyRole(keyRoleId).movesMoney;
+  const canContinue = !needsIps || ips.trim().length > 0;
 
   const handleSubmit = () => {
     setBusy(true); setError("");
     setTimeout(() => {
-      if (code === "123456" || (/^\d{6}$/.test(code) && parseInt(code[5], 10) % 2 === 0)) { setBusy(false); onCreate(label, ips); }
+      if (code === "123456" || (/^\d{6}$/.test(code) && parseInt(code[5], 10) % 2 === 0)) { setBusy(false); onCreate(label, ips, keyRoleId); }
       else { setBusy(false); setError("Invalid code. Try again."); setCode(""); }
     }, 600);
   };
@@ -763,14 +878,11 @@ function CreateApiKeyForm({ onCancel, onCreate }) {
           <div className="lbl">Label <span className="opt">· optional</span></div>
           <input className="inp" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Production, Staging" />
         </div>
-        <div className="field">
-          <div className="lbl">Allowed IP addresses</div>
-          <input className="inp" value={ips} onChange={(e) => setIps(e.target.value)} placeholder="Comma-separated, e.g. 203.0.113.10, 10.0.0.1" />
-          <div className="help" style={{ marginTop: 6, fontSize: 12, color: "var(--gray-500)", lineHeight: 1.5 }}>IP restriction is required for withdrawal-enabled keys. Leave blank if this key won't initiate withdrawals.</div>
-        </div>
+        <KeyRoleField value={keyRoleId} onChange={setKeyRoleId} role={role} />
+        <KeyIpField value={ips} onChange={setIps} required={needsIps} />
         <div className="set-modal-foot">
           <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-lg" onClick={() => setStep(1)}>Continue</button>
+          <button className="btn btn-lg" disabled={!canContinue} onClick={() => setStep(1)}>Continue</button>
         </div>
       </>
     );

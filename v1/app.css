@@ -1688,3 +1688,17 @@ table.records-table th.num { text-align: right; }
    input ends up too cramped to read what's in it. */
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 @media (max-width: 420px) { .field-pair { grid-template-columns: 1fr; } }
+
+/* API key access picker. The roles nest, so this is single-select — a key holding both admin
+   and developer is just an admin key. The sentence below the list is what people actually came
+   for: whether this key can move money. */
+.keyrole-list { display: flex; flex-direction: column; border: 1px solid var(--gray-200); border-radius: 10px; overflow: hidden; background: #fff; }
+.keyrole-opt { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 0; border-top: 1px solid var(--gray-200); background: none; cursor: pointer; font-family: inherit; font-size: 13.5px; color: var(--gray-900); text-align: left; }
+.keyrole-opt:first-child { border-top: 0; }
+.keyrole-opt:hover { background: var(--gray-50); }
+.keyrole-opt.on { background: var(--info-100); font-weight: 500; }
+.keyrole-dot { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--gray-300); flex-shrink: 0; background: #fff; }
+.keyrole-opt.on .keyrole-dot { border-color: var(--info-700); border-width: 4.5px; }
+.keyrole-effect { font-size: 12.5px; color: var(--gray-600); line-height: 1.5; margin-top: 8px; }
+.field .lbl .req { color: var(--danger-700); font-weight: 500; }
+.field .lbl .opt { color: var(--gray-500); font-weight: 500; }
