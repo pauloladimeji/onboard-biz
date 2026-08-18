@@ -681,7 +681,7 @@ function App() {
           <div><h1 className="title">Developer</h1><p className="subtitle">API keys, webhooks, and integration settings.</p></div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <DeveloperSection onToast={setToast} apiAccess={apiAccess} role={role} />
+          <DeveloperSection onToast={setToast} apiAccess={apiAccess} />
         </div>
       </Page>
     );

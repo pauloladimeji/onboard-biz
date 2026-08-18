@@ -539,12 +539,13 @@ const KEY_ROLES = [
     effect: "This key can do anything a person can, including sending payments and managing your team.", movesMoney: true },
 ];
 const keyRole = (id) => KEY_ROLES.find(r => r.id === id) || KEY_ROLES[0];
-// A key must never out-rank the person creating it: a developer who could mint an admin key
-// would escalate straight past the UI roles.
-const rolesFor = (role) => role === "admin" ? KEY_ROLES : KEY_ROLES.filter(r => r.id !== "admin");
 
-function KeyRoleField({ value, onChange, role }) {
-  const options = rolesFor(role);
+// Every role is offered to anyone who can reach this screen. Capping the list at the creator's
+// own role doesn't close the escalation — an unscoped key already grants everything the moment
+// someone is given API access — it just breaks the normal case where an owner hands a developer
+// the seat to generate a key the business actually needs.
+function KeyRoleField({ value, onChange }) {
+  const options = KEY_ROLES;
   return (
     <div className="field">
       <div className="lbl">Access</div>
@@ -561,23 +562,22 @@ function KeyRoleField({ value, onChange, role }) {
   );
 }
 
-// IP restriction is only mandatory once the key can move money — so the field has to sit below
-// the role picker and react to it, not above it claiming to be optional.
-function KeyIpField({ value, onChange, required }) {
+// Always optional, and the copy never changes with the role. Plenty of legitimate integrations
+// run on serverless or dynamic egress with no stable IP, so requiring it would block them
+// outright.
+function KeyIpField({ value, onChange }) {
   return (
     <div className="field">
-      <div className="lbl">Allowed IP addresses {required ? <span className="req">· required</span> : <span className="opt">· optional</span>}</div>
+      <div className="lbl">Allowed IP addresses <span className="opt">· optional</span></div>
       <input className="inp" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Comma-separated, e.g. 203.0.113.10, 10.0.0.1" />
-      <div className="help" style={{ marginTop: 6, fontSize: 12, color: required ? "var(--gray-700)" : "var(--gray-500)", lineHeight: 1.5 }}>
-        {required
-          ? "This key can move money, so it has to be locked to specific IP addresses."
-          : "Leave blank to allow requests from any IP address."}
+      <div className="help" style={{ marginTop: 6, fontSize: 12, color: "var(--gray-500)", lineHeight: 1.5 }}>
+        Leave blank to allow requests from any IP address.
       </div>
     </div>
   );
 }
 
-function DeveloperSection({ onToast, apiAccess = "granted", role = "admin" }) {
+function DeveloperSection({ onToast, apiAccess = "granted" }) {
   const [apiKeys, setApiKeys] = useStateS([{ id: "k1", label: "Production", key: "onb_live_a7cdf7928fd2ce7300e37f94cd1ac556", secret: "03lHBHZl$XMffvzEsnTTZwtavmTvlQUm", ips: "203.0.113.10, 203.0.113.20", keyRole: "operator", created: "Jun 2, 2026", secretVisible: false }]);
   const [createOpen, setCreateOpen] = useStateS(false);
   const [deleteTarget, setDeleteTarget] = useStateS(null);
@@ -786,11 +786,11 @@ function DeveloperSection({ onToast, apiAccess = "granted", role = "admin" }) {
       </div>
 
       <Sheet open={createOpen} onClose={() => setCreateOpen(false)} title="Create API key">
-        <CreateApiKeyForm onCancel={() => setCreateOpen(false)} onCreate={handleCreate} role={role} />
+        <CreateApiKeyForm onCancel={() => setCreateOpen(false)} onCreate={handleCreate} />
       </Sheet>
 
       <Sheet open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit API key">
-        {editTarget && <EditApiKeyForm apiKey={editTarget} role={role} onCancel={() => setEditTarget(null)} onSave={handleEdit} />}
+        {editTarget && <EditApiKeyForm apiKey={editTarget} onCancel={() => setEditTarget(null)} onSave={handleEdit} />}
       </Sheet>
 
       <Sheet open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Revoke API key?">
@@ -818,14 +818,12 @@ function DeveloperSection({ onToast, apiAccess = "granted", role = "admin" }) {
 }
 
 // Create-key form lives inside the Sheet — step 0 (form) then step 1 (2FA confirm).
-function EditApiKeyForm({ apiKey, role, onCancel, onSave }) {
+function EditApiKeyForm({ apiKey, onCancel, onSave }) {
   const [label, setLabel] = useStateS(apiKey.label);
   const [ips, setIps] = useStateS(apiKey.ips || "");
   const [keyRoleId, setKeyRoleId] = useStateS(apiKey.keyRole || "developer");
-  const needsIps = keyRole(keyRoleId).movesMoney;
   const securityChanged = ips !== (apiKey.ips || "") || keyRoleId !== apiKey.keyRole;
-  const changed = securityChanged || label !== apiKey.label;
-  const canSave = changed && (!needsIps || ips.trim().length > 0);
+  const canSave = securityChanged || label !== apiKey.label;
 
   return (
     <>
@@ -833,8 +831,8 @@ function EditApiKeyForm({ apiKey, role, onCancel, onSave }) {
         <div className="lbl">Label <span className="opt">· optional</span></div>
         <input className="inp" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Production, Staging" />
       </div>
-      <KeyRoleField value={keyRoleId} onChange={setKeyRoleId} role={role} />
-      <KeyIpField value={ips} onChange={setIps} required={needsIps} />
+      <KeyRoleField value={keyRoleId} onChange={setKeyRoleId} />
+      <KeyIpField value={ips} onChange={setIps} />
 
       {securityChanged && (
         <div className="set-support-note warn">
@@ -851,7 +849,7 @@ function EditApiKeyForm({ apiKey, role, onCancel, onSave }) {
   );
 }
 
-function CreateApiKeyForm({ onCancel, onCreate, role }) {
+function CreateApiKeyForm({ onCancel, onCreate }) {
   const [step, setStep] = useStateS(0);
   const [label, setLabel] = useStateS("");
   const [ips, setIps] = useStateS("");
@@ -860,8 +858,6 @@ function CreateApiKeyForm({ onCancel, onCreate, role }) {
   const [code, setCode] = useStateS("");
   const [busy, setBusy] = useStateS(false);
   const [error, setError] = useStateS("");
-  const needsIps = keyRole(keyRoleId).movesMoney;
-  const canContinue = !needsIps || ips.trim().length > 0;
 
   const handleSubmit = () => {
     setBusy(true); setError("");
@@ -878,11 +874,11 @@ function CreateApiKeyForm({ onCancel, onCreate, role }) {
           <div className="lbl">Label <span className="opt">· optional</span></div>
           <input className="inp" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Production, Staging" />
         </div>
-        <KeyRoleField value={keyRoleId} onChange={setKeyRoleId} role={role} />
-        <KeyIpField value={ips} onChange={setIps} required={needsIps} />
+        <KeyRoleField value={keyRoleId} onChange={setKeyRoleId} />
+        <KeyIpField value={ips} onChange={setIps} />
         <div className="set-modal-foot">
           <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-lg" disabled={!canContinue} onClick={() => setStep(1)}>Continue</button>
+          <button className="btn btn-lg" onClick={() => setStep(1)}>Continue</button>
         </div>
       </>
     );
