@@ -22,12 +22,13 @@ function methodDescFor(ccy, methodId) {
   return METHOD_DESC[methodId] || "";
 }
 
+// Payout currencies mirror production: EUR, GBP, GHS, IDR, KES, NGN, USD. TZS and MZN were in
+// the original fixtures but aren't live, so they're out.
 const PAYOUT_METHODS = {
   NGN: [{ id: "bank", label: "Bank account", icon: "bank" }, { id: "momo", label: "Mobile wallet", icon: "zap" }],
   GHS: [{ id: "bank", label: "Bank account", icon: "bank" }, { id: "momo", label: "Mobile money", icon: "zap" }],
   KES: [{ id: "bank", label: "Bank account", icon: "bank" }, { id: "momo", label: "Mobile money", icon: "zap" }],
-  TZS: [{ id: "bank", label: "Bank account", icon: "bank" }, { id: "momo", label: "Mobile money", icon: "zap" }],
-  MZN: [{ id: "bank", label: "Bank account", icon: "bank" }, { id: "momo", label: "Mobile money", icon: "zap" }],
+  IDR: [{ id: "bank", label: "Bank account", icon: "bank" }],
   USD: [{ id: "wire", label: "Wire", icon: "bank", desc: "Fedwire · US domestic" }, { id: "ach", label: "ACH", icon: "bank", desc: "US domestic ACH" }, { id: "swift", label: "SWIFT", icon: "globe", desc: "International USD wire" }],
   GBP: [{ id: "fps", label: "Faster Payments", icon: "zap", desc: "UK domestic · arrives in seconds" }, { id: "swift", label: "SWIFT", icon: "globe", desc: "International GBP wire" }],
   EUR: [{ id: "sepa", label: "SEPA", icon: "bank", desc: "EU / EEA bank transfers" }, { id: "swift", label: "SWIFT", icon: "globe", desc: "International EUR wire" }],
@@ -35,24 +36,58 @@ const PAYOUT_METHODS = {
 
 const NAME_LOOKUP_SUPPORT = new Set(["NGN-bank", "GHS-bank", "KES-bank", "NGN-momo", "GHS-momo", "KES-momo", "GBP-fps"]);
 
+// Street / city / region / postal / country, stored as `${prefix}.street` etc. Production fills
+// these from Google Places autocomplete; the fields and their order are the same either way, so
+// the prototype stays manual.
+const COUNTRIES = ["United States", "United Kingdom", "Nigeria", "Ghana", "Kenya", "Indonesia", "Germany", "France", "Netherlands", "United Arab Emirates", "Canada", "Singapore", "South Africa"];
+
+function AddressFields({ prefix, fields, setField }) {
+  const val = (k) => fields[`${prefix}.${k}`] || "";
+  const set = (k) => (e) => setField(`${prefix}.${k}`, e.target.value);
+  return (
+    <div className="ar-address">
+      <input className="inp" placeholder="Street address" value={val("street")} onChange={set("street")} />
+      <div className="ar-address-row">
+        <input className="inp" placeholder="City" value={val("city")} onChange={set("city")} />
+        <input className="inp" placeholder="State / Province / Region" value={val("region")} onChange={set("region")} />
+      </div>
+      <div className="ar-address-row">
+        <input className="inp" placeholder="Postal code" value={val("postal")} onChange={set("postal")} />
+        <select className="inp pay-select" value={val("country")} onChange={set("country")}>
+          <option value="">Select country…</option>
+          {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 const FIELD_SCHEMA = {
+  // SWIFT mirrors production: correspondent banking needs the recipient's and the bank's full
+  // postal address, so these rails carry section headings and grouped address blocks rather than
+  // the flat field list every domestic rail uses.
+  "__swift": [
+    // Recipient type and the account-holder name are already their own controls in this flow —
+    // above and below the schema fields respectively — so they aren't repeated here.
+    { k: "swift", label: "Bank SWIFT/BIC code", kind: "text", placeholder: "BUKBGB22" },
+    { k: "iban", label: "IBAN", kind: "iban", placeholder: "AE070331234567890123456" },
+    { k: "accountType", label: "Account type", kind: "select", options: ["Checking", "Savings"] },
+    { k: "recipientAddress", label: "Recipient address", kind: "address" },
+    { k: "__bank", label: "Bank details", kind: "section" },
+    { k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. Citibank" },
+    { k: "bankAddress", label: "Bank address", kind: "address" },
+  ],
   "NGN-bank": [{ k: "bank", label: "Bank", kind: "select", options: ["GTBank", "Access Bank", "Zenith Bank", "First Bank", "UBA", "Sterling Bank", "Kuda", "Wema Bank"] }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "10-digit NUBAN", maxLength: 10 }],
   "NGN-momo": [{ k: "wallet", label: "Wallet provider", kind: "select", options: ["OPay", "PalmPay", "Moniepoint", "Kuda"] }, { k: "accNo", label: "Wallet number", kind: "digits", placeholder: "10–11 digits", maxLength: 11 }],
   "GHS-bank": [{ k: "bank", label: "Bank", kind: "select", options: ["Ecobank Ghana", "GCB Bank", "Standard Chartered", "Fidelity Bank", "ADB", "Stanbic Ghana"] }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "13 digits", maxLength: 16 }],
   "GHS-momo": [{ k: "wallet", label: "Provider", kind: "select", options: ["MTN MoMo", "Vodafone Cash", "AirtelTigo Money"] }, { k: "accNo", label: "Phone number", kind: "text", placeholder: "+233 XX XXX XXXX" }],
   "KES-bank": [{ k: "bank", label: "Bank", kind: "select", options: ["Equity Bank", "KCB Bank", "Co-op Bank", "ABSA", "DTB", "NCBA Bank", "Stanbic Bank"] }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "Account number", maxLength: 16 }],
   "KES-momo": [{ k: "accNo", label: "M-Pesa number", kind: "text", placeholder: "+254 7XX XXX XXX" }],
-  "TZS-bank": [{ k: "bank", label: "Bank", kind: "select", options: ["CRDB Bank", "NMB Bank", "Stanbic Tanzania", "NBC Bank"] }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "Account number", maxLength: 16 }],
-  "TZS-momo": [{ k: "wallet", label: "Provider", kind: "select", options: ["M-Pesa", "Tigo Pesa", "Airtel Money"] }, { k: "accNo", label: "Phone number", kind: "text", placeholder: "+255 XX XXX XXXX" }],
-  "MZN-bank": [{ k: "bank", label: "Bank", kind: "select", options: ["Banco BCI", "Millennium BIM", "Standard Bank", "Banco Único"] }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "NIB number", maxLength: 21 }],
-  "MZN-momo": [{ k: "accNo", label: "M-Pesa Vodacom number", kind: "text", placeholder: "+258 XX XXX XXXX" }],
+  "IDR-bank": [{ k: "bank", label: "Bank", kind: "select", options: ["Bank Central Asia (BCA)", "Bank Mandiri", "Bank Rakyat Indonesia (BRI)", "Bank Negara Indonesia (BNI)", "CIMB Niaga", "Permata Bank"] }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "Account number", maxLength: 16 }],
   "USD-wire": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. JPMorgan Chase" }, { k: "routing", label: "ABA / Routing", kind: "digits", placeholder: "9-digit routing number", maxLength: 9 }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "Account number", maxLength: 17 }],
   "USD-ach": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. Wells Fargo" }, { k: "routing", label: "ABA / Routing", kind: "digits", placeholder: "9-digit routing number", maxLength: 9 }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "Account number", maxLength: 17 }],
-  "USD-swift": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. Citibank" }, { k: "swift", label: "SWIFT / BIC", kind: "text", placeholder: "e.g. CITIUS33XXX" }, { k: "accNo", label: "Account / IBAN", kind: "text", placeholder: "Account number or IBAN" }, { k: "intBank", label: "Intermediary bank SWIFT", kind: "text", placeholder: "Optional", optional: true }],
   "GBP-fps": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. Barclays" }, { k: "sortCode", label: "Sort code", kind: "text", placeholder: "00-00-00", maxLength: 8 }, { k: "accNo", label: "Account number", kind: "digits", placeholder: "8 digits", maxLength: 8 }],
-  "GBP-swift": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. HSBC" }, { k: "swift", label: "SWIFT / BIC", kind: "text", placeholder: "e.g. HBUKGB4BXXX" }, { k: "iban", label: "IBAN", kind: "iban", placeholder: "GB00 BANK 0000 0000 0000 00" }],
   "EUR-sepa": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. ING" }, { k: "iban", label: "IBAN", kind: "iban", placeholder: "DE00 0000 0000 0000 0000 00" }, { k: "bic", label: "BIC / SWIFT", kind: "text", placeholder: "Optional for SEPA", optional: true }],
-  "EUR-swift": [{ k: "bank", label: "Bank name", kind: "text", placeholder: "e.g. Deutsche Bank" }, { k: "swift", label: "SWIFT / BIC", kind: "text", placeholder: "e.g. DEUTDEDBXXX" }, { k: "iban", label: "IBAN", kind: "iban", placeholder: "DE00 0000 0000 0000 0000 00" }],
 };
 
 const ALL_CRYPTO_NETWORKS = [
@@ -78,8 +113,16 @@ function isLookupReady(railKey, fields, schema = []) {
     case "GBP-fps": return !!fields.sortCode && (fields.accNo || "").length === 8;
     case "USD-wire":
     case "USD-ach": return (fields.routing || "").length === 9 && (fields.accNo || "").length >= 6;
-    default:
-      return schema.length > 0 && schema.every(f => f.optional || (fields[f.k] && String(fields[f.k]).trim() !== ""));
+    default: {
+      const filled = (f) => {
+        if (f.kind === "section") return true;
+        // An address is complete enough to continue once street, city and country are in —
+        // region and postal code don't exist everywhere.
+        if (f.kind === "address") return ["street", "city", "country"].every(k => (fields[`${f.k}.${k}`] || "").trim() !== "");
+        return fields[f.k] && String(fields[f.k]).trim() !== "";
+      };
+      return schema.length > 0 && schema.every(f => f.optional || filled(f));
+    }
   }
 }
 
@@ -209,7 +252,8 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
   const methods = ccy ? (PAYOUT_METHODS[ccy] || []) : [];
   const method = methods.find(m => m.id === methodId);
   const railKey = ccy && methodId ? `${ccy}-${methodId}` : null;
-  const schema = railKey ? (FIELD_SCHEMA[railKey] || []) : [];
+  // Every SWIFT corridor collects the same fields, so they share one definition.
+  const schema = railKey ? (FIELD_SCHEMA[railKey.endsWith("-swift") ? "__swift" : railKey] || []) : [];
   const cryptoChainMeta = cryptoNetwork ? ALL_CRYPTO_NETWORKS.find(c => c.id === cryptoNetwork) : null;
 
   const setField = (k, v) => setFields(prev => ({ ...prev, [k]: v }));
@@ -227,7 +271,7 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
         const match = Math.random() > 0.3 ? SELF_BUSINESS_NAME : "Acme Logistics LLC";
         setLookup({ status: match === SELF_BUSINESS_NAME ? "matched" : "mismatched", name: match });
       } else {
-        const sample = { NGN: "Adaeze Okafor", GHS: "Kojo Mensah", KES: "Joseph Mwangi", TZS: "Aisha Komba", MZN: "Lucia Macamo", GBP: "Northwood Trading Ltd", EUR: "Berlin Verlag GmbH", USD: "Riverbend Imports Inc" }[ccy] || "Recipient";
+        const sample = { NGN: "Adaeze Okafor", GHS: "Kojo Mensah", KES: "Joseph Mwangi", IDR: "PT Sinar Jaya", GBP: "Northwood Trading Ltd", EUR: "Berlin Verlag GmbH", USD: "Riverbend Imports Inc" }[ccy] || "Recipient";
         setLookup({ status: "matched", name: sample });
       }
     }, 700);
@@ -423,12 +467,16 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
 
               {method && (
                 <div className="ar-form">
-                  {schema.map(f => (
+                  {schema.map(f => f.kind === "section" ? (
+                    <div className="ar-section" key={f.k}>{f.label}</div>
+                  ) : (
                     <div className="field" key={f.k}>
                       <div className="lbl">{f.label}{f.optional ? <span className="opt">· optional</span> : <span className="req">· required</span>}</div>
-                      {f.kind === "select" ? (
+                      {f.kind === "address" ? (
+                        <AddressFields prefix={f.k} fields={fields} setField={setField} />
+                      ) : f.kind === "select" ? (
                         <select className="inp pay-select" value={fields[f.k] || ""} onChange={(e) => setField(f.k, e.target.value)}>
-                          <option value="">{`Select ${f.label.toLowerCase()}…`}</option>
+                          <option value="">Select…</option>
                           {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                       ) : (
@@ -510,9 +558,15 @@ function AddRecipientScreen({ onBack, onSaved, onToast, nameLookupMock = "defaul
                 <div className="row-item"><div className="k">Currency</div><div className="v">{ccy}</div></div>
                 <div className="row-item"><div className="k">Method</div><div className="v">{method.label}</div></div>
                 <div className="row-item"><div className="k">Account holder</div><div className="v">{resolvedName}</div></div>
-                {schema.map(f => fields[f.k] ? (
-                  <div className="row-item" key={f.k}><div className="k">{f.label}</div><div className="v">{f.k === "accNo" || f.k === "iban" ? maskAccount(fields[f.k]) : fields[f.k]}</div></div>
-                ) : null)}
+                {schema.map(f => {
+                  if (f.kind === "section") return null;
+                  if (f.kind === "address") {
+                    const parts = ["street", "city", "region", "postal", "country"].map(k => fields[`${f.k}.${k}`]).filter(Boolean);
+                    return parts.length ? <div className="row-item" key={f.k}><div className="k">{f.label}</div><div className="v">{parts.join(", ")}</div></div> : null;
+                  }
+                  if (!fields[f.k]) return null;
+                  return <div className="row-item" key={f.k}><div className="k">{f.label}</div><div className="v">{f.k === "accNo" || f.k === "iban" ? maskAccount(fields[f.k]) : fields[f.k]}</div></div>;
+                })}
               </div>
               <div className="pay-review-foot" style={{ marginTop: 24 }}>
                 <button className="btn btn-ghost" onClick={() => setStep(1)} disabled={saving}>← Back</button>

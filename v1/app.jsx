@@ -361,6 +361,9 @@ function MockControls({
         <div className="mock-label">Cards</div>
         <div className="mock-row">
           <button className={cardsAccess === "not_applied" ? "on" : ""} onClick={() => onCardsAccess("not_applied")}>Not applied</button>
+          <button className={cardsAccess === "no_cards" ? "on" : ""} onClick={() => onCardsAccess("no_cards")}>No cards yet</button>
+          <button className={cardsAccess === "no_txns" ? "on" : ""} onClick={() => onCardsAccess("no_txns")}>Card, no spend</button>
+          <button className={cardsAccess === "rejected" ? "on" : ""} onClick={() => onCardsAccess("rejected")}>KYC rejected</button>
           <button className={cardsAccess === "active" ? "on" : ""} onClick={() => onCardsAccess("active")}>Active</button>
         </div>
       </div>
@@ -671,7 +674,7 @@ function App() {
   } else if (route === "subaccounts") {
     screen = <SubAccountsScreen key={subAccountsOn} onToast={setToast} mode={subAccountsOn === "customers" ? "customers" : "units"} />;
   } else if (route === "cards") {
-    screen = <CardsScreen onToast={setToast} cardsAccess={cardsAccess} />;
+    screen = <CardsScreen key={cardsAccess} onToast={setToast} cardsAccess={cardsAccess} />;
   } else if (route === "settings") {
     screen = <SettingsScreen key={`${settingsSection}-${role}`} onToast={setToast} initialSection={settingsSection} role={role} />;
   } else if (route === "developer") {

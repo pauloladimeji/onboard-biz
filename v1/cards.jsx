@@ -1,8 +1,11 @@
 /* global React */
-/* Flex Business Cards — adaptive port of v0/screens-cards.jsx. */
+/* Business Classic cards — adaptive port of v0/screens-cards.jsx. */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
 const Data = window.OBData;
+// One constant, because the card provider (and so the product name) is still moving.
+const CARD_BRAND = "Business Classic";
+const CARD_SUPPORT_WA = "https://wa.me/14313404484";
 const { Page, Sheet, Pill, useIsDesktop, DemoCta } = window.OBPrimitives;
 
 const CARD_BG = "../v0/design-system/assets/card-bg.svg";
@@ -18,8 +21,8 @@ const CARD_TXNS = [
   { id: "CTX-001", date: "Jun 25, 14:32", party: "Figma Inc.",               type: "purchase",   amount: "45.00",    ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Software & SaaS",     merchantCountry: "United States",  ref: "TXN-001-4821" },
   { id: "CTX-002", date: "Jun 24, 09:17", party: "Google Workspace",         type: "purchase",   amount: "138.00",   ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Software & SaaS",     merchantCountry: "United States",  ref: "TXN-002-4821" },
   { id: "CTX-003", date: "Jun 22, 11:05", party: "Amazon Web Services",      type: "purchase",   amount: "1,247.83", ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Cloud Infrastructure", merchantCountry: "United States",  ref: "TXN-003-4821" },
-  { id: "CTX-004", date: "Jun 20, 16:41", party: "Notion Labs",              type: "purchase",   amount: "96.00",    ccy: "USD", fxAmount: "88.50", fxCcy: "EUR", fxRate: "1 EUR = 1.085 USD", fxFee: "1.44", status: "COMPLETED", pillTone: "success", category: "Productivity",         merchantCountry: "United States",  ref: "TXN-004-4821" },
-  { id: "CTX-005", date: "Jun 18, 08:55", party: "Linear Inc.",              type: "purchase",   amount: "80.00",    ccy: "USD", fxAmount: "63.50", fxCcy: "GBP", fxRate: "1 GBP = 1.260 USD", fxFee: "1.20", status: "PENDING",   pillTone: "warn",    category: "Software & SaaS",     merchantCountry: "United Kingdom", ref: "TXN-005-4821" },
+  { id: "CTX-004", date: "Jun 20, 16:41", party: "Notion Labs",              type: "purchase",   amount: "96.00",    ccy: "USD", fxAmount: "88.50", fxCcy: "EUR", fxRate: "1 EUR = 1.085 USD", fxFee: "2.44", status: "COMPLETED", pillTone: "success", category: "Productivity",         merchantCountry: "United States",  ref: "TXN-004-4821" },
+  { id: "CTX-005", date: "Jun 18, 08:55", party: "Linear Inc.",              type: "purchase",   amount: "80.00",    ccy: "USD", fxAmount: "63.50", fxCcy: "GBP", fxRate: "1 GBP = 1.260 USD", fxFee: "2.20", status: "PENDING",   pillTone: "warn",    category: "Software & SaaS",     merchantCountry: "United Kingdom", ref: "TXN-005-4821" },
   { id: "CTX-006", date: "Jun 15, 13:20", party: "Vercel Inc.",              type: "purchase",   amount: "240.00",   ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Cloud Infrastructure", merchantCountry: "United States",  ref: "TXN-006-4821" },
   { id: "CTX-F01", date: "Jun 10, 10:03", party: "Top-up from USD wallet",   type: "funding",    amount: "500.00",   ccy: "USD", fee: "2.50", netFunded: "497.50",         status: "COMPLETED", pillTone: "success", ref: "TXN-F01-4821" },
   { id: "CTX-C01", date: "Jun 10, 09:58", party: "Card creation fee",        type: "creation",   amount: "5.00",     ccy: "USD",                                          status: "COMPLETED", pillTone: "success", ref: "TXN-C01-4821" },
@@ -42,7 +45,9 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
 
   const status = card.status;
   const activating = status === "activating";
-  const failed = status === "failed";
+  // KYC rejection looks like a failure but isn't retryable, so it carries its own label.
+  const rejected = status === "rejected";
+  const failed = status === "failed" || rejected;
   const frozen = status === "frozen";
   const muted = frozen || activating || failed;
   const canInteract = interactive && !activating && !failed;
@@ -77,7 +82,7 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
 
   const hoverProps = (field) => isDesktop ? { onMouseEnter: () => setHoverField(field), onMouseLeave: () => setHoverField(null) } : {};
 
-  const statusLabel = frozen ? "Frozen" : activating ? "Activating" : failed ? "Failed" : null;
+  const statusLabel = frozen ? "Frozen" : activating ? "Activating" : rejected ? "Not approved" : failed ? "Failed" : null;
 
   return (
     <div className={`card-visual ${muted ? "muted" : ""} ${frozen ? "frozen" : ""} ${failed ? "failed" : ""}`}
@@ -85,7 +90,7 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
       {activating && <style>{`@keyframes cardPulse{0%,100%{opacity:.75}50%{opacity:.95}}`}</style>}
       <div className="card-visual-content">
         <div>
-          <div style={{ fontSize: compact ? 12 : 15, fontWeight: 500, letterSpacing: "0.02em" }}>Flex Business</div>
+          <div style={{ fontSize: compact ? 12 : 15, fontWeight: 500, letterSpacing: "0.02em" }}>{CARD_BRAND}</div>
           {statusLabel && <div className={`card-status-badge ${failed ? "failed" : ""}`}>{statusLabel}</div>}
         </div>
         <div style={{ flex: 1 }} />
@@ -93,12 +98,12 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
           <div style={{ marginBottom: compact ? 8 : 12 }}>
             <div className="card-field" {...hoverProps("number")} onClick={handleClick("number")}
                  style={{ fontSize: numSize, fontWeight: 500, letterSpacing: "0.12em", background: hlNum ? "rgba(255,255,255,.15)" : "transparent", cursor: canInteract ? "pointer" : "default" }}>
-              {revealed && canInteract ? card.number : `•••• •••• •••• ${card.last4}`}
+              {rejected ? "•••• •••• •••• ••••" : revealed && canInteract ? card.number : `•••• •••• •••• ${card.last4}`}
               {cardTip("number")}
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div style={{ display: "flex", gap: compact ? 16 : 24 }}>
+            <div style={{ display: "flex", gap: compact ? 16 : 24, visibility: rejected ? "hidden" : "visible" }}>
               <div className="card-field" {...hoverProps("exp")} onClick={handleClick("exp")}
                    style={{ background: hlExp ? "rgba(255,255,255,.15)" : "transparent", cursor: canInteract ? "pointer" : "default" }}>
                 <div className="card-field-lbl" style={{ fontSize: labelSize }}>Exp</div>
@@ -125,6 +130,7 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
 
 function CardTile({ card, onClick }) {
   const activating = card.status === "activating";
+  const rejected = card.status === "rejected";
   const failed = card.status === "failed";
   return (
     <div className="card-tile" onClick={onClick}>
@@ -133,11 +139,12 @@ function CardTile({ card, onClick }) {
         <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--gray-900)" }}>{card.name}</div>
         {activating ? (
           <div className="card-tile-status"><span className="spin" style={{ width: 12, height: 12 }} /><span style={{ color: "var(--purple-600,#7C3AED)", fontWeight: 500 }}>Activating…</span></div>
-        ) : failed ? (
-          <div style={{ fontSize: 12, color: "#DC2626", fontWeight: 500, marginTop: 4 }}>Activation failed</div>
+        ) : (failed || rejected) ? (
+          <div style={{ fontSize: 12, color: "#DC2626", fontWeight: 500, marginTop: 4 }}>{rejected ? "Not approved" : "Activation failed"}</div>
         ) : (
           <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
             Virtual · ••{card.last4}
+
             {card.status === "frozen" && <span style={{ color: "var(--info-700)", marginLeft: 6 }}>· Frozen</span>}
           </div>
         )}
@@ -231,7 +238,7 @@ function CardTxnDetailSheet({ tx, card, onClose, onToast }) {
     tx.type === "funding" && tx.netFunded && { label: "Net funded", value: `$${tx.netFunded}` },
     tx.type === "withdrawal" && { label: "Destination", value: "USD wallet balance" },
     isFx && { label: "Exchange rate", value: tx.fxRate },
-    isFx && tx.fxFee && { label: "FX fee", value: `1.5% ($${tx.fxFee})` },
+    isFx && tx.fxFee && { label: "FX fee", value: `1.5% + $1.00 ($${tx.fxFee})` },
     card && { label: "Card", value: `${card.name} ••${card.last4}` },
     tx.category && { label: "Category", value: tx.category },
     tx.merchantCountry && { label: "Merchant country", value: tx.merchantCountry },
@@ -542,7 +549,7 @@ function CardFeesSheet({ onClose }) {
     { label: "Funding fee", value: "0.5%", note: "Per top-up transaction" },
     { label: "Monthly fee", value: "Free", note: null },
     { label: "Card transactions", value: "Free", note: null },
-    { label: "FX transactions", value: "—", note: "Coming soon" },
+    { label: "FX transactions", value: "1.5% + $1.00", note: "On non-USD spend" },
   ];
   return (
     <Sheet open onClose={onClose} title="Fee schedule">
@@ -633,40 +640,94 @@ function CardDetailsCard({ card, onToast }) {
 // =====================================================
 // Cards list page
 // =====================================================
-function CardsListPage({ cards, onSelect, onCreateCard }) {
-  const allTxns = CARD_TXNS.map((tx, i) => ({ ...tx, card: cards[i % Math.max(cards.length, 1)] }));
+// First run has no cards, so the "+ New card" tile has nothing to append to and the header
+// button, the tile and the empty-state button are three controls firing the same action. One
+// CTA instead, and the panel does the job those buttons weren't: saying what a card is for.
+const PLACEHOLDER_CARD = { name: CARD_BRAND, last4: "••••", expiry: "••/••", cvv: "•••", number: "", status: "active", balance: 0 };
+const CARD_BENEFITS = [
+  "Works anywhere online, plus Apple Pay and Google Pay",
+  "Funded from your USD balance — top up or withdraw anytime",
+  "Freeze, unfreeze or delete it in one tap",
+];
+
+// Cards exist but nothing has been spent yet. Split by whether the card can actually transact:
+// "nothing here yet" is a different message from "nothing can happen here yet".
+function CardTxnsEmpty({ pending }) {
+  return (
+    <div className="empty" style={{ padding: "44px 16px" }}>
+      <div className="ic"><Icon.card style={{ width: 28, height: 28 }} /></div>
+      <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--gray-700)", marginBottom: 4 }}>No transactions yet</div>
+      <div style={{ fontSize: 12.5, color: "var(--gray-500)", maxWidth: 320, margin: "0 auto", lineHeight: 1.55 }}>
+        {pending
+          ? "Transactions will appear here once your card is active."
+          : "Use your card online and transactions will show up here."}
+      </div>
+    </div>
+  );
+}
+
+function CardsEmptyState({ onCreateCard }) {
+  const [showFees, setShowFees] = useState(false);
+  return (
+    <div className="card cards-empty">
+      <div className="cards-empty-copy">
+        <h2>Create your first card</h2>
+        <p>Virtual cards for online payments, subscriptions and ad spend — funded straight from your USD balance.</p>
+        <ul className="cards-empty-list">
+          {CARD_BENEFITS.map(b => <li key={b}><Icon.check /><span>{b}</span></li>)}
+        </ul>
+        <div className="cards-empty-actions">
+          <button className="btn btn-lg" onClick={onCreateCard}><Icon.plus style={{ width: 15, height: 15 }} /> Create card</button>
+          <button className="btn btn-ghost btn-lg" onClick={() => setShowFees(true)}>View fees</button>
+        </div>
+      </div>
+      <div className="cards-empty-art"><CardVisual card={PLACEHOLDER_CARD} /></div>
+      {showFees && <CardFeesSheet onClose={() => setShowFees(false)} />}
+    </div>
+  );
+}
+
+function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
+  const allTxns = txns.map((tx, i) => ({ ...tx, card: cards[i % Math.max(cards.length, 1)] }));
   const [selectedTxn, setSelectedTxn] = useState(null);
+  const isEmpty = cards.length === 0;
+  // No create affordances while the provider has declined the business — otherwise the customer
+  // mints one dead card after another.
+  const canCreate = !blocked;
 
   return (
     <Page>
       <div className="page-head">
-        <div><h1 className="title">Cards</h1><p className="subtitle">Manage your Flex Business virtual cards.</p></div>
-        <button className="btn btn-lg" onClick={onCreateCard}><Icon.plus style={{ width: 15, height: 15 }} /> Create card</button>
+        <div><h1 className="title">Cards</h1><p className="subtitle">Manage your {CARD_BRAND} virtual cards.</p></div>
+        {!isEmpty && canCreate && <button className="btn btn-lg" onClick={onCreateCard}><Icon.plus style={{ width: 15, height: 15 }} /> Create card</button>}
       </div>
 
-      <div className="cards-scroll rail-tabs" style={{ display: "flex", gap: 20, border: "none", marginBottom: 28 }}>
-        {cards.map((c) => <div key={c.id} style={{ flexShrink: 0 }}><CardTile card={c} onClick={() => onSelect(c)} /></div>)}
-        <div className="card-new-tile" onClick={onCreateCard}>
-          <Icon.plus style={{ width: 20, height: 20, color: "var(--gray-600)" }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)" }}>New card</span>
-        </div>
-      </div>
-
-      {cards.length > 0 ? (
-        <div className="records-card">
-          <div className="records-head"><h2>Card transactions</h2><span className="meta">{allTxns.length} transactions</span></div>
-          <CardTxnList txns={allTxns} onOpen={setSelectedTxn} showCard />
-        </div>
-      ) : (
-        <div className="card">
-          <div className="empty">
-            <div className="ic"><Icon.card style={{ width: 36, height: 36 }} /></div>
-            <div style={{ fontWeight: 500, color: "var(--gray-900)", marginBottom: 4, fontSize: 14 }}>No cards yet</div>
-            <div style={{ fontSize: 12.5, color: "var(--gray-500)", maxWidth: 360, margin: "4px auto 16px", lineHeight: 1.6 }}>Create a virtual card to start making payments online or add to Apple Pay and Google Pay.</div>
-            <button className="btn btn-lg" onClick={onCreateCard}>Create your first card</button>
-          </div>
+      {!isEmpty && !blocked && (
+        <div className="cards-scroll rail-tabs" style={{ display: "flex", gap: 20, border: "none", marginBottom: 28 }}>
+          {cards.map((c) => <div key={c.id} style={{ flexShrink: 0 }}><CardTile card={c} onClick={() => onSelect(c)} /></div>)}
+          {canCreate && (
+            <div className="card-new-tile" onClick={onCreateCard}>
+              <Icon.plus style={{ width: 20, height: 20, color: "var(--gray-600)" }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-700)" }}>New card</span>
+            </div>
+          )}
         </div>
       )}
+
+      {blocked && (
+        <CardRejectedPanel scope="business" />
+      )}
+
+      {!isEmpty && !blocked ? (
+        <div className="records-card">
+          <div className="records-head"><h2>Card transactions</h2><span className="meta">{allTxns.length} transactions</span></div>
+          {allTxns.length > 0
+            ? <CardTxnList txns={allTxns} onOpen={setSelectedTxn} showCard />
+            : <CardTxnsEmpty pending={cards.every(c => c.status !== "active" && c.status !== "frozen")} />}
+        </div>
+      ) : isEmpty && !blocked ? (
+        <CardsEmptyState onCreateCard={onCreateCard} />
+      ) : null}
       <CardTxnDetailSheet tx={selectedTxn} card={selectedTxn?.card} onClose={() => setSelectedTxn(null)} />
     </Page>
   );
@@ -675,7 +736,38 @@ function CardsListPage({ cards, onSelect, onCreateCard }) {
 // =====================================================
 // Card detail page
 // =====================================================
-function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard }) {
+// A card that was never approved can't have transactions, so the notice takes the space the
+// transaction panel would have used rather than being squeezed into the 360px card column.
+// The provider declines the *business*, not one card — so the next card fails identically.
+// `scope="business"` is the version that says so; the card-level one only covers the request
+// that happened to be in flight when it was declined.
+// The provider declines the *business*, not one card — so at business scope there is no card to
+// show, only a request that was declined. Leading with a card tile would assert an object that
+// doesn't exist, and push the explanation below it on its own page.
+function CardRejectedPanel({ scope = "card", onRemove }) {
+  // Business scope carries no per-request detail and no dismiss: the fact is that cards are off,
+  // and an action whose only effect is hiding that explanation would leave a blank page.
+  const business = scope === "business";
+  return (
+    <div className="card card-rejected">
+      <div className="card-rejected-ic"><Icon.alert /></div>
+      <h2>{business ? "Card issuing not approved" : "Card not approved"}</h2>
+      <p>
+        Our card provider couldn't verify your business for card issuing{business ? ", so cards aren't available on your account right now" : ""}.
+        {" "}Your account, balances and payments are unaffected.
+      </p>
+      <p>Your account team can tell you what the provider needs, and whether it's worth trying again.</p>
+      <div className="card-rejected-actions">
+        <a className="btn btn-lg" href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer">Message your account team</a>
+        {!business && onRemove && <button className="btn btn-ghost btn-lg" style={{ color: "#DC2626", gap: 6 }} onClick={onRemove}>
+          <Icon.trash style={{ width: 14, height: 14 }} /> Remove card
+        </button>}
+      </div>
+    </div>
+  );
+}
+
+function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txns }) {
   const [showFund, setShowFund] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showFreeze, setShowFreeze] = useState(false);
@@ -688,6 +780,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard }) {
   const frozen = card.status === "frozen";
   const activating = card.status === "activating";
   const failed = card.status === "failed";
+  const rejected = card.status === "rejected";
   const usable = card.status === "active" || card.status === "frozen";
 
   const handleFreeze = () => { onUpdateCard({ ...card, status: frozen ? "active" : "frozen" }); onToast(frozen ? "Card unfrozen" : "Card frozen"); setShowFreeze(false); };
@@ -719,7 +812,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard }) {
       ) : (
         <h1 className="title" style={{ marginBottom: 4 }}>{card.name}</h1>
       )}
-      <p className="subtitle" style={{ marginBottom: 20 }}>Virtual · Created {card.created}</p>
+      <p className="subtitle" style={{ marginBottom: 20 }}>{rejected ? `Requested ${card.created}` : `Virtual · Created ${card.created}`}</p>
 
       <div className="card-detail-grid">
         <div className="card-detail-left">
@@ -767,16 +860,16 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard }) {
         </div>
 
         <div className="card-detail-right">
+          {rejected ? (
+            <CardRejectedPanel onRemove={() => { onDeleteCard(card.id); onToast("Card removed"); }} />
+          ) : (
           <div className="records-card">
-            <div className="records-head"><h2>Card transactions</h2><span className="meta">{usable ? CARD_TXNS.length : 0} transactions</span></div>
-            {usable ? <CardTxnList txns={CARD_TXNS} onOpen={setSelectedTxn} /> : (
-              <div className="empty" style={{ padding: "40px 0" }}>
-                <div className="ic"><Icon.card style={{ width: 28, height: 28 }} /></div>
-                <div style={{ fontSize: 13.5, fontWeight: 500, color: "var(--gray-700)", marginBottom: 4 }}>No transactions yet</div>
-                <div style={{ fontSize: 12.5, color: "var(--gray-500)" }}>Transactions will appear here once your card is active.</div>
-              </div>
-            )}
+            <div className="records-head"><h2>Card transactions</h2><span className="meta">{usable ? txns.length : 0} transactions</span></div>
+            {usable && txns.length > 0
+              ? <CardTxnList txns={txns} onOpen={setSelectedTxn} />
+              : <CardTxnsEmpty pending={!usable} />}
           </div>
+          )}
         </div>
       </div>
 
@@ -798,12 +891,12 @@ function CardsApplyPage({ onApply }) {
   return (
     <Page>
       <div className="cards-apply">
-        <div className="cards-apply-eyebrow">Flex Business Cards</div>
+        <div className="cards-apply-eyebrow">{CARD_BRAND} cards</div>
         <h1 className="cards-apply-h1">Spend flexibly, anywhere</h1>
         <p className="cards-apply-lede">Issue virtual cards with granular spending limits. Use online or add to Apple Pay and Google Pay.</p>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
           <div className="cards-apply-visual">
-            <div style={{ fontSize: 14, fontWeight: 400, letterSpacing: "0.02em" }}>Flex Business</div>
+            <div style={{ fontSize: 14, fontWeight: 400, letterSpacing: "0.02em" }}>{CARD_BRAND}</div>
             <div style={{ flex: 1 }} />
             <div style={{ fontSize: 16, letterSpacing: "0.12em", fontVariantNumeric: "tabular-nums", marginBottom: 14 }}>•••• •••• •••• ••••</div>
             <div style={{ display: "flex", gap: 24 }}>
@@ -835,8 +928,18 @@ function CardsApplyPage({ onApply }) {
 // =====================================================
 // Root
 // =====================================================
+// The fixtures always seed three funded cards with a full transaction history, which hides every
+// first-run and failure state. These seeds make them reachable.
+function seedCards(access) {
+  if (access === "no_cards") return [];
+  if (access === "no_txns") return [{ ...Data.CARDS[0], balance: 0 }];
+  if (access === "rejected") return [{ ...Data.CARDS[0], status: "rejected", balance: 0 }];
+  return [...Data.CARDS];
+}
+
 function CardsScreen({ onToast, cardsAccess = "active" }) {
-  const [cards, setCards] = useState(() => [...Data.CARDS]);
+  const [cards, setCards] = useState(() => seedCards(cardsAccess));
+  const txns = (cardsAccess === "no_txns" || cardsAccess === "rejected") ? [] : CARD_TXNS;
   const [view, setView] = useState("list");
   const [selectedCard, setSelectedCard] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -864,12 +967,12 @@ function CardsScreen({ onToast, cardsAccess = "active" }) {
   if (view === "detail" && selectedCard) {
     const liveCard = cards.find((c) => c.id === selectedCard.id);
     if (!liveCard) { setView("list"); return null; }
-    return <CardDetailPage card={liveCard} onBack={handleBack} onToast={onToast} onUpdateCard={handleUpdate} onDeleteCard={handleDelete} />;
+    return <CardDetailPage card={liveCard} onBack={handleBack} onToast={onToast} onUpdateCard={handleUpdate} onDeleteCard={handleDelete} txns={txns} />;
   }
 
   return (
     <>
-      <CardsListPage cards={cards} onSelect={handleSelect} onCreateCard={() => setShowCreate(true)} />
+      <CardsListPage cards={cards} onSelect={handleSelect} onCreateCard={() => setShowCreate(true)} txns={txns} blocked={cardsAccess === "rejected"} />
       {showCreate && <CreateCardSheet onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
     </>
   );
