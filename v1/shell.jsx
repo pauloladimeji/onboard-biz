@@ -1,9 +1,26 @@
 /* global React */
 const Icon = window.OBIcon;
-const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, APPLY_URL, SALES_CALL_URL, can } = window.OBPrimitives;
+const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, APPLY_URL, SALES_CALL_URL, can, ROLE_LABEL } = window.OBPrimitives;
 const { useState, useEffect } = React;
 
 const AM = { wa: "https://wa.me/14313404484" };
+// The signed-in member, matching the "you" row in Settings > Team.
+const SIGNED_IN = { name: "Jide Nwosu", initials: "JN" };
+
+// Roles hide what they can't reach rather than disabling it, so nothing on screen ever explains
+// why an action is missing. This is the one place that says which role you're in.
+function UserIdentity({ role, className = "sb-user", onClick }) {
+  return (
+    <button type="button" className={className} onClick={onClick}>
+      <div className="sb-user-ava">{SIGNED_IN.initials}</div>
+      <div className="sb-user-meta">
+        <div className="sb-user-name">{SIGNED_IN.name}</div>
+        <div className="sb-user-role">{ROLE_LABEL[role] || "Admin"}</div>
+      </div>
+      <Icon.arrowRight className="sb-user-go" />
+    </button>
+  );
+}
 
 const WaIcon = (p) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
@@ -146,7 +163,6 @@ function TopBar({ onOpenMock, isDemo }) {
       <div style={{ flex: 1 }} />
       <div className="right">
         {!isDemo && <button className="gear" onClick={onOpenMock} aria-label="Mock controls"><Icon.cog style={{ width: 16, height: 16 }} /></button>}
-        <div className="avatar">JN</div>
       </div>
     </header>
   );
@@ -169,7 +185,7 @@ function SidebarV1({ active, onNavigate, subAccountsOn, role }) {
       {visibleNav(WORKSPACE_NAV, role).map(item)}
       <div style={{ flex: 1 }} />
       <AccountManagerCard />
-      <div className="sb-foot">Onboard Business · v1 (adaptive)</div>
+      <UserIdentity role={role} onClick={() => onNavigate("settings")} />
     </aside>
   );
 }
@@ -183,7 +199,6 @@ function TopBarMobile({ onOpenMock, isDemo }) {
         <a className="topnav-wa" href={AM.wa} target="_blank" rel="noopener noreferrer" aria-label="Chat with your Account Manager">
           <WaIcon style={{ width: 15, height: 15 }} />
         </a>
-        <div className="avatar">JN</div>
       </div>
     </header>
   );
@@ -211,6 +226,7 @@ function MoreSheet({ open, onClose, onNavigate, subAccountsOn, role }) {
   const items = visibleNav(subAccountsOn ? [SUBACCOUNTS_NAV, ...MORE_NAV] : MORE_NAV, role);
   return (
     <Sheet open={open} onClose={onClose} title="More">
+      <UserIdentity role={role} className="sheet-user" onClick={() => { onNavigate("settings"); onClose(); }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {items.map(n => (
           <div key={n.id} className="sb-item" style={{ borderRight: "none", borderRadius: 8 }} onClick={() => { onNavigate(n.id); onClose(); }}>

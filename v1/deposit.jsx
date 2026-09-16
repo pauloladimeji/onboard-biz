@@ -5,6 +5,7 @@ const NetworkIcon = window.OBNetworkIcon;
 const { STABLECOIN_CHAINS } = window.OBData;
 const { Page, Sheet, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel, can, NoAccessNote } = window.OBPrimitives;
 const Combobox = window.OBCombobox;
+const { AccountLetterPrintable, openAccountLetter } = window.OBLetter;
 
 function CoinBadge({ coin, size = 26 }) {
   const colors = { USDC: "#2775CA", USDT: "#26A17B" };
@@ -16,7 +17,7 @@ function CoinBadge({ coin, size = 26 }) {
   );
 }
 
-function PanelActions({ fields, onCopy, showPdf = true }) {
+function PanelActions({ fields, onCopy, showPdf = true, onLetter }) {
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
       <button className="btn btn-soft btn-sm" onClick={() => {
@@ -24,7 +25,7 @@ function PanelActions({ fields, onCopy, showPdf = true }) {
         if (navigator.clipboard) navigator.clipboard.writeText(lines).catch(() => {});
         onCopy();
       }}><Icon.copy /> Copy account details</button>
-      {showPdf && <button className="btn btn-ghost btn-sm"><Icon.doc /> Download as PDF</button>}
+      {showPdf && <button className="btn btn-ghost btn-sm" onClick={onLetter}><Icon.doc /> Account letter</button>}
     </div>
   );
 }
@@ -391,9 +392,10 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits, ro
       </div>
       {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
-      <PanelActions fields={copyableFields} onCopy={onCopy} />
+      <PanelActions fields={copyableFields} onCopy={onCopy} onLetter={openAccountLetter} />
       <FeeGrid fees={data.fees} limits={data.limits} aboutLabel={data.feeNote ? "About fees and limits" : "About deposit limits"} onAbout={() => setShowLimits(true)} onSeeAll={onSeeAllLimits} />
       {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} feeNote={data.feeNote} />}
+      <AccountLetterPrintable ccy={ccy} fields={data.fields} />
     </div>
   );
 }

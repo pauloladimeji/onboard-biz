@@ -6,6 +6,7 @@ const Data = window.OBData;
 // One constant, because the card provider (and so the product name) is still moving.
 const CARD_BRAND = "Business Classic";
 const CARD_SUPPORT_WA = "https://wa.me/14313404484";
+const CARD_MIN_BALANCE = 1;
 const { Page, Sheet, Pill, useIsDesktop, DemoCta } = window.OBPrimitives;
 
 const CARD_BG = "../v0/design-system/assets/card-bg.svg";
@@ -145,7 +146,9 @@ function CardTile({ card, onClick }) {
           <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
             Virtual · ••{card.last4}
 
-            {card.status === "frozen" && <span style={{ color: "var(--info-700)", marginLeft: 6 }}>· Frozen</span>}
+            {card.status === "frozen" && (card.lowBalance
+              ? <span style={{ color: "#DC2626", marginLeft: 6, fontWeight: 500 }}>· Needs funding</span>
+              : <span style={{ color: "var(--info-700)", marginLeft: 6 }}>· Frozen</span>)}
           </div>
         )}
       </div>
@@ -782,10 +785,19 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
   const failed = card.status === "failed";
   const rejected = card.status === "rejected";
   const usable = card.status === "active" || card.status === "frozen";
+  // Below the $1.00 minimum the provider freezes the card, and only funding unfreezes it — so
+  // this is frozen, but with no Unfreeze button, since pressing it would just fail.
+  const lowBalance = frozen && card.lowBalance;
 
   const handleFreeze = () => { onUpdateCard({ ...card, status: frozen ? "active" : "frozen" }); onToast(frozen ? "Card unfrozen" : "Card frozen"); setShowFreeze(false); };
   const handleSaveName = () => { if (nameVal.trim() && nameVal.trim() !== card.name) { onUpdateCard({ ...card, name: nameVal.trim() }); onToast("Card name updated"); } setEditingName(false); };
-  const handleFund = (amount) => { onUpdateCard({ ...card, balance: (card.balance || 0) + amount }); setShowFund(false); onToast(`$${amount.toFixed(2)} added`); };
+  const handleFund = (amount) => {
+    const balance = (card.balance || 0) + amount;
+    const lifts = card.lowBalance && balance >= CARD_MIN_BALANCE;
+    onUpdateCard({ ...card, balance, ...(lifts ? { status: "active", lowBalance: false } : {}) });
+    setShowFund(false);
+    onToast(lifts ? `$${amount.toFixed(2)} added — card unfrozen` : `$${amount.toFixed(2)} added`);
+  };
   const handleWithdraw = (amount) => { onUpdateCard({ ...card, balance: Math.max(0, (card.balance || 0) - amount) }); setShowWithdraw(false); onToast(`$${amount.toFixed(2)} withdrawn to USD wallet`); };
   const handleRetry = () => { onUpdateCard({ ...card, status: "activating" }); onToast("Retrying activation…"); };
   const handleMoreAction = (key) => {
@@ -828,6 +840,14 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
             </div>
           )}
 
+          {lowBalance && (
+            <div className="card card-lowbal">
+              <div className="card-lowbal-head"><Icon.alert /><span>Card funding required</span></div>
+              <p>This card fell below the ${CARD_MIN_BALANCE.toFixed(2)} minimum balance, so it's been frozen. Fund it and it unfreezes as soon as the balance is back above the minimum.</p>
+              <div className="card-lowbal-bal"><span>Current balance</span><strong>${fmtBal(card.balance || 0)}</strong></div>
+            </div>
+          )}
+
           {failed && (
             <div className="card" style={{ marginTop: 16, padding: "16px 18px" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -847,9 +867,11 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
           {usable && (
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               <button className="btn btn-lg" style={{ flex: 1, fontSize: 13, padding: "10px 12px", justifyContent: "center" }} onClick={() => setShowFund(true)}><Icon.plus style={{ width: 14, height: 14 }} /> Fund</button>
-              <button className="btn btn-ghost" style={{ flex: 1, fontSize: 13, padding: "10px 12px", gap: 6, justifyContent: "center", border: "1.5px solid var(--gray-300)", color: frozen ? "var(--success-700)" : "var(--gray-700)" }} onClick={() => setShowFreeze(true)}>
-                {frozen ? <><Icon.zap style={{ width: 14, height: 14 }} /> Unfreeze</> : <><Icon.snowflake style={{ width: 14, height: 14 }} /> Freeze</>}
-              </button>
+              {!lowBalance && (
+                <button className="btn btn-ghost" style={{ flex: 1, fontSize: 13, padding: "10px 12px", gap: 6, justifyContent: "center", border: "1.5px solid var(--gray-300)", color: frozen ? "var(--success-700)" : "var(--gray-700)" }} onClick={() => setShowFreeze(true)}>
+                  {frozen ? <><Icon.zap style={{ width: 14, height: 14 }} /> Unfreeze</> : <><Icon.snowflake style={{ width: 14, height: 14 }} /> Freeze</>}
+                </button>
+              )}
               <button className="btn btn-ghost" style={{ fontSize: 13, padding: "10px 14px", justifyContent: "center", gap: 5, border: "1.5px solid var(--gray-300)", color: "var(--gray-700)" }} onClick={() => setShowMore(true)}>
                 More <Icon.arrowDown style={{ width: 13, height: 13 }} />
               </button>
@@ -934,6 +956,7 @@ function seedCards(access) {
   if (access === "no_cards") return [];
   if (access === "no_txns") return [{ ...Data.CARDS[0], balance: 0 }];
   if (access === "rejected") return [{ ...Data.CARDS[0], status: "rejected", balance: 0 }];
+  if (access === "low_balance") return Data.CARDS.map((c, i) => i === 0 ? { ...c, status: "frozen", lowBalance: true, balance: 0.2 } : c);
   return [...Data.CARDS];
 }
 

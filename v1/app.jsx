@@ -364,6 +364,7 @@ function MockControls({
           <button className={cardsAccess === "no_cards" ? "on" : ""} onClick={() => onCardsAccess("no_cards")}>No cards yet</button>
           <button className={cardsAccess === "no_txns" ? "on" : ""} onClick={() => onCardsAccess("no_txns")}>Card, no spend</button>
           <button className={cardsAccess === "rejected" ? "on" : ""} onClick={() => onCardsAccess("rejected")}>KYC rejected</button>
+          <button className={cardsAccess === "low_balance" ? "on" : ""} onClick={() => onCardsAccess("low_balance")}>Low balance</button>
           <button className={cardsAccess === "active" ? "on" : ""} onClick={() => onCardsAccess("active")}>Active</button>
         </div>
       </div>
