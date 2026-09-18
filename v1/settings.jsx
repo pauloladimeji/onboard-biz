@@ -55,7 +55,7 @@ function SettingsBodySkeleton() {
   );
 }
 
-function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "profile", role = "admin" }) {
+function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "profile", role = "admin", focusRole = 0 }) {
   const sections = SECTIONS.filter(s => !s.needs || can(role, s.needs));
   const [active, setActive] = useStateS(sections.some(s => s.id === initialSection) ? initialSection : "profile");
   const [bodyLoading, setBodyLoading] = useStateS(true);
@@ -84,7 +84,7 @@ function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "prof
         <div className="settings-body">
           {bodyLoading ? <SettingsBodySkeleton /> : (
             <>
-              {active === "profile" && <ProfileSection onToast={onToast} role={role} />}
+              {active === "profile" && <ProfileSection onToast={onToast} role={role} focusRole={focusRole} />}
               {active === "limits" && <LimitsSection />}
               {active === "team" && can(role, "team") && <TeamSection onToast={onToast} />}
               {active === "security" && <SecuritySection onToast={onToast} />}
@@ -96,8 +96,19 @@ function SettingsScreen({ onToast, apiAccess = "granted", initialSection = "prof
   );
 }
 
-function ProfileSection({ onToast, role = "admin" }) {
+function ProfileSection({ onToast, role = "admin", focusRole = 0 }) {
   const p = BUSINESS_PROFILE;
+  // Arrived from the dashboard role chip: bring the row into view and flash it, otherwise the
+  // person lands at the top of a long page with no sign of what they came for.
+  useEffectS(() => {
+    if (!focusRole) return;
+    const el = document.getElementById("set-role-row");
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("row-flash");
+    const t = setTimeout(() => el.classList.remove("row-flash"), 1800);
+    return () => clearTimeout(t);
+  }, [focusRole]);
   const supportNote = (
     <div className="set-support-note">
       <SIcon.email />
@@ -139,7 +150,7 @@ function ProfileSection({ onToast, role = "admin" }) {
         <div className="set-list">
           <ReadOnlyRow label="Name" value={p.primaryContact.name} />
           <ReadOnlyRow label="Email" value={p.primaryContact.email} />
-          <ReadOnlyRow label="Your role" value={ROLE_LABEL[role]}
+          <ReadOnlyRow id="set-role-row" label="Your role" value={ROLE_LABEL[role]}
             sub={`${(ROLES.find(r => r.id === role) || {}).blurb}. Only an admin can change this.`} />
         </div>
       </div>
@@ -426,9 +437,9 @@ function RoleSheet({ member, onClose, onPick }) {
   );
 }
 
-function ReadOnlyRow({ label, value, sub }) {
+function ReadOnlyRow({ label, value, sub, id }) {
   return (
-    <div className="set-row">
+    <div className="set-row" id={id}>
       <div className="set-row-k">{label}</div>
       <div className="set-row-v"><div className="strong">{value}</div>{sub && <div className="set-row-help">{sub}</div>}</div>
     </div>

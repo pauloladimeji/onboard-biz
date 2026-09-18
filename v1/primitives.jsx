@@ -25,6 +25,7 @@ const CONSUMER_APP_LINKS = {
   android: "https://play.google.com/store/apps/details?id=com.onboard.wallet&hl=en",
   ios: "https://apps.apple.com/us/app/onboard-global/id1665198778",
 };
+const SIGNED_IN = { name: "Jide Nwosu", initials: "JN" };
 const SALES_CALL_URL = "https://calendar.app.google/u5Nx8oTyomazzE1h7";
 
 // ---------- Demo mode ----------
@@ -559,5 +560,5 @@ window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
   TALLY_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
-  ROLES, ROLE_LABEL, can, NoAccess, NoAccessNote,
+  ROLES, ROLE_LABEL, can, NoAccess, NoAccessNote, SIGNED_IN,
 };

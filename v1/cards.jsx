@@ -7,6 +7,11 @@ const Data = window.OBData;
 const CARD_BRAND = "Business Classic";
 const CARD_SUPPORT_WA = "https://wa.me/14313404484";
 const CARD_MIN_BALANCE = 1;
+// Frozen is deliberately not here: the user chose it and can undo it, so hiding it would lose
+// the card they're looking for. Only states that can never become active again.
+const DEAD_STATUSES = ["failed", "terminated"];
+const HIDE_DEAD_KEY = "ob_cards_hide_dead";
+
 const { Page, Sheet, Pill, useIsDesktop, DemoCta } = window.OBPrimitives;
 
 const CARD_BG = "../v0/design-system/assets/card-bg.svg";
@@ -48,7 +53,10 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
   const activating = status === "activating";
   // KYC rejection looks like a failure but isn't retryable, so it carries its own label.
   const rejected = status === "rejected";
-  const failed = status === "failed" || rejected;
+  // Terminated is final and keeps its history — it reads as a spent card, not a broken one.
+  const terminated = status === "terminated";
+  const failed = status === "failed" || rejected || terminated;
+  const neverIssued = status === "failed" || rejected;
   const frozen = status === "frozen";
   const muted = frozen || activating || failed;
   const canInteract = interactive && !activating && !failed;
@@ -83,7 +91,7 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
 
   const hoverProps = (field) => isDesktop ? { onMouseEnter: () => setHoverField(field), onMouseLeave: () => setHoverField(null) } : {};
 
-  const statusLabel = frozen ? "Frozen" : activating ? "Activating" : rejected ? "Not approved" : failed ? "Failed" : null;
+  const statusLabel = frozen ? "Frozen" : activating ? "Activating" : terminated ? "Terminated" : rejected ? "Not approved" : failed ? "Failed" : null;
 
   return (
     <div className={`card-visual ${muted ? "muted" : ""} ${frozen ? "frozen" : ""} ${failed ? "failed" : ""}`}
@@ -99,12 +107,12 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
           <div style={{ marginBottom: compact ? 8 : 12 }}>
             <div className="card-field" {...hoverProps("number")} onClick={handleClick("number")}
                  style={{ fontSize: numSize, fontWeight: 500, letterSpacing: "0.12em", background: hlNum ? "rgba(255,255,255,.15)" : "transparent", cursor: canInteract ? "pointer" : "default" }}>
-              {rejected ? "•••• •••• •••• ••••" : revealed && canInteract ? card.number : `•••• •••• •••• ${card.last4}`}
+              {neverIssued ? "•••• •••• •••• ••••" : revealed && canInteract ? card.number : `•••• •••• •••• ${card.last4}`}
               {cardTip("number")}
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div style={{ display: "flex", gap: compact ? 16 : 24, visibility: rejected ? "hidden" : "visible" }}>
+            <div style={{ display: "flex", gap: compact ? 16 : 24, visibility: neverIssued ? "hidden" : "visible" }}>
               <div className="card-field" {...hoverProps("exp")} onClick={handleClick("exp")}
                    style={{ background: hlExp ? "rgba(255,255,255,.15)" : "transparent", cursor: canInteract ? "pointer" : "default" }}>
                 <div className="card-field-lbl" style={{ fontSize: labelSize }}>Exp</div>
@@ -132,6 +140,7 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
 function CardTile({ card, onClick }) {
   const activating = card.status === "activating";
   const rejected = card.status === "rejected";
+  const terminated = card.status === "terminated";
   const failed = card.status === "failed";
   return (
     <div className="card-tile" onClick={onClick}>
@@ -140,6 +149,8 @@ function CardTile({ card, onClick }) {
         <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--gray-900)" }}>{card.name}</div>
         {activating ? (
           <div className="card-tile-status"><span className="spin" style={{ width: 12, height: 12 }} /><span style={{ color: "var(--purple-600,#7C3AED)", fontWeight: 500 }}>Activating…</span></div>
+        ) : terminated ? (
+          <div style={{ fontSize: 12, color: "var(--gray-500)", fontWeight: 500, marginTop: 4 }}>Terminated</div>
         ) : (failed || rejected) ? (
           <div style={{ fontSize: 12, color: "#DC2626", fontWeight: 500, marginTop: 4 }}>{rejected ? "Not approved" : "Activation failed"}</div>
         ) : (
@@ -587,13 +598,37 @@ function SpendingLimitsSheet({ card, onClose }) {
   );
 }
 
+// Terminating is final, and any balance left on the card comes back — which is the thing people
+// actually want confirmed before they press it.
+function TerminateCardSheet({ card, onClose, onConfirm }) {
+  const balance = card.balance || 0;
+  return (
+    <Sheet open onClose={onClose} title="Terminate this card?">
+      <p className="set-sheet-lede">
+        <strong>{card.name}</strong> will stop working immediately and can't be reactivated. Its
+        transactions stay available for your records.
+      </p>
+      {balance > 0 && (
+        <div className="row-item" style={{ borderTop: "1px solid var(--gray-100)", paddingTop: 12 }}>
+          <div className="k">Returned to your USD balance</div>
+          <div className="v strong">${fmtBal(balance)}</div>
+        </div>
+      )}
+      <div className="set-modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-lg btn-danger" onClick={onConfirm}>Terminate card</button>
+      </div>
+    </Sheet>
+  );
+}
+
 function MoreActionsSheet({ open, onClose, onAction }) {
   const items = [
     { key: "limits", icon: <Icon.shield />, label: "Spending limits" },
     { key: "withdraw", icon: <Icon.arrowLeft />, label: "Withdraw to wallet" },
     { key: "fees", icon: <Icon.info />, label: "Fee schedule" },
     { key: "edit", icon: <Icon.pencil />, label: "Edit card name" },
-    { key: "cancel", icon: <Icon.trash />, label: "Delete card", danger: true },
+    { key: "cancel", icon: <Icon.trash />, label: "Terminate card", danger: true },
   ];
   return (
     <Sheet open={open} onClose={onClose} title="More">
@@ -693,6 +728,17 @@ function CardsEmptyState({ onCreateCard }) {
 function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
   const allTxns = txns.map((tx, i) => ({ ...tx, card: cards[i % Math.max(cards.length, 1)] }));
   const [selectedTxn, setSelectedTxn] = useState(null);
+  // Off by default, but remembered once set — a dead card is clutter every visit, not just once.
+  const [hideDead, setHideDead] = useState(() => {
+    try { return localStorage.getItem(HIDE_DEAD_KEY) === "1"; } catch (e) { return false; }
+  });
+  const toggleHideDead = () => setHideDead(v => {
+    const next = !v;
+    try { localStorage.setItem(HIDE_DEAD_KEY, next ? "1" : "0"); } catch (e) { /* private mode */ }
+    return next;
+  });
+  const deadCount = cards.filter(c => DEAD_STATUSES.includes(c.status)).length;
+  const shownCards = hideDead ? cards.filter(c => !DEAD_STATUSES.includes(c.status)) : cards;
   const isEmpty = cards.length === 0;
   // No create affordances while the provider has declined the business — otherwise the customer
   // mints one dead card after another.
@@ -705,9 +751,16 @@ function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
         {!isEmpty && canCreate && <button className="btn btn-lg" onClick={onCreateCard}><Icon.plus style={{ width: 15, height: 15 }} /> Create card</button>}
       </div>
 
+      {!isEmpty && !blocked && deadCount > 0 && (
+        <label className="cards-hide">
+          <input type="checkbox" checked={hideDead} onChange={toggleHideDead} />
+          <span>Hide failed and terminated cards ({deadCount})</span>
+        </label>
+      )}
+
       {!isEmpty && !blocked && (
         <div className="cards-scroll rail-tabs" style={{ display: "flex", gap: 20, border: "none", marginBottom: 28 }}>
-          {cards.map((c) => <div key={c.id} style={{ flexShrink: 0 }}><CardTile card={c} onClick={() => onSelect(c)} /></div>)}
+          {shownCards.map((c) => <div key={c.id} style={{ flexShrink: 0 }}><CardTile card={c} onClick={() => onSelect(c)} /></div>)}
           {canCreate && (
             <div className="card-new-tile" onClick={onCreateCard}>
               <Icon.plus style={{ width: 20, height: 20, color: "var(--gray-600)" }} />
@@ -770,6 +823,27 @@ function CardRejectedPanel({ scope = "card", onRemove }) {
   );
 }
 
+// Same shape as the rejected panel: the card never issued, so it takes the transactions slot
+// rather than being squeezed beside an empty one.
+function CardFailedPanel({ onRetry, onTerminate }) {
+  return (
+    <div className="card card-rejected">
+      <div className="card-rejected-ic"><Icon.alert /></div>
+      <h2>Activation failed</h2>
+      <p>We couldn't create this card. Nothing else on your account is affected.</p>
+      <p>
+        Try again, or <a href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", fontWeight: 500 }}>message your account team</a> if it keeps happening.
+      </p>
+      <div className="card-rejected-actions">
+        <button className="btn btn-lg" onClick={onRetry}>Retry</button>
+        <button className="btn btn-ghost btn-lg" style={{ color: "#DC2626", gap: 6 }} onClick={onTerminate}>
+          <Icon.trash style={{ width: 14, height: 14 }} /> Terminate card
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txns }) {
   const [showFund, setShowFund] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
@@ -777,6 +851,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
   const [showMore, setShowMore] = useState(false);
   const [showLimits, setShowLimits] = useState(false);
   const [showFees, setShowFees] = useState(false);
+  const [showTerminate, setShowTerminate] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState(null);
   const [nameVal, setNameVal] = useState(card.name);
@@ -784,7 +859,10 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
   const activating = card.status === "activating";
   const failed = card.status === "failed";
   const rejected = card.status === "rejected";
+  const terminated = card.status === "terminated";
   const usable = card.status === "active" || card.status === "frozen";
+  // The reason people keep terminated cards around: the spend history stays readable.
+  const showsTxns = usable || terminated;
   // Below the $1.00 minimum the provider freezes the card, and only funding unfreezes it — so
   // this is frozen, but with no Unfreeze button, since pressing it would just fail.
   const lowBalance = frozen && card.lowBalance;
@@ -805,7 +883,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
     else if (key === "withdraw") setShowWithdraw(true);
     else if (key === "fees") setShowFees(true);
     else if (key === "edit") setEditingName(true);
-    else if (key === "cancel") { onDeleteCard(card.id); onToast("Card deleted"); }
+    else if (key === "cancel") setShowTerminate(true);
   };
 
   return (
@@ -824,7 +902,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
       ) : (
         <h1 className="title" style={{ marginBottom: 4 }}>{card.name}</h1>
       )}
-      <p className="subtitle" style={{ marginBottom: 20 }}>{rejected ? `Requested ${card.created}` : `Virtual · Created ${card.created}`}</p>
+      <p className="subtitle" style={{ marginBottom: 20 }}>{(rejected || failed) ? `Requested ${card.created}` : `Virtual · Created ${card.created}`}</p>
 
       <div className="card-detail-grid">
         <div className="card-detail-left">
@@ -848,19 +926,10 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
             </div>
           )}
 
-          {failed && (
+          {terminated && (
             <div className="card" style={{ marginTop: 16, padding: "16px 18px" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#FEE2E2", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><span style={{ color: "#DC2626", fontWeight: 700, fontSize: 13 }}>!</span></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "#991B1B", marginBottom: 3 }}>Activation failed</div>
-                  <div style={{ fontSize: 12.5, color: "var(--gray-500)", lineHeight: 1.5 }}>Something went wrong. Your funds have not been charged.</div>
-                  <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                    <button className="btn btn-sm" onClick={handleRetry}>Retry</button>
-                    <button className="btn btn-ghost btn-sm" style={{ color: "#DC2626", gap: 6 }} onClick={() => { onDeleteCard(card.id); onToast("Card cancelled"); }}><Icon.trash style={{ width: 13, height: 13 }} /> Cancel</button>
-                  </div>
-                </div>
-              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--gray-900)", marginBottom: 3 }}>Card terminated</div>
+              <div style={{ fontSize: 12.5, color: "var(--gray-500)", lineHeight: 1.5 }}>This card can't be used or reactivated. Its transactions stay here for your records.</div>
             </div>
           )}
 
@@ -884,12 +953,14 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
         <div className="card-detail-right">
           {rejected ? (
             <CardRejectedPanel onRemove={() => { onDeleteCard(card.id); onToast("Card removed"); }} />
+          ) : failed ? (
+            <CardFailedPanel onRetry={handleRetry} onTerminate={() => setShowTerminate(true)} />
           ) : (
           <div className="records-card">
-            <div className="records-head"><h2>Card transactions</h2><span className="meta">{usable ? txns.length : 0} transactions</span></div>
-            {usable && txns.length > 0
+            <div className="records-head"><h2>Card transactions</h2><span className="meta">{showsTxns ? txns.length : 0} transactions</span></div>
+            {showsTxns && txns.length > 0
               ? <CardTxnList txns={txns} onOpen={setSelectedTxn} />
-              : <CardTxnsEmpty pending={!usable} />}
+              : <CardTxnsEmpty pending={!usable && !terminated} />}
           </div>
           )}
         </div>
@@ -901,6 +972,13 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
       {showLimits && <SpendingLimitsSheet card={card} onClose={() => setShowLimits(false)} />}
       {showFees && <CardFeesSheet onClose={() => setShowFees(false)} />}
       <MoreActionsSheet open={showMore} onClose={() => setShowMore(false)} onAction={handleMoreAction} />
+      {showTerminate && (
+        <TerminateCardSheet card={card} onClose={() => setShowTerminate(false)} onConfirm={() => {
+          onUpdateCard({ ...card, status: "terminated", balance: 0 });
+          setShowTerminate(false);
+          onToast((card.balance || 0) > 0 ? `Card terminated — $${fmtBal(card.balance)} returned to your USD balance` : "Card terminated");
+        }} />
+      )}
       <CardTxnDetailSheet tx={selectedTxn} card={card} onClose={() => setSelectedTxn(null)} />
     </Page>
   );
@@ -957,7 +1035,11 @@ function seedCards(access) {
   if (access === "no_txns") return [{ ...Data.CARDS[0], balance: 0 }];
   if (access === "rejected") return [{ ...Data.CARDS[0], status: "rejected", balance: 0 }];
   if (access === "low_balance") return Data.CARDS.map((c, i) => i === 0 ? { ...c, status: "frozen", lowBalance: true, balance: 0.2 } : c);
-  return [...Data.CARDS];
+  return [
+    ...Data.CARDS,
+    { id: "card-4", name: "Ads — legacy", last4: "5510", type: "virtual", status: "terminated", number: "4539 1201 7781 5510", expiry: "09/28", cvv: "204", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "Feb 2, 2026", balance: 0 },
+    { id: "card-5", name: "Contractor spend", last4: "9032", type: "virtual", status: "failed", number: "4539 1201 4460 9032", expiry: "09/28", cvv: "771", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "Aug 9, 2026", balance: 0 },
+  ];
 }
 
 function CardsScreen({ onToast, cardsAccess = "active" }) {

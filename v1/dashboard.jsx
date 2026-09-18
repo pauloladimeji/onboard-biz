@@ -1,16 +1,23 @@
 /* global React */
 const Icon = window.OBIcon;
 const { TXNS } = window.OBData;
-const { CcyFlag, Page, Records, can } = window.OBPrimitives;
+const { CcyFlag, Page, Records, can, ROLE_LABEL, SIGNED_IN } = window.OBPrimitives;
 const { SubAccountsHomeSection } = window.OBSubAccounts;
 
-function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, subAccountsOn = false, onOpenSubAccounts, role = "admin" }) {
+function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, subAccountsOn = false, onOpenSubAccounts, onOpenRole, role = "admin" }) {
   const isEmpty = dataState === "empty";
   const balance = isEmpty ? "0.00" : "84,231.50";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
 
   return (
     <Page>
+      <div className="home-greet">
+        <div className="home-greet-name">Welcome back, {SIGNED_IN.name.split(" ")[0]}</div>
+        <button className="home-role-chip" onClick={onOpenRole} title="What your role can do">
+          {ROLE_LABEL[role]} <Icon.arrowRight />
+        </button>
+      </div>
+
       {accountSuspended && (
         <div className="card" style={{ marginBottom: 18, borderLeft: "3px solid var(--danger-600)", display: "flex", gap: 12 }}>
           <Icon.alert style={{ width: 18, height: 18, color: "var(--danger-600)", flexShrink: 0 }} />

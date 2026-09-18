@@ -413,6 +413,7 @@ function App() {
 
   const [route, setRoute] = useState("dashboard");
   const [settingsSection, setSettingsSection] = useState("profile");
+  const [roleFocus, setRoleFocus] = useState(0);
   const [dataState, setDataState] = useState("full");
   const [accountStatus, setAccountStatus] = useState("active");
   const [usdAccountStatus, setUsdAccountStatus] = useState("ready");
@@ -605,6 +606,7 @@ function App() {
         onViewAll={() => setRoute("activity")}
         subAccountsOn={subAccountsOn === "units"}
         onOpenSubAccounts={() => setRoute("subaccounts")}
+        onOpenRole={() => { setSettingsSection("profile"); setRoleFocus(n => n + 1); setRoute("settings"); }}
         role={role} />
     );
   } else if (route === "add-money") {
@@ -677,7 +679,7 @@ function App() {
   } else if (route === "cards") {
     screen = <CardsScreen key={cardsAccess} onToast={setToast} cardsAccess={cardsAccess} />;
   } else if (route === "settings") {
-    screen = <SettingsScreen key={`${settingsSection}-${role}`} onToast={setToast} initialSection={settingsSection} role={role} />;
+    screen = <SettingsScreen key={`${settingsSection}-${role}-${roleFocus}`} onToast={setToast} initialSection={settingsSection} role={role} focusRole={roleFocus} />;
   } else if (route === "developer") {
     screen = (
       <Page>
