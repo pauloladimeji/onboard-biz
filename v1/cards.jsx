@@ -825,18 +825,18 @@ function CardRejectedPanel({ scope = "card", onRemove }) {
 
 // Same shape as the rejected panel: the card never issued, so it takes the transactions slot
 // rather than being squeezed beside an empty one.
-function CardFailedPanel({ onRetry, onTerminate }) {
+function CardFailedPanel({ onTerminate }) {
   return (
     <div className="card card-rejected">
       <div className="card-rejected-ic"><Icon.alert /></div>
       <h2>Activation failed</h2>
       <p>We couldn't create this card. Nothing else on your account is affected.</p>
       <p>
-        Try again, or <a href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", fontWeight: 500 }}>message your account team</a> if it keeps happening.
+        This card can't be activated. Terminate it and create a new one, or{" "}
+        <a href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", fontWeight: 500 }}>message your account team</a> if it keeps happening.
       </p>
       <div className="card-rejected-actions">
-        <button className="btn btn-lg" onClick={onRetry}>Retry</button>
-        <button className="btn btn-ghost btn-lg" style={{ color: "#DC2626", gap: 6 }} onClick={onTerminate}>
+        <button className="btn btn-lg btn-danger" onClick={onTerminate}>
           <Icon.trash style={{ width: 14, height: 14 }} /> Terminate card
         </button>
       </div>
@@ -877,7 +877,6 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
     onToast(lifts ? `$${amount.toFixed(2)} added — card unfrozen` : `$${amount.toFixed(2)} added`);
   };
   const handleWithdraw = (amount) => { onUpdateCard({ ...card, balance: Math.max(0, (card.balance || 0) - amount) }); setShowWithdraw(false); onToast(`$${amount.toFixed(2)} withdrawn to USD wallet`); };
-  const handleRetry = () => { onUpdateCard({ ...card, status: "activating" }); onToast("Retrying activation…"); };
   const handleMoreAction = (key) => {
     if (key === "limits") setShowLimits(true);
     else if (key === "withdraw") setShowWithdraw(true);
@@ -954,7 +953,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
           {rejected ? (
             <CardRejectedPanel onRemove={() => { onDeleteCard(card.id); onToast("Card removed"); }} />
           ) : failed ? (
-            <CardFailedPanel onRetry={handleRetry} onTerminate={() => setShowTerminate(true)} />
+            <CardFailedPanel onTerminate={() => setShowTerminate(true)} />
           ) : (
           <div className="records-card">
             <div className="records-head"><h2>Card transactions</h2><span className="meta">{showsTxns ? txns.length : 0} transactions</span></div>
@@ -977,6 +976,9 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
           onUpdateCard({ ...card, status: "terminated", balance: 0 });
           setShowTerminate(false);
           onToast((card.balance || 0) > 0 ? `Card terminated — $${fmtBal(card.balance)} returned to your USD balance` : "Card terminated");
+          // A card that never issued has no history to come back for, so terminating it leaves
+          // nothing worth staying on. Cards that actually ran keep their detail page.
+          if (failed) onBack();
         }} />
       )}
       <CardTxnDetailSheet tx={selectedTxn} card={card} onClose={() => setSelectedTxn(null)} />
