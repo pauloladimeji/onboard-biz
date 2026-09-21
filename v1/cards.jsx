@@ -856,20 +856,18 @@ function CardRejectedPanel({ scope = "card", onRemove }) {
 
 // Same shape as the rejected panel: the card never issued, so it takes the transactions slot
 // rather than being squeezed beside an empty one.
-function CardFailedPanel({ onTerminate }) {
+// A failed card can be neither retried nor terminated — the backend supports neither — so there's
+// nothing to do to *this* card. The way forward is a new one; the failed card can be hidden from
+// the list with the failed/terminated toggle.
+function CardFailedPanel() {
   return (
     <div className="card card-rejected">
       <div className="card-rejected-ic"><Icon.alert /></div>
       <h2>Activation failed</h2>
       <p>We couldn't create this card. Nothing else on your account is affected.</p>
-      <p>
-        This card can't be activated. Terminate it and create a new one, or{" "}
-        <a href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", fontWeight: 500 }}>message your account team</a> if it keeps happening.
-      </p>
+      <p>You can create a new card from Cards. If it keeps happening, your account team can look into it.</p>
       <div className="card-rejected-actions">
-        <button className="btn btn-lg btn-danger" onClick={onTerminate}>
-          <Icon.trash style={{ width: 14, height: 14 }} /> Terminate card
-        </button>
+        <a className="btn btn-lg" href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer">Message your account team</a>
       </div>
     </div>
   );
@@ -985,7 +983,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
           {rejected ? (
             <CardRejectedPanel onRemove={() => { onDeleteCard(card.id); onToast("Card removed"); }} />
           ) : failed ? (
-            <CardFailedPanel onTerminate={() => setShowTerminate(true)} />
+            <CardFailedPanel />
           ) : (
           <div className="records-card">
             <div className="records-head"><h2>Card transactions</h2><span className="meta">{showsTxns ? txns.length : 0} transactions</span></div>
@@ -1008,9 +1006,6 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
           onUpdateCard({ ...card, status: "terminated", balance: 0 });
           setShowTerminate(false);
           onToast((card.balance || 0) > 0 ? `Card terminated — $${fmtBal(card.balance)} returned to your USD balance` : "Card terminated");
-          // A card that never issued has no history to come back for, so terminating it leaves
-          // nothing worth staying on. Cards that actually ran keep their detail page.
-          if (failed) onBack();
         }} />
       )}
       <CardTxnDetailSheet tx={selectedTxn} card={card} onClose={() => setSelectedTxn(null)} />
