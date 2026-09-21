@@ -32,7 +32,7 @@ const NAV = [
 ];
 // Cards sits inline in the desktop sidebar (not a 6th bottom tab — would crowd the tab bar);
 // mobile reaches it through the "More" sheet instead.
-const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card, badge: "Soon" };
+const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card };
 // Sub-accounts is exploratory — hidden unless the mock toggle turns it on, so it never shows
 // in the demo or a normal review pass. Same placement rules as Cards.
 const SUBACCOUNTS_NAV = { id: "subaccounts", label: "Sub-accounts", icon: Icon.wallet };

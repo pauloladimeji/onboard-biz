@@ -10,6 +10,9 @@ const CARD_MIN_BALANCE = 1;
 // Frozen is deliberately not here: the user chose it and can undo it, so hiding it would lose
 // the card they're looking for. Only states that can never become active again.
 const DEAD_STATUSES = ["failed", "terminated"];
+// Declines before a card is terminated automatically. Shared by the terms and the low-balance
+// warning so the two can't disagree.
+const DECLINE_LIMIT = { domestic: 5, international: 2 };
 const HIDE_DEAD_KEY = "ob_cards_hide_dead";
 
 const { Page, Sheet, Pill, useIsDesktop, DemoCta } = window.OBPrimitives;
@@ -18,7 +21,12 @@ const CARD_BG = "../v0/design-system/assets/card-bg.svg";
 const MOCK_CARDHOLDER = "Amara Nwosu";
 const BILLING_ADDRESS = { street: "14 Admiralty Way", city: "Lekki", state: "Lagos", zip: "106104", country: "Nigeria" };
 const CARD_CREATION_FEE = 5;
-const CARD_FUNDING_FEE_PCT = 0.005;
+const CARD_FUNDING_FEE_PCT = 0.01;
+const CARD_XB_FEE_PCT = 0.0175;
+const CARD_XB_FEE_FLAT = 1;
+const pctLabel = (r) => `${+(r * 100).toFixed(2)}%`;
+const FUNDING_FEE_LABEL = pctLabel(CARD_FUNDING_FEE_PCT);
+const XB_FEE_LABEL = `${pctLabel(CARD_XB_FEE_PCT)} + $${CARD_XB_FEE_FLAT.toFixed(2)}`;
 const NAME_SUGGESTIONS = ["Marketing", "Operations", "Travel", "Software", "Ads & media", "Office supplies"];
 const fmtBal = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -27,10 +35,10 @@ const CARD_TXNS = [
   { id: "CTX-001", date: "Jun 25, 14:32", party: "Figma Inc.",               type: "purchase",   amount: "45.00",    ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Software & SaaS",     merchantCountry: "United States",  ref: "TXN-001-4821" },
   { id: "CTX-002", date: "Jun 24, 09:17", party: "Google Workspace",         type: "purchase",   amount: "138.00",   ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Software & SaaS",     merchantCountry: "United States",  ref: "TXN-002-4821" },
   { id: "CTX-003", date: "Jun 22, 11:05", party: "Amazon Web Services",      type: "purchase",   amount: "1,247.83", ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Cloud Infrastructure", merchantCountry: "United States",  ref: "TXN-003-4821" },
-  { id: "CTX-004", date: "Jun 20, 16:41", party: "Notion Labs",              type: "purchase",   amount: "96.00",    ccy: "USD", fxAmount: "88.50", fxCcy: "EUR", fxRate: "1 EUR = 1.085 USD", fxFee: "2.44", status: "COMPLETED", pillTone: "success", category: "Productivity",         merchantCountry: "United States",  ref: "TXN-004-4821" },
-  { id: "CTX-005", date: "Jun 18, 08:55", party: "Linear Inc.",              type: "purchase",   amount: "80.00",    ccy: "USD", fxAmount: "63.50", fxCcy: "GBP", fxRate: "1 GBP = 1.260 USD", fxFee: "2.20", status: "PENDING",   pillTone: "warn",    category: "Software & SaaS",     merchantCountry: "United Kingdom", ref: "TXN-005-4821" },
+  { id: "CTX-004", date: "Jun 20, 16:41", party: "Notion Labs",              type: "purchase",   amount: "96.00",    ccy: "USD", fxAmount: "88.50", fxCcy: "EUR", fxRate: "1 EUR = 1.085 USD", fxFee: "2.68", status: "COMPLETED", pillTone: "success", category: "Productivity",         merchantCountry: "United States",  ref: "TXN-004-4821" },
+  { id: "CTX-005", date: "Jun 18, 08:55", party: "Linear Inc.",              type: "purchase",   amount: "80.00",    ccy: "USD", fxAmount: "63.50", fxCcy: "GBP", fxRate: "1 GBP = 1.260 USD", fxFee: "2.40", status: "PENDING",   pillTone: "warn",    category: "Software & SaaS",     merchantCountry: "United Kingdom", ref: "TXN-005-4821" },
   { id: "CTX-006", date: "Jun 15, 13:20", party: "Vercel Inc.",              type: "purchase",   amount: "240.00",   ccy: "USD",                                          status: "COMPLETED", pillTone: "success", category: "Cloud Infrastructure", merchantCountry: "United States",  ref: "TXN-006-4821" },
-  { id: "CTX-F01", date: "Jun 10, 10:03", party: "Top-up from USD wallet",   type: "funding",    amount: "500.00",   ccy: "USD", fee: "2.50", netFunded: "497.50",         status: "COMPLETED", pillTone: "success", ref: "TXN-F01-4821" },
+  { id: "CTX-F01", date: "Jun 10, 10:03", party: "Top-up from USD wallet",   type: "funding",    amount: "500.00",   ccy: "USD", fee: "5.00", netFunded: "495.00",         status: "COMPLETED", pillTone: "success", ref: "TXN-F01-4821" },
   { id: "CTX-C01", date: "Jun 10, 09:58", party: "Card creation fee",        type: "creation",   amount: "5.00",     ccy: "USD",                                          status: "COMPLETED", pillTone: "success", ref: "TXN-C01-4821" },
 ];
 
@@ -248,11 +256,11 @@ function CardTxnDetailSheet({ tx, card, onClose, onToast }) {
   const rows = [
     { label: "Date & time", value: tx.date },
     tx.type === "funding" && { label: "Source", value: "USD wallet balance" },
-    tx.type === "funding" && tx.fee && { label: "Funding fee", value: `0.5% ($${tx.fee})` },
+    tx.type === "funding" && tx.fee && { label: "Funding fee", value: `${FUNDING_FEE_LABEL} ($${tx.fee})` },
     tx.type === "funding" && tx.netFunded && { label: "Net funded", value: `$${tx.netFunded}` },
     tx.type === "withdrawal" && { label: "Destination", value: "USD wallet balance" },
     isFx && { label: "Exchange rate", value: tx.fxRate },
-    isFx && tx.fxFee && { label: "FX fee", value: `1.5% + $1.00 ($${tx.fxFee})` },
+    isFx && tx.fxFee && { label: "Cross-border fee", value: `${XB_FEE_LABEL} ($${tx.fxFee})` },
     card && { label: "Card", value: `${card.name} ••${card.last4}` },
     tx.category && { label: "Category", value: tx.category },
     tx.merchantCountry && { label: "Merchant country", value: tx.merchantCountry },
@@ -321,7 +329,7 @@ function FundCardSheet({ card, onClose, onFund }) {
           </div>
           <div className="pay-review-list" style={{ paddingTop: 0 }}>
             <div className="row-item"><div className="k">Amount funded</div><div className="v">${fmtBal(parsed)}</div></div>
-            <div className="row-item"><div className="k">Funding fee (0.5%)</div><div className="v" style={{ color: "#DC2626" }}>−${fmtBal(fundingFee)}</div></div>
+            <div className="row-item"><div className="k">Funding fee ({FUNDING_FEE_LABEL})</div><div className="v" style={{ color: "#DC2626" }}>−${fmtBal(fundingFee)}</div></div>
             <div className="row-item"><div className="k">New card balance</div><div className="v strong">${fmtBal((card.balance || 0) + netAmount)}</div></div>
           </div>
           <div className="set-modal-foot"><button className="btn btn-lg" onClick={() => onFund(netAmount)} style={{ width: "100%", justifyContent: "center" }}>Done</button></div>
@@ -343,7 +351,7 @@ function FundCardSheet({ card, onClose, onFund }) {
             {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Insufficient funds. Your USD balance is ${fmtBal(usdBalance)}.</div>}
             {valid && (
               <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--gray-500)" }}><span>Funding fee (0.5%)</span><span style={{ color: "#DC2626" }}>−${fmtBal(fundingFee)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--gray-500)" }}><span>Funding fee ({FUNDING_FEE_LABEL})</span><span style={{ color: "#DC2626" }}>−${fmtBal(fundingFee)}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5 }}><span style={{ color: "var(--gray-600)" }}>Added to card</span><span style={{ color: "var(--gray-900)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmtBal(netAmount)}</span></div>
               </div>
             )}
@@ -472,7 +480,7 @@ function CreateCardSheet({ onClose, onCreate }) {
             <div className="row-item"><div className="k">Card type</div><div className="v">Virtual</div></div>
             <div className="row-item"><div className="k">Fund amount</div><div className="v">${parsed.toFixed(2)}</div></div>
             <div className="row-item"><div className="k">Creation fee</div><div className="v" style={{ color: "#DC2626" }}>−${CARD_CREATION_FEE.toFixed(2)}</div></div>
-            <div className="row-item"><div className="k">Funding fee (0.5%)</div><div className="v" style={{ color: "#DC2626" }}>−${fundingFee.toFixed(2)}</div></div>
+            <div className="row-item"><div className="k">Funding fee ({FUNDING_FEE_LABEL})</div><div className="v" style={{ color: "#DC2626" }}>−${fundingFee.toFixed(2)}</div></div>
             <div className="row-item"><div className="k">Card balance</div><div className="v strong">${cardBalance.toFixed(2)}</div></div>
           </div>
           <div style={{ marginTop: 4, padding: "10px 14px", background: "var(--gray-50)", borderRadius: 8, border: "1px solid var(--gray-100)", fontSize: 12, color: "var(--gray-600)", lineHeight: 1.5 }}>
@@ -500,7 +508,7 @@ function CreateCardSheet({ onClose, onCreate }) {
             <div style={{ display: "flex", gap: 10 }}>
               <div className="card-type-opt on">
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ fontSize: 13, fontWeight: 600, color: "#6D28D9" }}>Virtual</div><Icon.check style={{ width: 14, height: 14, color: "#7C3AED" }} /></div>
-                <div style={{ fontSize: 11.5, color: "#7C3AED", marginTop: 2 }}>Use online or add to wallet.</div>
+                <div style={{ fontSize: 11.5, color: "#7C3AED", marginTop: 2 }}>For online payments.</div>
               </div>
               <div className="card-type-opt disabled">
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Physical</div>
@@ -516,11 +524,11 @@ function CreateCardSheet({ onClose, onCreate }) {
             </div>
             {fundAmount && !validFund && !tooHigh && <div className="help" style={{ color: "#DC2626" }}>Minimum $6.00 required — $5.00 creation fee + $1.00 minimum balance.</div>}
             {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Insufficient funds. Your USD balance is ${fmtBal(usdBalance)}.</div>}
-            {validFund && !tooHigh && <div className="help">After $5.00 creation fee + 0.5% funding fee: <strong style={{ color: "var(--gray-900)" }}>${cardBalance.toFixed(2)}</strong></div>}
+            {validFund && !tooHigh && <div className="help">After $5.00 creation fee + {FUNDING_FEE_LABEL} funding fee: <strong style={{ color: "var(--gray-900)" }}>${cardBalance.toFixed(2)}</strong></div>}
           </div>
           <div className="td-banner info" style={{ marginTop: 4 }}>
             <Icon.info />
-            <div><div className="s">A one-time <strong>$5.00</strong> creation fee and <strong>0.5%</strong> funding fee apply, both deducted from the funded amount.</div></div>
+            <div><div className="s">A one-time <strong>$5.00</strong> creation fee and <strong>{FUNDING_FEE_LABEL}</strong> funding fee apply, both deducted from the funded amount.</div></div>
           </div>
           <div className="set-modal-foot">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
@@ -557,24 +565,48 @@ function FreezeCardSheet({ card, onClose, onConfirm }) {
   );
 }
 
+// Fees and the terms that come with them, in one place and before anyone creates a card. The
+// terms are the ones that surprise people after the fact — the minimum balance freeze, and the
+// automatic termination after repeated declines, which isn't shown anywhere else in the app.
+const CARD_FEES = [
+  { label: "Card creation", value: "$5.00", note: "One-time, per card" },
+  { label: "Funding fee", value: FUNDING_FEE_LABEL, note: "Per top-up" },
+  { label: "Monthly fee", value: "Free", note: null },
+  { label: "USD transactions", value: "Free", note: "US merchants, in USD" },
+  // Cross-border, not "FX": the provider charges it on non-US merchants even when they bill in
+  // USD, so a label about currency alone would promise a fee-free charge that isn't.
+  { label: "Cross-border transactions", value: XB_FEE_LABEL, note: "Non-US merchants, or any non-USD currency" },
+  { label: "Chargeback", value: "$50.00", note: "Per chargeback raised" },
+];
+const CARD_TERMS = [
+  { title: "Minimum balance", body: `Keep at least $${CARD_MIN_BALANCE.toFixed(2)} on a card, or it's frozen until you fund it.` },
+  { title: "Repeated declines", body: `${DECLINE_LIMIT.domestic} declined domestic or ${DECLINE_LIMIT.international} declined international payments terminates the card.` },
+  { title: "Termination", body: "Final. Any balance left on the card returns to your USD balance." },
+];
+
 function CardFeesSheet({ onClose }) {
-  const rows = [
-    { label: "Card creation", value: "$5.00", note: "One-time, per card" },
-    { label: "Funding fee", value: "0.5%", note: "Per top-up transaction" },
-    { label: "Monthly fee", value: "Free", note: null },
-    { label: "Card transactions", value: "Free", note: null },
-    { label: "FX transactions", value: "1.5% + $1.00", note: "On non-USD spend" },
-  ];
   return (
-    <Sheet open onClose={onClose} title="Fee schedule">
+    <Sheet open onClose={onClose} title="Fees and terms">
+      <div className="fees-h">Fees</div>
       <div>
-        {rows.map((r, i, arr) => (
-          <div key={r.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--gray-100)" : "none" }}>
-            <div><div style={{ fontSize: 13, color: "var(--gray-700)" }}>{r.label}</div>{r.note && <div style={{ fontSize: 11.5, color: "var(--gray-400)", marginTop: 1 }}>{r.note}</div>}</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: r.value === "Free" ? "var(--success-700)" : "var(--gray-900)" }}>{r.value}</span>
+        {CARD_FEES.map((r, i, arr) => (
+          <div key={r.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--gray-100)" : "none" }}>
+            <div><div style={{ fontSize: 13, color: "var(--gray-700)" }}>{r.label}</div>{r.note && <div style={{ fontSize: 11.5, color: "var(--gray-600)", marginTop: 1 }}>{r.note}</div>}</div>
+            <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", color: r.value === "Free" ? "var(--success-700)" : "var(--gray-900)" }}>{r.value}</span>
           </div>
         ))}
       </div>
+
+      <div className="fees-h" style={{ marginTop: 22 }}>Terms</div>
+      <div className="fees-terms">
+        {CARD_TERMS.map((t) => (
+          <div key={t.title} className="fees-term">
+            <div className="t">{t.title}</div>
+            <div className="b">{t.body}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="set-modal-foot"><button className="btn btn-lg" onClick={onClose} style={{ width: "100%", justifyContent: "center" }}>Done</button></div>
     </Sheet>
   );
@@ -626,7 +658,7 @@ function MoreActionsSheet({ open, onClose, onAction }) {
   const items = [
     { key: "limits", icon: <Icon.shield />, label: "Spending limits" },
     { key: "withdraw", icon: <Icon.arrowLeft />, label: "Withdraw to wallet" },
-    { key: "fees", icon: <Icon.info />, label: "Fee schedule" },
+    { key: "fees", icon: <Icon.info />, label: "Fees and terms" },
     { key: "edit", icon: <Icon.pencil />, label: "Edit card name" },
     { key: "cancel", icon: <Icon.trash />, label: "Terminate card", danger: true },
   ];
@@ -663,13 +695,12 @@ function CardDetailsCard({ card, onToast }) {
           <div>{addr.country}</div>
         </div>
       </div>
-      <div style={{ padding: "14px 20px", display: "flex", gap: 10 }}>
-        <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", fontSize: 12.5, padding: "10px 12px", gap: 8, border: "1px solid var(--gray-200)", borderRadius: 8 }} onClick={() => onToast("Added to Apple Pay")}>
-          <img src="../v0/design-system/assets/apple-wallet.svg" style={{ height: 15 }} /> Apple Pay
-        </button>
-        <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", fontSize: 12.5, padding: "10px 12px", gap: 8, border: "1px solid var(--gray-200)", borderRadius: 8 }} onClick={() => onToast("Added to Google Pay")}>
-          <img src="../v0/design-system/assets/google-wallet.svg" style={{ height: 15 }} /> Google Pay
-        </button>
+      {/* Not buttons: disabled controls for a feature that doesn't exist yet read as broken.
+          One line keeps it signposted until it ships. */}
+      <div className="wallet-soon-line">
+        <img src="../v0/design-system/assets/apple-wallet.svg" alt="" />
+        <img src="../v0/design-system/assets/google-wallet.svg" alt="" />
+        <span>Apple Pay and Google Pay coming soon</span>
       </div>
     </div>
   );
@@ -683,9 +714,9 @@ function CardDetailsCard({ card, onToast }) {
 // CTA instead, and the panel does the job those buttons weren't: saying what a card is for.
 const PLACEHOLDER_CARD = { name: CARD_BRAND, last4: "••••", expiry: "••/••", cvv: "•••", number: "", status: "active", balance: 0 };
 const CARD_BENEFITS = [
-  "Works anywhere online, plus Apple Pay and Google Pay",
+  "Pay online in USD or other currencies — Apple Pay and Google Pay coming soon",
   "Funded from your USD balance — top up or withdraw anytime",
-  "Freeze, unfreeze or delete it in one tap",
+  "Freeze, unfreeze or terminate it in one tap",
 ];
 
 // Cards exist but nothing has been spent yet. Split by whether the card can actually transact:
@@ -716,7 +747,7 @@ function CardsEmptyState({ onCreateCard }) {
         </ul>
         <div className="cards-empty-actions">
           <button className="btn btn-lg" onClick={onCreateCard}><Icon.plus style={{ width: 15, height: 15 }} /> Create card</button>
-          <button className="btn btn-ghost btn-lg" onClick={() => setShowFees(true)}>View fees</button>
+          <button className="btn btn-ghost btn-lg" onClick={() => setShowFees(true)}>View fees and terms</button>
         </div>
       </div>
       <div className="cards-empty-art"><CardVisual card={PLACEHOLDER_CARD} /></div>
@@ -920,7 +951,8 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
           {lowBalance && (
             <div className="card card-lowbal">
               <div className="card-lowbal-head"><Icon.alert /><span>Card funding required</span></div>
-              <p>This card fell below the ${CARD_MIN_BALANCE.toFixed(2)} minimum balance, so it's been frozen. Fund it and it unfreezes as soon as the balance is back above the minimum.</p>
+              <p>This card fell below the ${CARD_MIN_BALANCE.toFixed(2)} minimum, so it's frozen. Fund it to unfreeze it.</p>
+              <p>Payments on a frozen card are declined. After {DECLINE_LIMIT.domestic} domestic or {DECLINE_LIMIT.international} international declines, the card is terminated.</p>
               <div className="card-lowbal-bal"><span>Current balance</span><strong>${fmtBal(card.balance || 0)}</strong></div>
             </div>
           )}
@@ -994,8 +1026,8 @@ function CardsApplyPage({ onApply }) {
     <Page>
       <div className="cards-apply">
         <div className="cards-apply-eyebrow">{CARD_BRAND} cards</div>
-        <h1 className="cards-apply-h1">Spend flexibly, anywhere</h1>
-        <p className="cards-apply-lede">Issue virtual cards with granular spending limits. Use online or add to Apple Pay and Google Pay.</p>
+        <h1 className="cards-apply-h1">Spend online, your way</h1>
+        <p className="cards-apply-lede">Issue virtual cards with granular spending limits. Use them for online payments — Apple Pay and Google Pay are coming soon.</p>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
           <div className="cards-apply-visual">
             <div style={{ fontSize: 14, fontWeight: 400, letterSpacing: "0.02em" }}>{CARD_BRAND}</div>
@@ -1011,7 +1043,7 @@ function CardsApplyPage({ onApply }) {
           {[
             { icon: <Icon.zap />, title: "Instant virtual cards", desc: "Create and use immediately — no waiting for delivery." },
             { icon: <Icon.shield />, title: "Spending controls", desc: "Set per-transaction, daily, and monthly limits." },
-            { icon: <Icon.globe />, title: "Use anywhere", desc: "Accepted online worldwide. Add to Apple Pay or Google Pay." },
+            { icon: <Icon.globe />, title: "Pay online", desc: "Pay merchants in USD or other currencies. Apple Pay and Google Pay coming soon." },
           ].map((f) => (
             <div key={f.title} className="cards-apply-feature">
               <div className="cards-apply-feature-ic">{f.icon}</div>
