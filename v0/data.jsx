@@ -80,15 +80,15 @@ const CURRENCIES = {
 // Sample transactions (recent — dashboard preview shows 5–8)
 const TXNS = [
   { id: "PAY-2026-04812", date: "May 6, 09:14", direction: "out", type: "Payout",  party: "Adaeze Okafor",     ref: "PAY-2026-04812", amount: "1,250,000.00", ccy: "NGN",   from: "USD", status: "PROCESSING", pillTone: "warn" },
-  { id: "FND-2026-00321", date: "May 7, 10:15", direction: "in",  type: "Funding", party: "NGN — First Bank ****1181", ref: "OPN-4a7c9f1e-2d83-4b5a-9c71-3bf240d857e6", amount: "504.87", fromAmount: "750,000.00", ccy: "USD", from: "NGN", rate: "1 USD = ₦1,485.50", convFee: "0.5%", status: "COMPLETED", pillTone: "success" },
+  { id: "FND-2026-00321", date: "May 7, 10:15", direction: "in",  type: "Funding", party: "NGN — First Bank ****1181", ref: "OPN-4a7c9f1e-2d83-4b5a-9c71-3bf240d857e6", amount: "504.87", fromAmount: "750,000.00", ccy: "USD", from: "NGN", rate: "1 USD = ₦1,485.50", status: "COMPLETED", pillTone: "success" },
   { id: "FND-2026-00319", date: "May 6, 07:41", direction: "in",  type: "Funding", party: "USDC · Base network", ref: "OPN-c9d1f3a8-e472-4c6b-b284-7ae053d698f1", amount: "5,000.00", ccy: "USD", chain: "base", txHash: "0x7b4a2f1c9e8d3a5b6f0c4e2d1a8b7c3f9e6d5a4b", status: "COMPLETED", pillTone: "success" },
-  { id: "FND-2026-00318", date: "May 6, 08:02", direction: "in",  type: "Funding", party: "Wire — JPMorgan ****4419", ref: "OPN-3e4b1c8f-a291-4d7a-b603-9cf825e7d1a0", amount: "25,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00318", date: "May 6, 08:02", direction: "in",  type: "Funding", party: "Wire — JPMorgan ****4419", ref: "OPN-3e4b1c8f-a291-4d7a-b603-9cf825e7d1a0", amount: "24,870.00",   ccy: "USD", depositFee: "130.00", depositFeeCcy: "USD",   status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04809", date: "May 5, 16:38", direction: "out", type: "Payout",  party: "Mensah Holdings Ltd", ref: "PAY-2026-04809", amount: "48,200.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04802", date: "May 5, 14:22", direction: "out", type: "Payout",  party: "Joseph Mwangi",       ref: "PAY-2026-04802", amount: "62,500.00",   ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00317", date: "May 5, 11:50", direction: "in",  type: "Funding", party: "FPS — Barclays ****8821",  ref: "OPN-7b2a9c1e-f483-4e8d-a915-2bd046c83f7a", amount: "10,126.58", fromAmount: "8,000.00", ccy: "USD", from: "GBP", rate: "1 USD = £0.79", convFee: "0.5%", status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00317", date: "May 5, 11:50", direction: "in",  type: "Funding", party: "FPS — Barclays ****8821",  ref: "OPN-7b2a9c1e-f483-4e8d-a915-2bd046c83f7a", amount: "10,125.95", fromAmount: "8,000.00", ccy: "USD", depositFee: "0.50", depositFeeCcy: "GBP", from: "GBP", rate: "1 USD = £0.79", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04795", date: "May 4, 17:09", direction: "out", type: "Payout",  party: "Tausi Logistics",     ref: "PAY-2026-04795", amount: "1,840,000.00", ccy: "TZS",  from: "USD", status: "FAILED",     pillTone: "danger" },
   { id: "PAY-2026-04790", date: "May 4, 10:14", direction: "out", type: "Payout",  party: "Lucia Macamo",        ref: "PAY-2026-04790", amount: "92,400.00",   ccy: "MZN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00316", date: "May 3, 14:00", direction: "in",  type: "Funding", party: "ACH — Mercury ****0021",   ref: "OPN-c1d4f8a3-b962-4a5e-8071-5ef130c849d2", amount: "12,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00316", date: "May 3, 14:00", direction: "in",  type: "Funding", party: "ACH — Mercury ****0021",   ref: "OPN-c1d4f8a3-b962-4a5e-8071-5ef130c849d2", amount: "11,950.50",   ccy: "USD", depositFee: "49.50", depositFeeCcy: "USD",   status: "COMPLETED",  pillTone: "success" },
 ];
 
 // ---------- Fiat funding rails (named accounts — USD only in v0) ----------
@@ -167,8 +167,8 @@ const RECIPIENTS_FULL = (() => {
 // ---------- Extended transactions (full feed) ----------
 const TXNS_FULL = [
   ...TXNS,
-  { id: "FND-2026-00322", date: "May 7, 16:40", direction: "in",  type: "Funding", party: "NGN cash deposit", ref: "OPN-9c3e5a71-4b28-4d91-8e63-1af790c452d3", amount: "202.02", fromAmount: "300,000.00", ccy: "USD", from: "NGN", rate: "1 USD = ₦1,485.50", convFee: "0.5%", status: "PENDING", pillTone: "neutral" },
-  { id: "FND-2026-00323", date: "May 8, 09:00", direction: "in",  type: "Funding", party: "SWIFT — Standard Chartered ****7734", ref: "OPN-1b8e4f72-6a93-4c81-9e05-2df873c4a610", amount: "18,500.00", ccy: "USD", status: "COMPLETED", pillTone: "success" },
+  { id: "FND-2026-00322", date: "May 7, 16:40", direction: "in",  type: "Funding", party: "NGN cash deposit", ref: "OPN-9c3e5a71-4b28-4d91-8e63-1af790c452d3", amount: "202.02", fromAmount: "300,000.00", ccy: "USD", from: "NGN", rate: "1 USD = ₦1,485.50", status: "PENDING", pillTone: "neutral" },
+  { id: "FND-2026-00323", date: "May 8, 09:00", direction: "in",  type: "Funding", party: "SWIFT — Standard Chartered ****7734", ref: "OPN-1b8e4f72-6a93-4c81-9e05-2df873c4a610", amount: "18,396.00", ccy: "USD", depositFee: "104.00", depositFeeCcy: "USD", status: "COMPLETED", pillTone: "success" },
   { id: "PAY-2026-04815", date: "May 8, 13:20", direction: "out", type: "Payout",  party: "Meridian Freight Solutions", ref: "PAY-2026-04815", amount: "14,200.00", ccy: "USD", from: "USD", status: "COMPLETED", pillTone: "success" },
   { id: "WDR-2026-00101", date: "May 7, 11:02", direction: "out", type: "Withdrawal", party: "Vitalik's Vault · USDC", ref: "WDR-2026-00101", amount: "2,500.00", ccy: "USDC", from: "USD", chain: "eth", txHash: "0x4c1a8e2f7d3b5a9c6e0f1d2b3a4c5e6f7a8b9c0d", status: "COMPLETED", pillTone: "success" },
   { id: "WDR-2026-00102", date: "May 5, 15:30", direction: "out", type: "Withdrawal", party: "Bridge Capital Ltd · USDT", ref: "WDR-2026-00102", amount: "8,000.00", ccy: "USDT", from: "USD", chain: "tron", txHash: "TXa1B2c3D4e5F6g7H8i9J0kLmNoPqRsTuVwXyZ", status: "PROCESSING", pillTone: "warn" },
@@ -176,16 +176,16 @@ const TXNS_FULL = [
   { id: "PAY-2026-04788", date: "May 3, 11:24", direction: "out", type: "Payout",  party: "Akosua Asante",       ref: "PAY-2026-04788", amount: "62,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04781", date: "May 2, 18:41", direction: "out", type: "Payout",  party: "Chinedu Nwosu",       ref: "PAY-2026-04781", amount: "780,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04772", date: "May 2, 14:55", direction: "out", type: "Payout",  party: "Wanjiru Kamau",       ref: "PAY-2026-04772", amount: "144,200.00",  ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00315", date: "May 2, 10:10", direction: "in",  type: "Funding", party: "SEPA — N26 ****1209", ref: "OPN-8f3c5d2a-1e7b-4a9c-b834-6df021e578c3", amount: "5,434.78", fromAmount: "5,000.00", ccy: "USD", from: "EUR", rate: "1 USD = €0.92", convFee: "0.5%", status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00315", date: "May 2, 10:10", direction: "in",  type: "Funding", party: "SEPA — N26 ****1209", ref: "OPN-8f3c5d2a-1e7b-4a9c-b834-6df021e578c3", amount: "5,434.24", fromAmount: "5,000.00", ccy: "USD", depositFee: "0.50", depositFeeCcy: "EUR", from: "EUR", rate: "1 USD = €0.92", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04763", date: "May 1, 16:02", direction: "out", type: "Payout",  party: "Nia Bakari",          ref: "PAY-2026-04763", amount: "920,000.00",  ccy: "TZS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04760", date: "May 1, 11:38", direction: "out", type: "Payout",  party: "Tendai Moyo",         ref: "PAY-2026-04760", amount: "48,200.00",   ccy: "MZN",   from: "USD", status: "PROCESSING", pillTone: "warn" },
   { id: "PAY-2026-04752", date: "Apr 30, 17:21",direction: "out", type: "Payout",  party: "Folake Adebayo",      ref: "PAY-2026-04752", amount: "510,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00314", date: "Apr 30, 09:02",direction: "in",  type: "Funding", party: "Wire — Citi ****1188",ref: "OPN-a5e8d2c1-3f74-4b9a-c046-8df123e457b9", amount: "40,000.00",   ccy: "USD",   status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00314", date: "Apr 30, 09:02",direction: "in",  type: "Funding", party: "Wire — Citi ****1188",ref: "OPN-a5e8d2c1-3f74-4b9a-c046-8df123e457b9", amount: "39,810.00",   ccy: "USD", depositFee: "190.00", depositFeeCcy: "USD",   status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04748", date: "Apr 29, 15:44",direction: "out", type: "Payout",  party: "Samuel Otieno",       ref: "PAY-2026-04748", amount: "92,000.00",   ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04742", date: "Apr 29, 12:09",direction: "out", type: "Payout",  party: "Kojo Mensah",         ref: "PAY-2026-04742", amount: "18,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04738", date: "Apr 28, 10:18",direction: "out", type: "Payout",  party: "Aisha Komba",         ref: "PAY-2026-04738", amount: "1,200,000.00",ccy: "TZS",   from: "USD", status: "FAILED",     pillTone: "danger" },
   { id: "PAY-2026-04730", date: "Apr 27, 16:49",direction: "out", type: "Payout",  party: "Omolade Ajayi",       ref: "PAY-2026-04730", amount: "330,000.00",  ccy: "NGN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
-  { id: "FND-2026-00313", date: "Apr 27, 09:00",direction: "in",  type: "Funding", party: "FPS — Monzo ****0014",ref: "OPN-2c7b4f9e-a831-4d5c-b912-4ef267d083c5", amount: "15,822.78", fromAmount: "12,500.00", ccy: "USD", from: "GBP", rate: "1 USD = £0.79", convFee: "0.5%", status: "COMPLETED",  pillTone: "success" },
+  { id: "FND-2026-00313", date: "Apr 27, 09:00",direction: "in",  type: "Funding", party: "FPS — Monzo ****0014",ref: "OPN-2c7b4f9e-a831-4d5c-b912-4ef267d083c5", amount: "15,822.15", fromAmount: "12,500.00", ccy: "USD", depositFee: "0.50", depositFeeCcy: "GBP", from: "GBP", rate: "1 USD = £0.79", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04725", date: "Apr 26, 13:11",direction: "out", type: "Payout",  party: "Brenda Wairimu",      ref: "PAY-2026-04725", amount: "78,200.00",   ccy: "KES",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04719", date: "Apr 25, 11:33",direction: "out", type: "Payout",  party: "Eduardo Sitole",      ref: "PAY-2026-04719", amount: "62,400.00",   ccy: "MZN",   from: "USD", status: "COMPLETED",  pillTone: "success" },
   { id: "PAY-2026-04711", date: "Apr 24, 17:00",direction: "out", type: "Payout",  party: "Yaa Boateng",         ref: "PAY-2026-04711", amount: "27,400.00",   ccy: "GHS",   from: "USD", status: "COMPLETED",  pillTone: "success" },
@@ -391,7 +391,10 @@ function deriveActivity(tx) {
       activityData: {
         senderAccountDetails: NGN_SENDER_DETAILS[tx.id] || (parsed ? { accountName: BUSINESS_PROFILE.legalName, bankName: parsed.bankName, accountNumber: parsed.accountNumber } : { accountName: tx.party, accountNumber: "—", bankName: "—" }),
         channel: isNgn ? PAYOUT_RAILS.NGN : (parsed ? (DEPOSIT_CHANNEL_LABELS[parsed.method] || parsed.method) : "—"),
-        fee: "0.00",
+        // The fee actually charged, in the currency the sender paid it in (USD on US rails, £/€ on
+        // FPS/SEPA, deducted before conversion). `amount` is what was credited, net of it.
+        fee: tx.depositFee || "0.00",
+        feeCcy: tx.depositFeeCcy || tx.ccy,
         settlementAmount: tx.amount,
         settlementAssetCode: tx.ccy,
         settlementExchangeRate: tx.rate,

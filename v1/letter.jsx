@@ -76,10 +76,11 @@ function letterSections(ccy, f) {
   ];
 }
 
-function AccountLetterDoc({ ccy, fields, businessName }) {
-  const sections = letterSections(ccy, fields);
+// The frame every document we issue shares — letterhead, issue date, watermark, legal footer. Letters
+// and receipts both render inside it, so they can't drift apart as either one changes.
+function DocFrame({ id, children }) {
   return (
-    <div className="letter" id="account-letter">
+    <div className="letter" id={id}>
       <div className="letter-rule" />
 
       <div className="letter-head">
@@ -94,7 +95,21 @@ function AccountLetterDoc({ ccy, fields, businessName }) {
           <div className="k">Date</div>
           <div className="v">{letterDate()}</div>
         </div>
+        {children}
+      </div>
 
+      <div className="letter-foot">
+        <div className="letter-foot-brand">Copyright © {new Date().getFullYear()} Onboard Pay</div>
+        <p>{ISSUER.legal}</p>
+      </div>
+    </div>
+  );
+}
+
+function AccountLetterDoc({ ccy, fields, businessName }) {
+  const sections = letterSections(ccy, fields);
+  return (
+    <DocFrame id="account-letter">
         <div className="letter-salutation">To Whom it May Concern:</div>
 
         <h2 className="letter-h2">Proof of Account Details</h2>
@@ -121,13 +136,7 @@ function AccountLetterDoc({ ccy, fields, businessName }) {
           Want an account like this for your business? Open one at{" "}
           <a href={L_APPLY_URL}>business.onboard.xyz/apply</a>.
         </div>
-      </div>
-
-      <div className="letter-foot">
-        <div className="letter-foot-brand">Copyright © {new Date().getFullYear()} Onboard Pay</div>
-        <p>{ISSUER.legal}</p>
-      </div>
-    </div>
+    </DocFrame>
   );
 }
 
@@ -142,22 +151,22 @@ function AccountLetterPrintable({ ccy, fields }) {
   );
 }
 
-// Opens the letter as its own document in a new tab, rather than calling window.print() on the
-// app page. Printing from the app tripped the desktop/mobile media listener, which swaps Shell's
-// tree and remounted the deposit screen — the rail tab snapped back to NGN every time. A tab is
-// also closer to what "account letter" implies: a document you can read, save or send on.
-function openAccountLetter() {
-  const node = document.getElementById("account-letter");
+// Opens an issued document in its own tab rather than printing from the app page. Printing from the
+// app tripped the desktop/mobile media listener, which swaps Shell's tree and remounted the screen
+// behind it (the deposit rail tab snapped back to NGN). A tab is also what a document implies:
+// something to read, save or send on.
+function openDocument(id, title) {
+  const node = document.getElementById(id);
   const win = node && window.open("", "_blank");
   if (!win) return;
-  // Carry whatever stylesheets the app is running, so the document can't drift from the preview
-  // and nothing here has to track cache-busting versions.
+  // Carry whatever stylesheets the app is running, so the document can't drift from the app and
+  // nothing here has to track cache-busting versions.
   const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
     .map((l) => `<link rel="stylesheet" href="${l.getAttribute("href")}">`)
     .join("");
   win.document.write(
     '<!doctype html><html><head><meta charset="utf-8">' +
-    `<title>Account letter — ${LPROFILE.legalName}</title>` +
+    `<title>${title}</title>` +
     `<base href="${window.location.href}">` + styles +
     '<style>' +
       'body { margin: 0; padding: 26px 20px; background: #eef0f4; }' +
@@ -173,4 +182,6 @@ function openAccountLetter() {
   win.document.close();
 }
 
-window.OBLetter = { AccountLetterPrintable, AccountLetterDoc, openAccountLetter };
+const openAccountLetter = () => openDocument("account-letter", `Account letter — ${LPROFILE.legalName}`);
+
+window.OBLetter = { AccountLetterPrintable, AccountLetterDoc, openAccountLetter, DocFrame, openDocument };

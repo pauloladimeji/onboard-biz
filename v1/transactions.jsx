@@ -4,6 +4,7 @@ const TIcon = window.OBIcon;
 const TNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: TCCY, TXNS_FULL, ACTIVITY_TYPE_LABELS, displayActivityType, displayActivityLabel } = window.OBData;
 const { Page, Pill, Flag: TFlag, FilterBar, useIsDesktop, shortRef, truncateMiddle } = window.OBPrimitives;
+const { txMoney, fmtAmt, feeText, ReceiptPrintable, openReceipt } = window.OBReceipt;
 
 const PAGE_SIZE_TX = 12;
 
@@ -230,10 +231,10 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
   const ad = tx.activityData || {};
   const isCrypto = tx.activityType === "CRYPTO_DEPOSIT" || tx.activityType === "CRYPTO_WITHDRAWAL";
   const isAccountNumberDeposit = tx.activityType === "ACCOUNT_NUMBER_DEPOSIT";
-  const FX = { USD: 1, GBP: 0.79, EUR: 0.92, NGN: 1485.5, GHS: 14.2, KES: 129.4, TZS: 2640.0, MZN: 63.8 };
-  const isCrossCcy = !isCrypto && !!tx.from && tx.from !== tx.ccy;
-  const fxRate = isCrossCcy ? (FX[tx.ccy] / FX[tx.from]) : 1;
-  const fxRateLabel = tx.rate || (isCrossCcy ? `1 ${tx.from} = ${fxRate.toFixed(fxRate < 5 ? 4 : 2)} ${tx.ccy}` : null);
+  // One source for the numbers, shared with the receipt so the two can never disagree.
+  const money = txMoney(tx);
+  const { fxRateLabel } = money;
+  const hasReceipt = tx.status === "COMPLETED";
 
   const copy = (v, label) => {
     if (navigator.clipboard) navigator.clipboard.writeText(v).catch(() => {});
@@ -307,7 +308,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
         </div>
         <div className="row" style={{ display: "flex", gap: 8 }}>
           {tx.status === "FAILED" && <button className="btn btn-soft" onClick={() => onToast && onToast("Retry — phase 2")}><TIcon.refresh /> Retry payment</button>}
-          <button className="btn btn-soft" onClick={() => onToast && onToast("Receipt download — phase 2")}><TIcon.doc /> Download receipt</button>
+          {hasReceipt && <button className="btn btn-soft" onClick={() => openReceipt(tx)}><TIcon.doc /> Download receipt</button>}
         </div>
       </div>
 
@@ -318,7 +319,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
               {!tx.chain && <TFlag cc={srcMeta?.flag || "us"} size={20} />}
               <div className="lbl">{isOut ? "You paid" : tx.chain ? "Deposited" : isAccountNumberDeposit ? "Received via account number" : "Received via bank transfer"}</div>
             </div>
-            <div className="big">{tx.chain ? `${tx.amount} ${tx.party.split("·")[0].trim()}` : isIn && tx.fromAmount ? `${tx.from} ${tx.fromAmount}` : `${tx.from || tx.ccy} ${tx.amount}`}</div>
+            <div className="big">{tx.chain ? `${tx.amount} ${tx.party.split("·")[0].trim()}` : money.kind === "fiat-in" ? `${money.receivedCcy} ${fmtAmt(money.received)}` : money.kind === "fiat-out" ? `${money.srcCcy} ${fmtAmt(money.debited)}` : `${tx.from || tx.ccy} ${tx.amount}`}</div>
             <div className="sub">
               {isOut && tx.from && <>From your <strong>{tx.from}</strong> balance</>}
               {isIn && !tx.chain && <>{tx.party.includes(" — ") ? tx.party.split(" — ")[1] : tx.party}</>}
@@ -379,7 +380,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
               {tx.activityType === "CASH_DEPOSIT" && (
                 <>
                   <div className="row-item"><div className="k">Channel</div><div className="v">{ad.channel}</div></div>
-                  <div className="row-item"><div className="k">Provider reference</div><div className="v">{ad.providerReference}</div></div>
+                  <div className="row-item"><div className="k">Network reference</div><div className="v">{ad.providerReference}</div></div>
                 </>
               )}
               {tx.activityType === "CASH_PAYMENT" && (
@@ -387,7 +388,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
                   <div className="row-item"><div className="k">Beneficiary</div><div className="v">{ad.recipient?.accountName}</div></div>
                   <div className="row-item"><div className="k">Beneficiary bank / platform</div><div className="v">{ad.recipient?.bankName}</div></div>
                   <div className="row-item"><div className="k">Channel</div><div className="v">{ad.channel}</div></div>
-                  <div className="row-item"><div className="k">Provider reference</div><div className="v">{ad.providerReference}</div></div>
+                  <div className="row-item"><div className="k">Network reference</div><div className="v">{ad.providerReference}</div></div>
                 </>
               )}
               {isCrypto && (() => {
@@ -406,7 +407,6 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
                 );
               })()}
               {fxRateLabel && <div className="row-item"><div className="k">FX rate</div><div className="v">{fxRateLabel}</div></div>}
-              {tx.convFee && <div className="row-item"><div className="k">Conversion fee</div><div className="v">{tx.convFee}</div></div>}
               <div className="row-item"><div className="k">Initiated</div><div className="v">{tx.date.replace(/,/, ", 2026,")}</div></div>
               {tx.activityType === "CASH_PAYMENT" && <div className="row-item"><div className="k">Memo</div><div className="v">{`Invoice #${tx.ref.slice(-5)} · ${tx.party}`}</div></div>}
             </div>
@@ -436,62 +436,35 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
           <div className="card" style={{ padding: cardPad, marginBottom: 22 }}>
             <h2 style={{ margin: "0 0 18px", fontSize: 15, fontWeight: 600, color: "var(--gray-900)" }}>Money breakdown</h2>
             {(() => {
-              const FEE = { USD: 4.50, GBP: 3.60, EUR: 4.10 };
-              const fmt = (n) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              const parseAmt = (s) => parseFloat(String(s).replace(/,/g, "")) || 0;
-
-              if (isCrypto) {
-                const bi = ad.blockchainInfo || {};
-                const fee = parseAmt(ad.feeAmount);
-                const amt = parseAmt(tx.amount);
-                if (isIn) {
-                  return (
-                    <div className="td-money">
-                      <div className="row"><div className="k">Amount received</div><div className="v">{`${fmt(amt)} ${bi.tokenSymbol}`}</div></div>
-                      <div className="row"><div className="k">Network fee</div><div className="v">{`USD ${fmt(fee)}`}</div></div>
-                      <div className="row total"><div className="k">Total credited</div><div className="v">{`USD ${fmt(amt - fee)}`}</div></div>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="td-breakdown">
-                    <div className="bd-row"><div className="bd-k">Amount sent</div><div className="bd-v">{`${fmt(amt)} ${tx.ccy}`}</div></div>
-                    <div className="bd-op"><span className="op">+</span><span className="op-lbl">Network fee</span><span className="bd-v op-v">{`USD ${fmt(fee)}`}</span></div>
-                    <div className="bd-eq final"><div className="bd-k">Total debited</div><div className="bd-v strong">{`USD ${fmt(amt + fee)}`}</div></div>
-                  </div>
-                );
-              }
-
-              const dstAmt = parseAmt(tx.amount);
-              const srcCcy = tx.from || tx.ccy;
-              const dstCcy = tx.ccy;
-              const fee = isOut ? (FEE[srcCcy] ?? 0) : parseAmt(ad.fee);
-              const totalDebited = isCrossCcy ? (dstAmt / fxRate) : dstAmt;
-              const amountSent = isOut ? Math.max(0, totalDebited - fee) : dstAmt;
-
-              if (isIn) {
-                return (
-                  <div className="td-money">
-                    <div className="row"><div className="k">Amount received</div><div className="v">{`${dstCcy} ${fmt(dstAmt)}`}</div></div>
-                    <div className="row"><div className="k">Onboard fee</div><div className="v">{`${dstCcy} ${fmt(fee)}`}</div></div>
-                    <div className="row total"><div className="k">Total credited</div><div className="v">{`${dstCcy} ${fmt(dstAmt - fee)}`}</div></div>
-                  </div>
-                );
-              }
-
+              const m = money;
+              if (m.kind === "crypto-in") return (
+                <div className="td-money">
+                  <div className="row"><div className="k">Amount received</div><div className="v">{`${fmtAmt(m.received)} ${m.token}`}</div></div>
+                  <div className="row"><div className="k">Network fee</div><div className="v">{`USD ${fmtAmt(m.fee)}`}</div></div>
+                  <div className="row total"><div className="k">Total credited</div><div className="v">{`USD ${fmtAmt(m.credited)}`}</div></div>
+                </div>
+              );
+              if (m.kind === "crypto-out") return (
+                <div className="td-breakdown">
+                  <div className="bd-row"><div className="bd-k">Amount sent</div><div className="bd-v">{`${fmtAmt(m.sent)} ${m.ccy}`}</div></div>
+                  <div className="bd-op"><span className="op">+</span><span className="op-lbl">Network fee</span><span className="bd-v op-v">{`USD ${fmtAmt(m.fee)}`}</span></div>
+                  <div className="bd-eq final"><div className="bd-k">Total debited</div><div className="bd-v strong">{`USD ${fmtAmt(m.debited)}`}</div></div>
+                </div>
+              );
+              if (m.kind === "fiat-in") return (
+                <div className="td-money">
+                  <div className="row"><div className="k">{m.localCcy ? "Amount deposited" : "Amount received"}</div><div className="v">{`${m.receivedCcy} ${fmtAmt(m.received)}`}</div></div>
+                  <div className="row"><div className="k">Onboard fee</div><div className="v">{feeText(m.fee, m.feeCcy)}</div></div>
+                  <div className="row total"><div className="k">Total credited</div><div className="v">{`${m.ccy} ${fmtAmt(m.credited)}`}</div></div>
+                </div>
+              );
               return (
                 <div className="td-breakdown">
-                  <div className="bd-row"><div className="bd-k">Amount sent</div><div className="bd-v">{`${srcCcy} ${fmt(amountSent)}`}</div></div>
-                  <div className="bd-op"><span className="op">−</span><span className="op-lbl">Onboard fee</span><span className="bd-v op-v">{`${srcCcy} ${fmt(fee)}`}</span></div>
-                  <div className="bd-eq"><div className="bd-k">Total debited</div><div className="bd-v strong">{`${srcCcy} ${fmt(totalDebited)}`}</div></div>
-                  {isCrossCcy ? (
-                    <>
-                      <div className="bd-op"><span className="op">×</span><span className="op-lbl">FX rate</span><span className="bd-v op-v">{fxRateLabel}</span></div>
-                      <div className="bd-eq final"><div className="bd-k">Recipient gets</div><div className="bd-v strong">{`${dstCcy} ${fmt(dstAmt)}`}</div></div>
-                    </>
-                  ) : (
-                    <div className="bd-eq final"><div className="bd-k">Recipient gets</div><div className="bd-v strong">{`${dstCcy} ${fmt(dstAmt)}`}</div></div>
-                  )}
+                  <div className="bd-row"><div className="bd-k">Amount sent</div><div className="bd-v">{`${m.srcCcy} ${fmtAmt(m.sent)}`}</div></div>
+                  <div className="bd-op"><span className="op">−</span><span className="op-lbl">Onboard fee</span><span className="bd-v op-v">{`${m.srcCcy} ${fmtAmt(m.fee)}`}</span></div>
+                  <div className="bd-eq"><div className="bd-k">Total debited</div><div className="bd-v strong">{`${m.srcCcy} ${fmtAmt(m.debited)}`}</div></div>
+                  {m.isCrossCcy && <div className="bd-op"><span className="op">×</span><span className="op-lbl">FX rate</span><span className="bd-v op-v">{m.fxRateLabel}</span></div>}
+                  <div className="bd-eq final"><div className="bd-k">Recipient gets</div><div className="bd-v strong">{`${m.dstCcy} ${fmtAmt(m.recipientGets)}`}</div></div>
                 </div>
               );
             })()}
@@ -505,12 +478,16 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
                   <span className="ic"><TIcon.paperplane /></span><span className="t">Send again to {tx.party}</span><TIcon.arrowRight />
                 </button>
               )}
-              <button className="td-action" onClick={() => onToast && onToast("Receipt download — phase 2")}>
-                <span className="ic"><TIcon.doc /></span><span className="t">Download PDF receipt</span><TIcon.arrowRight />
-              </button>
-              <button className="td-action" onClick={() => onToast && onToast("Receipt emailed")}>
-                <span className="ic"><TIcon.email /></span><span className="t">Email receipt to recipient</span><TIcon.arrowRight />
-              </button>
+              {hasReceipt && (
+                <button className="td-action" onClick={() => openReceipt(tx)}>
+                  <span className="ic"><TIcon.doc /></span><span className="t">Download PDF receipt</span><TIcon.arrowRight />
+                </button>
+              )}
+              {hasReceipt && isOut && (
+                <button className="td-action" onClick={() => onToast && onToast("Receipt emailed")}>
+                  <span className="ic"><TIcon.email /></span><span className="t">Email receipt to recipient</span><TIcon.arrowRight />
+                </button>
+              )}
               <button className="td-action" onClick={() => onToast && onToast("Support — phase 2")}>
                 <span className="ic"><TIcon.shield /></span><span className="t">Report a problem</span><TIcon.arrowRight />
               </button>
@@ -518,6 +495,7 @@ function TransactionDetailScreen({ tx, onBack, onToast }) {
           </div>
         </div>
       </div>
+      {hasReceipt && <ReceiptPrintable tx={tx} />}
     </Page>
   );
 }
