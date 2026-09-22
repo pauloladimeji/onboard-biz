@@ -56,13 +56,15 @@ primitives.jsx     → window.OBPrimitives — adaptive building blocks (see §5
 auth.jsx           → window.OBAuth — sign-in, TOTP, forgot/set password, apply-for-access (see §7)
 shell.jsx          → window.OBShell — the post-login adaptive Shell (sidebar/topnav ↔ bottom-tabs/topbar)
 dashboard.jsx      → window.OBDashboard — Home
+letter.jsx         → window.OBLetter — shared document frame (DocFrame/openDocument) + account letter
+receipt.jsx        → window.OBReceipt — transaction receipt + txMoney(), the shared money math
 deposit.jsx        → window.OBDeposit — Deposit + funding rails
 send.jsx           → window.OBSendPayment — Send Payment flow
 recipients.jsx     → window.OBRecipients — Recipients list + delete
 add-recipient.jsx  → window.OBAddRecipient — 3-step add-recipient wizard
 transactions.jsx   → window.OBTransactions — Transactions list + detail
 settings.jsx       → window.OBSettings — Settings + Developer
-cards.jsx          → window.OBCards — Flex Business Cards: list, detail, create/fund/withdraw/freeze
+cards.jsx          → window.OBCards — Flex Business Cards: list, detail, create/fund/withdraw/freeze, cardholders, limits
 subaccounts.jsx    → window.OBSubAccounts — EXPLORATORY, hidden by default (see §11)
 app.jsx            → root App: auth flow state machine, post-login routing, mock-control state, toast
 ```
@@ -211,7 +213,8 @@ Each toggle just flips prototype state so a reviewer can see a given screen vari
 | **Compliance hold** | Injects a held transaction + amber banner |
 | **Name lookup** (Add Recipient only) | Forces the account-name verification path on/off |
 | **API access** | Developer API entitlement: granted / pending / not requested |
-| **Cards** | Whether the business has applied for Flex Business Cards: not applied (shows `CardsApplyPage`) vs active |
+| **Cards** | Whether the business has applied for Flex Business Cards: not applied (shows `CardsApplyPage`) vs active, plus the seeded first-run/failure states (no cards, no transactions, rejected, low balance) |
+| **Role (ACL)** | Which seat the signed-in user holds: Viewer / Developer / Operator / Admin. Gates whole routes (Send, Recipients, Developer, Team) and, within Cards, which cards are visible and what can be done to them. See `ACL-SPEC.md` |
 | **Sub-accounts (exploratory)** | Hidden / Business units / Many customers. Hidden by default — adds/removes the nav item and swaps the whole layout + fixtures. Not a shipped feature; see §11 |
 
 > **For eng:** ignore this panel entirely when scoping. It corresponds to **backend/account and
@@ -393,13 +396,49 @@ All the below are built.
   (table/cards); detail screen with sender/receiver hero, settlement timeline (payouts), a
   type-aware Payment details card (network/addresses/hash rows for crypto, sender/beneficiary rows
   for fiat), a Money breakdown card that works for all 5 types, and actions. See §10.
-- **Settings** — Business profile + Security sections (section rail). **Developer** — API keys +
+  - **Receipts** (`receipt.jsx`) — a printable receipt for any **completed** payment or deposit,
+    opened in its own tab on the shared document frame (§below). Money comes from `txMoney(tx)`,
+    the same function the detail page uses, so the two can't disagree. References are always
+    Onboard reference + **Network reference** (value or "N/A"; crypto links the hash to an explorer).
+  - **Shared document frame** (`letter.jsx` — `DocFrame`, `openDocument(id, title)`) — one
+    letterhead / watermark / legal footer for everything we issue. Used by the receipt and by the
+    **account letter** ("Proof of account details") on Deposit, which replaces a document the team
+    currently writes by hand in Slack. USD splits domestic and international instructions; EUR and
+    GBP get one block each.
+- **Settings** — Business profile, Limits, Team and Security sections (section rail). Limits are
+  USD-first with the local amount in brackets, and a "Request an increase" sheet that hands off to
+  WhatsApp. **Team** (Admin only) is the ACL surface: invite / resend / change role / remove, with
+  the two guards that belong in the UI as well as the API — you can't act on your own row, and the
+  last active admin can't be demoted or removed. The signed-in member's role also shows in the
+  dashboard greeting chip, which scrolls to the "Your role" row here. **Developer** — API keys +
   webhooks, every sensitive action gated behind a 2FA Sheet; not-granted / pending states.
+  See `ACL-SPEC.md` for the role matrix.
 - **Cards** (Flex Business Cards) — card list (horizontal-scroll tiles + all-cards transaction
   list), card detail (two-column desktop / stacked mobile via `.card-detail-grid`), create/fund/
-  withdraw/freeze flows, spending limits, fee schedule, and a not-applied landing page — all 7
-  modals are `Sheet`-based. See §4 for the touch-adapted card visual (reveal/copy) and §6 for
-  where Cards sits in navigation.
+  withdraw/freeze/reassign flows, spending limits, fees and terms, and a not-applied landing page —
+  all `Sheet`-based. See §4 for the touch-adapted card visual (reveal/copy) and §6 for where Cards
+  sits in navigation.
+  - **States**: activating, active, frozen, low balance (below the $1 minimum — frozen, and only
+    funding lifts it, so no Unfreeze button), rejected (provider declined the business), failed
+    (nothing to retry or terminate — the backend supports neither) and terminated. Failed and
+    terminated cards can be hidden from the list with a toggle remembered in `localStorage`.
+  - **Cardholder** — any active team member, chosen at creation (defaults to the creator) and
+    reassignable by admins/operators. Held by the roster in `v0/data.jsx`, shared with Settings →
+    Team. Removing a member freezes the live cards they hold; the card then shows a "Cardholder
+    removed" panel offering Reassign or Terminate. **Reassigning does not unfreeze** — the previous
+    holder may have saved the card details, so unfreezing is a separate, deliberate step.
+  - **Role gating** — admins and operators see and manage every card. Viewers and developers see
+    only the cards they hold: they can use them, read the details and **freeze** (the fast response
+    to a leaked number), but not unfreeze, fund or change them.
+  - **Spending limits** — per card, per transaction ≤ daily ≤ monthly. Set at creation and edited
+    by managers on sliders capped at `LIMIT_MAX`; moving one limit past its neighbour carries the
+    neighbour with it, so the invalid combination can't be expressed. Spend against the daily and
+    monthly limits shows on the card detail panel and in full in the limits sheet (amber at 75%,
+    red at 90%).
+  - **Fees and terms** — one sheet, before anyone creates a card: creation $5, funding 1%, monthly
+    free, USD transactions free, cross-border 1.75% + $1 (non-US merchants **or** any non-USD
+    currency — it's not an FX fee), chargeback $50, plus the minimum-balance and repeated-decline
+    terms that otherwise surprise people after the fact.
 - **Sub-accounts — EXPLORATORY, not a shipped feature.** Hidden entirely unless the *Sub-accounts
   (exploratory)* mock toggle (§8) is switched on, which adds the nav item (desktop sidebar inline,
   mobile "More" sheet). Built for customer/prospect conversations, **not** scoped for build — treat
@@ -459,6 +498,23 @@ The demo-mode build (§14) added one real, structural fix: recipients (add/delet
 React state for the session (`app.jsx`) — previously `RECIPIENTS_FULL` was read directly by
 `RecipientsScreen`/`SendPayment` and any add/delete was a silent no-op. Not demo-specific; it was
 a pre-existing gap the demo surfaced.
+
+**Open questions for backend — design is settled, these are answers we need to build:**
+
+- **Cards / limits** — the real configured maximum per limit (`LIMIT_MAX` in `cards.jsx` is a
+  placeholder: $10k / $25k / $100k), and whether it's per business; where spend-to-date comes from
+  (provider field vs summed transactions) and whether pending authorisations count; the daily
+  reset time zone, and whether monthly resets on the 1st or rolls 30 days.
+- **Cards / cardholder** — can the cardholder name change on an already-issued card, or does
+  reassigning require a new card? Can a card number be reissued so a removed holder's saved
+  details stop working? Who do card emails go to — the holder, the creator, or both?
+- **Cards / lifecycle** — is the $5 creation fee refunded when a card fails or is rejected? The
+  terminate-with-balance bug (Eno). Do declines on a *manually* frozen card count toward the
+  automatic termination threshold (Nonami)?
+- **Transactions / deposits** — real network references (the receipt prints "N/A" without one),
+  and deposit fees returned by the API rather than carried in fixtures.
+- **ACL** — the scope of "inherits business standard access", and sign-off on hiding the
+  recipients list from Viewer (see `ACL-SPEC.md`).
 
 **Deliberately excluded — not a gap, don't port these:**
 
