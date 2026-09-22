@@ -677,7 +677,7 @@ function App() {
   } else if (route === "subaccounts") {
     screen = <SubAccountsScreen key={subAccountsOn} onToast={setToast} mode={subAccountsOn === "customers" ? "customers" : "units"} />;
   } else if (route === "cards") {
-    screen = <CardsScreen key={cardsAccess} onToast={setToast} cardsAccess={cardsAccess} />;
+    screen = <CardsScreen key={`${cardsAccess}-${role}`} onToast={setToast} cardsAccess={cardsAccess} role={role} />;
   } else if (route === "settings") {
     screen = <SettingsScreen key={`${settingsSection}-${role}-${roleFocus}`} onToast={setToast} initialSection={settingsSection} role={role} focusRole={roleFocus} />;
   } else if (route === "developer") {

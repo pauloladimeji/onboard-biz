@@ -15,10 +15,113 @@ const DEAD_STATUSES = ["failed", "terminated"];
 const DECLINE_LIMIT = { domestic: 5, international: 2 };
 const HIDE_DEAD_KEY = "ob_cards_hide_dead";
 
-const { Page, Sheet, Pill, useIsDesktop, DemoCta } = window.OBPrimitives;
+const { Page, Sheet, Pill, useIsDesktop, DemoCta, can, SIGNED_IN, ROLE_LABEL } = window.OBPrimitives;
 
 const CARD_BG = "../v0/design-system/assets/card-bg.svg";
-const MOCK_CARDHOLDER = "Amara Nwosu";
+// Cardholder = any active team member. The holder's name is what's printed for billing, and the
+// person a card is scoped to when their role can't manage cards.
+const TEAM = Data.TEAM_MEMBERS;
+const memberById = (id) => TEAM.find((m) => m.id === id);
+const holderName = (card) => (memberById(card.holderId) || {}).name || "Unassigned";
+const firstName = (name) => name.split(" ")[0];
+const initialsOf = (name) => name.split(" ").map((p) => p[0]).slice(0, 2).join("");
+const activeMembers = () => TEAM.filter((m) => m.status === "active");
+const youSuffix = (m) => (m.id === SIGNED_IN.id ? " (you)" : "");
+const DEFAULT_LIMITS = { perTransaction: 5000, daily: 10000, monthly: 25000 };
+// Configured ceilings per limit. Placeholder values until the real ones are confirmed.
+const LIMIT_MAX = { perTransaction: 10000, daily: 25000, monthly: 100000 };
+const LIMIT_STEP = { perTransaction: 50, daily: 100, monthly: 500 };
+const LIMIT_FIELDS = [["perTransaction", "Per transaction"], ["daily", "Daily"], ["monthly", "Monthly"]];
+const fmtUsd0 = (n) => "$" + n.toLocaleString();
+
+// Limits must nest (per transaction ≤ daily ≤ monthly). Rather than show an error, moving one
+// limit past its neighbour carries the neighbour with it. The maxes nest too, so this always fits.
+function nestLimits(l, changed) {
+  let { perTransaction: p, daily: d, monthly: m } = l;
+  if (changed === "perTransaction") { d = Math.max(d, p); m = Math.max(m, d); }
+  else if (changed === "daily") { p = Math.min(p, d); m = Math.max(m, d); }
+  else { d = Math.min(d, m); p = Math.min(p, d); }
+  return { perTransaction: p, daily: d, monthly: m };
+}
+
+// Spend counted against the daily and monthly limits. Per transaction has nothing to accumulate.
+const spentOf = (card) => card.spent || { today: 0, month: 0 };
+const SPEND_PERIODS = [
+  { key: "daily", spentKey: "today", label: "Today", resets: "Resets daily" },
+  { key: "monthly", spentKey: "month", label: "This month", resets: "Resets on the 1st" },
+];
+
+function SpendMeter({ label, spent, limit, resets }) {
+  const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
+  const reached = spent >= limit;
+  const tone = reached || pct >= 90 ? "danger" : pct >= 75 ? "warn" : "";
+  return (
+    <div className="spend-meter">
+      <div className="spend-meter-head">
+        <span>{label}</span>
+        <span><strong>${fmtBal(spent)}</strong> of {fmtUsd0(limit)}</span>
+      </div>
+      <div className="spend-bar" role="meter" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={spent} aria-label={`${label} spend`}>
+        <div className={tone} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="spend-meter-foot">
+        <span className={tone}>{reached ? "Limit reached — payments declined until it resets" : `$${fmtBal(limit - spent)} left`}</span>
+        <span>{resets}</span>
+      </div>
+    </div>
+  );
+}
+
+// Secondary to the card's own details, so it's one bar: the monthly figure, with today and the
+// per-transaction cap in a line beneath. The limits sheet has the full breakdown.
+function CardSpendCard({ card, onViewLimits }) {
+  const s = spentOf(card);
+  const pct = Math.min(100, (s.month / card.limit.monthly) * 100);
+  const tone = pct >= 90 ? "danger" : pct >= 75 ? "warn" : "";
+  const dayReached = s.today >= card.limit.daily;
+  return (
+    <div className="card spend-card">
+      <div className="spend-mini-head">
+        <span>Spent this month</span>
+        <span className="fig"><strong>${fmtBal(s.month)}</strong> of {fmtUsd0(card.limit.monthly)}</span>
+      </div>
+      <div className="spend-bar" role="meter" aria-valuemin={0} aria-valuemax={card.limit.monthly} aria-valuenow={s.month} aria-label="Spend this month">
+        <div className={tone} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="spend-mini-foot">
+        <div className="spend-mini-facts">
+          <span className={dayReached ? "danger" : ""}>Today ${fmtBal(s.today)} of {fmtUsd0(card.limit.daily)}</span>
+          <span>Up to {fmtUsd0(card.limit.perTransaction)} per payment</span>
+        </div>
+        <button className="card-holder-change" onClick={onViewLimits}>Limits</button>
+      </div>
+    </div>
+  );
+}
+
+function LimitSliders({ value, onChange, spent }) {
+  return (
+    <div className="lim-sliders">
+      {LIMIT_FIELDS.map(([k, label]) => (
+        <div className="lim-slider" key={k}>
+          <div className="lim-slider-head"><label htmlFor={`lim-${k}`}>{label}</label><strong>{fmtUsd0(value[k])}</strong></div>
+          <input id={`lim-${k}`} type="range" min={LIMIT_STEP[k]} max={LIMIT_MAX[k]} step={LIMIT_STEP[k]} value={value[k]}
+            style={{ "--fill": `${(value[k] / LIMIT_MAX[k]) * 100}%` }}
+            onChange={(e) => onChange(nestLimits({ ...value, [k]: Number(e.target.value) }, k))} />
+          <div className="lim-slider-scale"><span>{fmtUsd0(LIMIT_STEP[k])}</span><span>Max {fmtUsd0(LIMIT_MAX[k])}</span></div>
+          {spent && k !== "perTransaction" && (() => {
+            const used = k === "daily" ? spent.today : spent.month;
+            if (!used) return null;
+            const period = k === "daily" ? "today" : "this month";
+            return value[k] < used
+              ? <div className="lim-slider-note warn">Below the ${fmtBal(used)} already spent {period} — payments will be declined until it resets.</div>
+              : <div className="lim-slider-note">${fmtBal(used)} spent {period}</div>;
+          })()}
+        </div>
+      ))}
+    </div>
+  );
+}
 const BILLING_ADDRESS = { street: "14 Admiralty Way", city: "Lekki", state: "Lagos", zip: "106104", country: "Nigeria" };
 const CARD_CREATION_FEE = 5;
 const CARD_FUNDING_FEE_PCT = 0.01;
@@ -145,7 +248,7 @@ function CardVisual({ card, compact, fillWidth, interactive, onToast }) {
   );
 }
 
-function CardTile({ card, onClick }) {
+function CardTile({ card, onClick, showHolder }) {
   const activating = card.status === "activating";
   const rejected = card.status === "rejected";
   const terminated = card.status === "terminated";
@@ -163,9 +266,11 @@ function CardTile({ card, onClick }) {
           <div style={{ fontSize: 12, color: "#DC2626", fontWeight: 500, marginTop: 4 }}>{rejected ? "Not approved" : "Activation failed"}</div>
         ) : (
           <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
-            Virtual · ••{card.last4}
+            {showHolder ? firstName(holderName(card)) : "Virtual"} · ••{card.last4}
 
-            {card.status === "frozen" && (card.lowBalance
+            {card.status === "frozen" && (card.holderRemoved
+              ? <span style={{ color: "#B45309", marginLeft: 6, fontWeight: 500 }}>· Holder removed</span>
+              : card.lowBalance
               ? <span style={{ color: "#DC2626", marginLeft: 6, fontWeight: 500 }}>· Needs funding</span>
               : <span style={{ color: "var(--info-700)", marginLeft: 6 }}>· Frozen</span>)}
           </div>
@@ -262,6 +367,7 @@ function CardTxnDetailSheet({ tx, card, onClose, onToast }) {
     isFx && { label: "Exchange rate", value: tx.fxRate },
     isFx && tx.fxFee && { label: "Cross-border fee", value: `${XB_FEE_LABEL} ($${tx.fxFee})` },
     card && { label: "Card", value: `${card.name} ••${card.last4}` },
+    card && card.holderId && { label: "Cardholder", value: holderName(card) },
     tx.category && { label: "Category", value: tx.category },
     tx.merchantCountry && { label: "Merchant country", value: tx.merchantCountry },
     { label: "Reference", value: tx.ref, copy: true },
@@ -442,6 +548,10 @@ function CreateCardSheet({ onClose, onCreate }) {
   const [step, setStep] = useState("form");
   const [name, setName] = useState("");
   const [fundAmount, setFundAmount] = useState("");
+  const [holderId, setHolderId] = useState(SIGNED_IN.id);
+  const [limits, setLimits] = useState({ ...DEFAULT_LIMITS });
+  const [showLimits, setShowLimits] = useState(false);
+  const holder = memberById(holderId) || {};
   const MIN_FUND = CARD_CREATION_FEE + 1;
   const usdBalance = Data.V0_USD_BALANCE;
   const parsed = parseFloat(fundAmount) || 0;
@@ -457,7 +567,7 @@ function CreateCardSheet({ onClose, onCreate }) {
       id: "card-" + Date.now(), name: name.trim(), last4, type: "virtual", status: "activating",
       number: `4539 ${String(Math.floor(1000 + Math.random() * 9000))} ${String(Math.floor(1000 + Math.random() * 9000))} ${last4}`,
       expiry: "06/28", cvv: String(Math.floor(100 + Math.random() * 900)),
-      limit: { perTransaction: 5000, daily: 10000, monthly: 25000 }, created: "Jun 28, 2026", balance: cardBalance,
+      limit: { ...limits }, created: "Jun 28, 2026", balance: cardBalance, holderId,
     });
     setStep("done");
   };
@@ -468,7 +578,10 @@ function CreateCardSheet({ onClose, onCreate }) {
         <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
           <div className="pay-confirm-icon"><Icon.check /></div>
           <div className="pay-confirm-title">Card created</div>
-          <div className="pay-confirm-sub">{name.trim()} is activating — it'll be ready to use in a moment.</div>
+          <div className="pay-confirm-sub">
+            {name.trim()} is activating — it'll be ready to use in a moment.
+            {holderId !== SIGNED_IN.id && <> {firstName(holder.name)} can see it in Cards once it's active.</>}
+          </div>
           <button className="btn btn-lg btn-block" onClick={onClose}>Done</button>
           <DemoCta message="Ready to issue real cards for your team?" campaign="card_confirm" />
         </div>
@@ -477,7 +590,9 @@ function CreateCardSheet({ onClose, onCreate }) {
         <>
           <div className="pay-review-list" style={{ paddingTop: 0 }}>
             <div className="row-item"><div className="k">Card name</div><div className="v">{name}</div></div>
+            <div className="row-item"><div className="k">Cardholder</div><div className="v">{holder.name}{youSuffix(holder)}</div></div>
             <div className="row-item"><div className="k">Card type</div><div className="v">Virtual</div></div>
+            <div className="row-item"><div className="k">Spending limits</div><div className="v">{fmtUsd0(limits.perTransaction)} per txn · {fmtUsd0(limits.daily)} daily · {fmtUsd0(limits.monthly)} monthly</div></div>
             <div className="row-item"><div className="k">Fund amount</div><div className="v">${parsed.toFixed(2)}</div></div>
             <div className="row-item"><div className="k">Creation fee</div><div className="v" style={{ color: "#DC2626" }}>−${CARD_CREATION_FEE.toFixed(2)}</div></div>
             <div className="row-item"><div className="k">Funding fee ({FUNDING_FEE_LABEL})</div><div className="v" style={{ color: "#DC2626" }}>−${fundingFee.toFixed(2)}</div></div>
@@ -504,6 +619,13 @@ function CreateCardSheet({ onClose, onCreate }) {
             </div>
           </div>
           <div className="field">
+            <div className="lbl">Cardholder</div>
+            <select className="inp" value={holderId} onChange={(e) => setHolderId(e.target.value)}>
+              {activeMembers().map((m) => <option key={m.id} value={m.id}>{m.name}{youSuffix(m)}</option>)}
+            </select>
+            <div className="help">Their name goes on the card. They can use it and freeze it, but not fund it or change its limits.</div>
+          </div>
+          <div className="field">
             <div className="lbl">Card type</div>
             <div style={{ display: "flex", gap: 10 }}>
               <div className="card-type-opt on">
@@ -526,6 +648,15 @@ function CreateCardSheet({ onClose, onCreate }) {
             {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Insufficient funds. Your USD balance is ${fmtBal(usdBalance)}.</div>}
             {validFund && !tooHigh && <div className="help">After $5.00 creation fee + {FUNDING_FEE_LABEL} funding fee: <strong style={{ color: "var(--gray-900)" }}>${cardBalance.toFixed(2)}</strong></div>}
           </div>
+          <div className="field">
+            <div className="field-lbl-row">
+              <div className="lbl">Spending limits</div>
+              <button type="button" className="card-holder-change" onClick={() => setShowLimits((v) => !v)}>{showLimits ? "Done" : "Adjust"}</button>
+            </div>
+            {showLimits
+              ? <LimitSliders value={limits} onChange={setLimits} />
+              : <div className="lim-summary">{fmtUsd0(limits.perTransaction)} per transaction · {fmtUsd0(limits.daily)} daily · {fmtUsd0(limits.monthly)} monthly</div>}
+          </div>
           <div className="td-banner info" style={{ marginTop: 4 }}>
             <Icon.info />
             <div><div className="s">A one-time <strong>$5.00</strong> creation fee and <strong>{FUNDING_FEE_LABEL}</strong> funding fee apply, both deducted from the funded amount.</div></div>
@@ -540,7 +671,7 @@ function CreateCardSheet({ onClose, onCreate }) {
   );
 }
 
-function FreezeCardSheet({ card, onClose, onConfirm }) {
+function FreezeCardSheet({ card, onClose, onConfirm, manage }) {
   const frozen = card.status === "frozen";
   return (
     <Sheet open onClose={onClose} title={frozen ? "Unfreeze card?" : "Freeze card?"}>
@@ -550,7 +681,7 @@ function FreezeCardSheet({ card, onClose, onConfirm }) {
       </div>
       {!frozen && (
         <div style={{ marginTop: 14, background: "var(--gray-50)", borderRadius: 8, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
-          {["Online and in-store purchases will be declined", "Recurring subscriptions may still process", "You can unfreeze at any time"].map((note) => (
+          {["Online and in-store purchases will be declined", "Recurring subscriptions may still process", manage ? "You can unfreeze at any time" : "Only an admin or operator can unfreeze it"].map((note) => (
             <div key={note} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, color: "var(--gray-600)" }}>
               <span style={{ marginTop: 2, color: "var(--gray-400)", flexShrink: 0 }}>•</span>{note}
             </div>
@@ -612,20 +743,42 @@ function CardFeesSheet({ onClose }) {
   );
 }
 
-function SpendingLimitsSheet({ card, onClose }) {
+// Per card. Managers edit; everyone else reads. Limits must nest (per transaction ≤ daily ≤
+// monthly) — a daily cap below the per-transaction one would silently become the real limit.
+function SpendingLimitsSheet({ card, onClose, canEdit, onSave }) {
   const fmt = (n) => "$" + n.toLocaleString();
+  const [editing, setEditing] = useState(false);
+  const [vals, setVals] = useState({ ...card.limit });
+  const unchanged = LIMIT_FIELDS.every(([k]) => vals[k] === card.limit[k]);
+
+  if (editing) {
+    return (
+      <Sheet open onClose={onClose} title="Edit spending limits">
+        <p className="set-sheet-lede" style={{ marginTop: 0 }}>For <strong>{card.name}</strong>, held by {holderName(card)}. Changes apply to the next payment.</p>
+        <LimitSliders value={vals} onChange={setVals} spent={spentOf(card)} />
+        <div className="set-modal-foot">
+          <button className="btn btn-ghost" onClick={() => { setVals({ ...card.limit }); setEditing(false); }}>Cancel</button>
+          <button className="btn btn-lg" disabled={unchanged} onClick={() => onSave(vals)}>Save limits</button>
+        </div>
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet open onClose={onClose} title="Spending limits">
       <div>
-        {[{ label: "Per transaction", value: card.limit.perTransaction }, { label: "Daily", value: card.limit.daily }, { label: "Monthly", value: card.limit.monthly }].map((l, i, arr) => (
-          <div key={l.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--gray-100)" : "none" }}>
-            <span style={{ fontSize: 13, color: "var(--gray-600)" }}>{l.label}</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", fontVariantNumeric: "tabular-nums" }}>{fmt(l.value)}</span>
-          </div>
-        ))}
-        <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 12 }}>Contact support to adjust limits.</div>
+        {SPEND_PERIODS.map((p) => <SpendMeter key={p.key} label={p.key === "daily" ? "Daily" : "Monthly"} spent={spentOf(card)[p.spentKey]} limit={card.limit[p.key]} resets={p.resets} />)}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 0", borderTop: "1px solid var(--gray-100)" }}>
+          <span style={{ fontSize: 13, color: "var(--gray-600)" }}>Per transaction</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", fontVariantNumeric: "tabular-nums" }}>{fmt(card.limit.perTransaction)}</span>
+        </div>
+        {!canEdit && <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 12 }}>Only admins and operators can change limits.</div>}
       </div>
-      <div className="set-modal-foot"><button className="btn btn-lg" onClick={onClose} style={{ width: "100%", justifyContent: "center" }}>Done</button></div>
+      <div className="set-modal-foot">
+        {canEdit
+          ? <><button className="btn btn-ghost" onClick={onClose}>Done</button><button className="btn btn-lg" onClick={() => setEditing(true)}>Edit limits</button></>
+          : <button className="btn btn-lg" onClick={onClose} style={{ width: "100%", justifyContent: "center" }}>Done</button>}
+      </div>
     </Sheet>
   );
 }
@@ -654,14 +807,15 @@ function TerminateCardSheet({ card, onClose, onConfirm }) {
   );
 }
 
-function MoreActionsSheet({ open, onClose, onAction }) {
+function MoreActionsSheet({ open, onClose, onAction, manage }) {
   const items = [
     { key: "limits", icon: <Icon.shield />, label: "Spending limits" },
-    { key: "withdraw", icon: <Icon.arrowLeft />, label: "Withdraw to wallet" },
+    manage && { key: "holder", icon: <Icon.people />, label: "Change cardholder" },
+    manage && { key: "withdraw", icon: <Icon.arrowLeft />, label: "Withdraw to wallet" },
     { key: "fees", icon: <Icon.info />, label: "Fees and terms" },
-    { key: "edit", icon: <Icon.pencil />, label: "Edit card name" },
-    { key: "cancel", icon: <Icon.trash />, label: "Terminate card", danger: true },
-  ];
+    manage && { key: "edit", icon: <Icon.pencil />, label: "Edit card name" },
+    manage && { key: "cancel", icon: <Icon.trash />, label: "Terminate card", danger: true },
+  ].filter(Boolean);
   return (
     <Sheet open={open} onClose={onClose} title="More">
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -678,14 +832,18 @@ function MoreActionsSheet({ open, onClose, onAction }) {
 // =====================================================
 // Card details — cardholder, billing address, add to wallet
 // =====================================================
-function CardDetailsCard({ card, onToast }) {
+function CardDetailsCard({ card, onToast, onChangeHolder }) {
+  const holder = holderName(card);
   const addr = BILLING_ADDRESS;
   const fullAddress = `${addr.street}, ${addr.city}, ${addr.state} ${addr.zip}, ${addr.country}`;
   return (
     <div className="card" style={{ marginTop: 20, padding: 0 }}>
       <div className="card-detail-row">
-        <div className="card-detail-row-head"><span>Cardholder</span><button className="copy-inline" onClick={() => copyText(MOCK_CARDHOLDER, onToast, "Cardholder name")}><Icon.copy /></button></div>
-        <div style={{ fontSize: 13.5, color: "var(--gray-900)" }}>{MOCK_CARDHOLDER}</div>
+        <div className="card-detail-row-head"><span>Cardholder</span><button className="copy-inline" onClick={() => copyText(holder, onToast, "Cardholder name")}><Icon.copy /></button></div>
+        <div className="card-holder-row">
+          <div style={{ fontSize: 13.5, color: "var(--gray-900)" }}>{holder}{card.holderId === SIGNED_IN.id ? " (you)" : ""}</div>
+          {onChangeHolder && <button className="card-holder-change" onClick={onChangeHolder}>Change</button>}
+        </div>
       </div>
       <div className="card-detail-row">
         <div className="card-detail-row-head"><span>Billing address</span><button className="copy-inline" onClick={() => copyText(fullAddress, onToast, "Full address")}><Icon.copy /></button></div>
@@ -756,7 +914,53 @@ function CardsEmptyState({ onCreateCard }) {
   );
 }
 
-function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
+// A member who can't create cards has nothing to do on the first-run panel, so this one says how
+// a card reaches them instead.
+function CardsNoneAssigned() {
+  return (
+    <div className="card cards-empty">
+      <div className="cards-empty-copy">
+        <h2>No cards assigned to you</h2>
+        <p>Admins and operators create cards and assign them to team members. Ask one of them to set up a card for you — it'll show up here.</p>
+      </div>
+      <div className="cards-empty-art"><CardVisual card={PLACEHOLDER_CARD} /></div>
+    </div>
+  );
+}
+
+// Moves a card to another active member. Number, balance, limits and history stay with the card.
+function ReassignCardSheet({ card, onClose, onConfirm }) {
+  const [pick, setPick] = useState(null);
+  const options = activeMembers().filter((m) => m.id !== card.holderId);
+  const current = memberById(card.holderId);
+  return (
+    <Sheet open onClose={onClose} title="Change cardholder">
+      <p className="set-sheet-lede" style={{ marginTop: 0 }}>
+        <strong>{card.name}</strong> keeps its number, balance, limits and history.
+        {current && current.status === "active" && <> {firstName(current.name)} loses access to it straight away.</>}
+      </p>
+      {options.map((m) => (
+        <div key={m.id} className={`holder-opt${pick === m.id ? " on" : ""}`} role="radio" aria-checked={pick === m.id} tabIndex={0} onClick={() => setPick(m.id)}>
+          <div className="av">{initialsOf(m.name)}</div>
+          <div style={{ flex: 1 }}><div className="nm">{m.name}{youSuffix(m)}</div><div className="rl">{ROLE_LABEL[m.role]}</div></div>
+          {pick === m.id && <Icon.check style={{ width: 16, height: 16, color: "#7C3AED" }} />}
+        </div>
+      ))}
+      {card.holderRemoved && (
+        <div className="td-banner warn" style={{ marginTop: 4 }}>
+          <Icon.alert />
+          <div><div className="s">The card stays frozen after you reassign it. {current ? firstName(current.name) : "The previous holder"} may have saved the card details — if that's a concern, terminate it and create a new card instead.</div></div>
+        </div>
+      )}
+      <div className="set-modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-lg" disabled={!pick} onClick={() => onConfirm(pick)}>Reassign card</button>
+      </div>
+    </Sheet>
+  );
+}
+
+function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked, manage }) {
   const allTxns = txns.map((tx, i) => ({ ...tx, card: cards[i % Math.max(cards.length, 1)] }));
   const [selectedTxn, setSelectedTxn] = useState(null);
   // Off by default, but remembered once set — a dead card is clutter every visit, not just once.
@@ -773,12 +977,12 @@ function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
   const isEmpty = cards.length === 0;
   // No create affordances while the provider has declined the business — otherwise the customer
   // mints one dead card after another.
-  const canCreate = !blocked;
+  const canCreate = !blocked && manage;
 
   return (
     <Page>
       <div className="page-head">
-        <div><h1 className="title">Cards</h1><p className="subtitle">Manage your {CARD_BRAND} virtual cards.</p></div>
+        <div><h1 className="title">Cards</h1><p className="subtitle">{manage ? `Manage your team's ${CARD_BRAND} virtual cards.` : `${CARD_BRAND} cards assigned to you.`}</p></div>
         {!isEmpty && canCreate && <button className="btn btn-lg" onClick={onCreateCard}><Icon.plus style={{ width: 15, height: 15 }} /> Create card</button>}
       </div>
 
@@ -791,7 +995,7 @@ function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
 
       {!isEmpty && !blocked && (
         <div className="cards-scroll rail-tabs" style={{ display: "flex", gap: 20, border: "none", marginBottom: 28 }}>
-          {shownCards.map((c) => <div key={c.id} style={{ flexShrink: 0 }}><CardTile card={c} onClick={() => onSelect(c)} /></div>)}
+          {shownCards.map((c) => <div key={c.id} style={{ flexShrink: 0 }}><CardTile card={c} showHolder={manage} onClick={() => onSelect(c)} /></div>)}
           {canCreate && (
             <div className="card-new-tile" onClick={onCreateCard}>
               <Icon.plus style={{ width: 20, height: 20, color: "var(--gray-600)" }} />
@@ -813,7 +1017,7 @@ function CardsListPage({ cards, onSelect, onCreateCard, txns, blocked }) {
             : <CardTxnsEmpty pending={cards.every(c => c.status !== "active" && c.status !== "frozen")} />}
         </div>
       ) : isEmpty && !blocked ? (
-        <CardsEmptyState onCreateCard={onCreateCard} />
+        manage ? <CardsEmptyState onCreateCard={onCreateCard} /> : <CardsNoneAssigned />
       ) : null}
       <CardTxnDetailSheet tx={selectedTxn} card={selectedTxn?.card} onClose={() => setSelectedTxn(null)} />
     </Page>
@@ -873,7 +1077,8 @@ function CardFailedPanel() {
   );
 }
 
-function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txns }) {
+function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txns, manage }) {
+  const [showReassign, setShowReassign] = useState(false);
   const [showFund, setShowFund] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showFreeze, setShowFreeze] = useState(false);
@@ -895,6 +1100,12 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
   // Below the $1.00 minimum the provider freezes the card, and only funding unfreezes it — so
   // this is frozen, but with no Unfreeze button, since pressing it would just fail.
   const lowBalance = frozen && card.lowBalance;
+  // Removing a member freezes their cards until a manager reassigns or terminates them — unfreezing
+  // first would leave a live card with nobody on the team holding it.
+  const holderRemoved = frozen && card.holderRemoved;
+  // Anyone holding a card can freeze it (the fast response to a leaked number); only managers
+  // can undo that, fund it, or change it.
+  const canToggleFreeze = !lowBalance && !holderRemoved && (manage || !frozen);
 
   const handleFreeze = () => { onUpdateCard({ ...card, status: frozen ? "active" : "frozen" }); onToast(frozen ? "Card unfrozen" : "Card frozen"); setShowFreeze(false); };
   const handleSaveName = () => { if (nameVal.trim() && nameVal.trim() !== card.name) { onUpdateCard({ ...card, name: nameVal.trim() }); onToast("Card name updated"); } setEditingName(false); };
@@ -906,8 +1117,15 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
     onToast(lifts ? `$${amount.toFixed(2)} added — card unfrozen` : `$${amount.toFixed(2)} added`);
   };
   const handleWithdraw = (amount) => { onUpdateCard({ ...card, balance: Math.max(0, (card.balance || 0) - amount) }); setShowWithdraw(false); onToast(`$${amount.toFixed(2)} withdrawn to USD wallet`); };
+  const handleReassign = (id) => {
+    onUpdateCard({ ...card, holderId: id, holderRemoved: false });
+    setShowReassign(false);
+    onToast(`Card reassigned to ${memberById(id).name}`);
+  };
+  const handleSaveLimits = (limit) => { onUpdateCard({ ...card, limit }); setShowLimits(false); onToast("Spending limits updated"); };
   const handleMoreAction = (key) => {
     if (key === "limits") setShowLimits(true);
+    else if (key === "holder") setShowReassign(true);
     else if (key === "withdraw") setShowWithdraw(true);
     else if (key === "fees") setShowFees(true);
     else if (key === "edit") setEditingName(true);
@@ -955,6 +1173,19 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
             </div>
           )}
 
+          {holderRemoved && (
+            <div className="card card-removed">
+              <div className="card-removed-head"><Icon.alert /><span>Cardholder removed</span></div>
+              <p>{holderName(card)} was removed from the team, so this card is frozen. Reassign it to someone else, or terminate it — any balance returns to your USD balance.</p>
+              {manage && (
+                <div className="card-removed-actions">
+                  <button className="btn" onClick={() => setShowReassign(true)}>Reassign</button>
+                  <button className="btn btn-ghost" style={{ color: "#DC2626" }} onClick={() => setShowTerminate(true)}>Terminate</button>
+                </div>
+              )}
+            </div>
+          )}
+
           {terminated && (
             <div className="card" style={{ marginTop: 16, padding: "16px 18px" }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--gray-900)", marginBottom: 3 }}>Card terminated</div>
@@ -964,8 +1195,8 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
 
           {usable && (
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button className="btn btn-lg" style={{ flex: 1, fontSize: 13, padding: "10px 12px", justifyContent: "center" }} onClick={() => setShowFund(true)}><Icon.plus style={{ width: 14, height: 14 }} /> Fund</button>
-              {!lowBalance && (
+              {manage && <button className="btn btn-lg" style={{ flex: 1, fontSize: 13, padding: "10px 12px", justifyContent: "center" }} onClick={() => setShowFund(true)}><Icon.plus style={{ width: 14, height: 14 }} /> Fund</button>}
+              {canToggleFreeze && (
                 <button className="btn btn-ghost" style={{ flex: 1, fontSize: 13, padding: "10px 12px", gap: 6, justifyContent: "center", border: "1.5px solid var(--gray-300)", color: frozen ? "var(--success-700)" : "var(--gray-700)" }} onClick={() => setShowFreeze(true)}>
                   {frozen ? <><Icon.zap style={{ width: 14, height: 14 }} /> Unfreeze</> : <><Icon.snowflake style={{ width: 14, height: 14 }} /> Freeze</>}
                 </button>
@@ -976,12 +1207,21 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
             </div>
           )}
 
-          {usable && <CardDetailsCard card={card} onToast={onToast} />}
+          {usable && !manage && frozen && !lowBalance && (
+            <div style={{ fontSize: 12.5, color: "var(--gray-500)", marginTop: 10, lineHeight: 1.5 }}>This card is frozen. Ask an admin or operator to unfreeze it.</div>
+          )}
+          {usable && !manage && lowBalance && (
+            <div style={{ fontSize: 12.5, color: "var(--gray-500)", marginTop: 10, lineHeight: 1.5 }}>Ask an admin or operator to fund it.</div>
+          )}
+
+          {usable && <CardDetailsCard card={card} onToast={onToast} onChangeHolder={manage ? () => setShowReassign(true) : null} />}
+
+          {usable && <CardSpendCard card={card} onViewLimits={() => setShowLimits(true)} />}
         </div>
 
         <div className="card-detail-right">
           {rejected ? (
-            <CardRejectedPanel onRemove={() => { onDeleteCard(card.id); onToast("Card removed"); }} />
+            <CardRejectedPanel onRemove={manage ? () => { onDeleteCard(card.id); onToast("Card removed"); } : null} />
           ) : failed ? (
             <CardFailedPanel />
           ) : (
@@ -997,13 +1237,14 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
 
       {showFund && <FundCardSheet card={card} onClose={() => setShowFund(false)} onFund={handleFund} />}
       {showWithdraw && <WithdrawCardSheet card={card} onClose={() => setShowWithdraw(false)} onWithdraw={handleWithdraw} />}
-      {showFreeze && <FreezeCardSheet card={card} onClose={() => setShowFreeze(false)} onConfirm={handleFreeze} />}
-      {showLimits && <SpendingLimitsSheet card={card} onClose={() => setShowLimits(false)} />}
+      {showFreeze && <FreezeCardSheet card={card} manage={manage} onClose={() => setShowFreeze(false)} onConfirm={handleFreeze} />}
+      {showLimits && <SpendingLimitsSheet card={card} canEdit={manage} onSave={handleSaveLimits} onClose={() => setShowLimits(false)} />}
+      {showReassign && <ReassignCardSheet card={card} onClose={() => setShowReassign(false)} onConfirm={handleReassign} />}
       {showFees && <CardFeesSheet onClose={() => setShowFees(false)} />}
-      <MoreActionsSheet open={showMore} onClose={() => setShowMore(false)} onAction={handleMoreAction} />
+      <MoreActionsSheet open={showMore} manage={manage} onClose={() => setShowMore(false)} onAction={handleMoreAction} />
       {showTerminate && (
         <TerminateCardSheet card={card} onClose={() => setShowTerminate(false)} onConfirm={() => {
-          onUpdateCard({ ...card, status: "terminated", balance: 0 });
+          onUpdateCard({ ...card, status: "terminated", balance: 0, holderRemoved: false });
           setShowTerminate(false);
           onToast((card.balance || 0) > 0 ? `Card terminated — $${fmtBal(card.balance)} returned to your USD balance` : "Card terminated");
         }} />
@@ -1059,6 +1300,13 @@ function CardsApplyPage({ onApply }) {
 // =====================================================
 // The fixtures always seed three funded cards with a full transaction history, which hides every
 // first-run and failure state. These seeds make them reachable.
+// Cards held by someone no longer on the team are frozen until reassigned. Derived from the roster
+// rather than stored, so a removal in Settings shows up here too.
+const withHolderState = (cards) => cards.map((c) => {
+  const gone = (memberById(c.holderId) || {}).status === "removed";
+  return gone && (c.status === "active" || c.status === "frozen") ? { ...c, status: "frozen", holderRemoved: true } : c;
+});
+
 function seedCards(access) {
   if (access === "no_cards") return [];
   if (access === "no_txns") return [{ ...Data.CARDS[0], balance: 0 }];
@@ -1066,13 +1314,17 @@ function seedCards(access) {
   if (access === "low_balance") return Data.CARDS.map((c, i) => i === 0 ? { ...c, status: "frozen", lowBalance: true, balance: 0.2 } : c);
   return [
     ...Data.CARDS,
-    { id: "card-4", name: "Ads — legacy", last4: "5510", type: "virtual", status: "terminated", number: "4539 1201 7781 5510", expiry: "09/28", cvv: "204", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "Feb 2, 2026", balance: 0 },
-    { id: "card-5", name: "Contractor spend", last4: "9032", type: "virtual", status: "failed", number: "4539 1201 4460 9032", expiry: "09/28", cvv: "771", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "Aug 9, 2026", balance: 0 },
+    { id: "card-4", name: "Ads — legacy", last4: "5510", type: "virtual", status: "terminated", number: "4539 1201 7781 5510", expiry: "09/28", cvv: "204", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "Feb 2, 2026", balance: 0, holderId: "m2" },
+    { id: "card-5", name: "Contractor spend", last4: "9032", type: "virtual", status: "failed", number: "4539 1201 4460 9032", expiry: "09/28", cvv: "771", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "Aug 9, 2026", balance: 0, holderId: "m1" },
+    { id: "card-6", name: "Field sales", last4: "2648", type: "virtual", status: "active", number: "4539 1201 5073 2648", expiry: "09/28", cvv: "416", limit: { perTransaction: 1000, daily: 2500, monthly: 10000 }, created: "Jul 21, 2026", balance: 185.40, holderId: "m6", spent: { today: 0, month: 140.00 } },
   ];
 }
 
-function CardsScreen({ onToast, cardsAccess = "active" }) {
-  const [cards, setCards] = useState(() => seedCards(cardsAccess));
+function CardsScreen({ onToast, cardsAccess = "active", role = "admin" }) {
+  const manage = can(role, "cards");
+  const [allCards, setCards] = useState(() => withHolderState(seedCards(cardsAccess)));
+  // Without card management a member sees only the cards they hold.
+  const cards = manage ? allCards : allCards.filter((c) => c.holderId === SIGNED_IN.id);
   const txns = (cardsAccess === "no_txns" || cardsAccess === "rejected") ? [] : CARD_TXNS;
   const [view, setView] = useState("list");
   const [selectedCard, setSelectedCard] = useState(null);
@@ -1101,12 +1353,12 @@ function CardsScreen({ onToast, cardsAccess = "active" }) {
   if (view === "detail" && selectedCard) {
     const liveCard = cards.find((c) => c.id === selectedCard.id);
     if (!liveCard) { setView("list"); return null; }
-    return <CardDetailPage card={liveCard} onBack={handleBack} onToast={onToast} onUpdateCard={handleUpdate} onDeleteCard={handleDelete} txns={txns} />;
+    return <CardDetailPage card={liveCard} onBack={handleBack} onToast={onToast} onUpdateCard={handleUpdate} onDeleteCard={handleDelete} txns={txns} manage={manage} />;
   }
 
   return (
     <>
-      <CardsListPage cards={cards} onSelect={handleSelect} onCreateCard={() => setShowCreate(true)} txns={txns} blocked={cardsAccess === "rejected"} />
+      <CardsListPage cards={cards} onSelect={handleSelect} onCreateCard={() => setShowCreate(true)} txns={txns} blocked={cardsAccess === "rejected"} manage={manage} />
       {showCreate && <CreateCardSheet onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
     </>
   );

@@ -259,10 +259,21 @@ const WAITLIST_CURRENCIES = [
 ];
 
 // ---------- Cards mock data ----------
+// Team roster, shared by Settings (Team) and Cards (cardholders). "removed" members are kept so a
+// card they held can still name them while it waits to be reassigned.
+const TEAM_MEMBERS = [
+  { id: "m1", name: "Jide Nwosu", email: "jide@acme.co", role: "admin", you: true, status: "active" },
+  { id: "m2", name: "Ada Obi", email: "ada@acme.co", role: "operator", status: "active" },
+  { id: "m3", name: "Tunde Kalu", email: "tunde@acme.co", role: "developer", status: "invited", invitedAgo: "2 days ago" },
+  { id: "m5", name: "Bola Adeyemi", email: "bola@acme.co", role: "operator", status: "expired", invitedAgo: "5 days ago" },
+  { id: "m4", name: "Ngozi Eze", email: "ngozi@acme.co", role: "viewer", status: "active" },
+  { id: "m6", name: "Kemi Bello", email: "kemi@acme.co", role: "viewer", status: "removed" },
+];
+
 const CARDS = [
-  { id: "card-1", name: "Marketing spend", last4: "4821", type: "virtual", status: "active", number: "4539 1201 8847 4821", expiry: "09/28", cvv: "314", limit: { perTransaction: 5000, daily: 10000, monthly: 50000 }, created: "Mar 12, 2026", balance: 2450.00 },
-  { id: "card-2", name: "Operations", last4: "7733", type: "virtual", status: "active", number: "4539 1201 6620 7733", expiry: "09/28", cvv: "528", limit: { perTransaction: 10000, daily: 25000, monthly: 100000 }, created: "Apr 3, 2026", balance: 8120.50 },
-  { id: "card-3", name: "Travel & expenses", last4: "0159", type: "virtual", status: "frozen", number: "4539 1201 3390 0159", expiry: "09/28", cvv: "961", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "May 18, 2026", balance: 340.00 },
+  { id: "card-1", name: "Marketing spend", last4: "4821", type: "virtual", status: "active", number: "4539 1201 8847 4821", expiry: "09/28", cvv: "314", limit: { perTransaction: 5000, daily: 10000, monthly: 50000 }, created: "Mar 12, 2026", balance: 2450.00, holderId: "m1", spent: { today: 180.00, month: 3240.50 } },
+  { id: "card-2", name: "Operations", last4: "7733", type: "virtual", status: "active", number: "4539 1201 6620 7733", expiry: "09/28", cvv: "528", limit: { perTransaction: 10000, daily: 25000, monthly: 100000 }, created: "Apr 3, 2026", balance: 8120.50, holderId: "m2", spent: { today: 0, month: 18420.00 } },
+  { id: "card-3", name: "Travel & expenses", last4: "0159", type: "virtual", status: "frozen", number: "4539 1201 3390 0159", expiry: "09/28", cvv: "961", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "May 18, 2026", balance: 340.00, holderId: "m4", spent: { today: 0, month: 13210.75 } },
 ];
 
 // v0 mock balances — USD only (all funds held as a single USD balance)
@@ -421,5 +432,5 @@ function deriveActivity(tx) {
 TXNS.forEach(tx => Object.assign(tx, deriveActivity(tx)));
 TXNS_FULL.forEach(tx => Object.assign(tx, deriveActivity(tx)));
 
-window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS, CARDS, ACTIVITY_TYPE_LABELS, displayActivityType, displayActivityLabel };
+window.OBData = { CURRENCIES, BUSINESS_PROFILE, RECIPIENTS_FULL, TXNS, TXNS_FULL, FIAT_RAILS, PAYOUT_RAILS, STABLECOIN_CHAINS, WAITLIST_CURRENCIES, V0_USD_BALANCE, NETWORK_TOKENS, CARDS, TEAM_MEMBERS, ACTIVITY_TYPE_LABELS, displayActivityType, displayActivityLabel };
 window.OBNetworkIcon = NetworkIcon;

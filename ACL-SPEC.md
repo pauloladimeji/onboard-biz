@@ -39,6 +39,8 @@ before letting businesses move large volume through the app.
 | Initiate **& complete** payments | — | — | ✓ | ✓ |
 | Open a new currency account | — | — | ✓ | ✓ |
 | Generate / manage API keys | — | ✓ | ✓ | ✓ |
+| Manage cards (create, fund, assign, limits, unfreeze, terminate) | — | — | ✓ | ✓ |
+| Use and freeze cards they hold | ✓ | ✓ | ✓ | ✓ |
 | Manage team (invite / edit / remove) | — | — | — | ✓ |
 
 - **Viewer** — read-only. Sees transactions and accounts, nothing else. Cannot see or
@@ -120,6 +122,23 @@ Three rules, applied in this order:
 - **Role visibility** — a read-only row in Settings › Business profile, next to name and
   email. Deliberately *not* a persistent chip in the header: it's a check-once fact, not
   standing chrome.
+
+- **Cards** — see below.
+
+### Cards
+
+- **Cardholder** is any active team member, picked at creation (defaults to the creator).
+  Their name goes on the card. Reassigning keeps the number, balance, limits and history.
+- **Operator / Admin** see every card and can create, fund, withdraw, rename, reassign,
+  edit limits, unfreeze and terminate.
+- **Viewer / Developer** see only cards they hold. They can use them, see details, and
+  **freeze** (the fast response to a leaked number) — not unfreeze, fund or change them.
+- **Spend controls are per card**: per transaction ≤ daily ≤ monthly. Managers edit;
+  holders read.
+- **Removing a member freezes the live cards they hold.** A manager then reassigns or
+  terminates. Reassigning doesn't unfreeze — the previous holder may have saved the card
+  details, so unfreezing is a separate, deliberate step. The remove sheet in Team says how
+  many cards will be frozen.
 
 ### Invites
 

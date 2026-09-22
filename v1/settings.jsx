@@ -18,14 +18,10 @@ const SECTIONS = [
 // Backend owns the invite lifetime; the real app should read it off the invite rather than
 // assume it here, or the copy silently drifts the day someone tunes it.
 const INVITE_EXPIRY_DAYS = 3;
-const TEAM_MEMBERS = [
-  { id: "m1", name: "Jide Nwosu", email: "jide@acme.co", role: "admin", you: true, status: "active" },
-  { id: "m2", name: "Ada Obi", email: "ada@acme.co", role: "operator", status: "active" },
-  { id: "m3", name: "Tunde Kalu", email: "tunde@acme.co", role: "developer", status: "invited", invitedAgo: "2 days ago" },
-  { id: "m5", name: "Bola Adeyemi", email: "bola@acme.co", role: "operator", status: "expired", invitedAgo: "5 days ago" },
-  { id: "m4", name: "Ngozi Eze", email: "ngozi@acme.co", role: "viewer", status: "active" },
-];
+const TEAM_MEMBERS = window.OBData.TEAM_MEMBERS;
 const SUPPORT_EMAIL = "support@onboard.xyz";
+// Live cards (not failed/terminated) the member holds — the ones removal would freeze.
+const heldCards = (memberId) => (window.OBData.CARDS || []).filter(c => c.holderId === memberId && (c.status === "active" || c.status === "frozen")).length;
 const ACCOUNT_MANAGER_WA = "https://wa.me/14313404484";
 
 // Outbound limits don't vary by rail or by who you're paying — one set covers everything.
@@ -267,7 +263,7 @@ function RequestLimitSheet({ kind, onClose }) {
 }
 
 function TeamSection({ onToast }) {
-  const [members, setMembers] = useStateS(TEAM_MEMBERS);
+  const [members, setMembers] = useStateS(() => TEAM_MEMBERS.filter(m => m.status !== "removed"));
   const [inviting, setInviting] = useStateS(false);
   const [editing, setEditing] = useStateS(null);   // member being re-roled
   const [removing, setRemoving] = useStateS(null);
@@ -283,6 +279,9 @@ function TeamSection({ onToast }) {
     onToast("Role updated");
   };
   const remove = (m) => {
+    // Written back to the shared roster so Cards sees the holder as removed and freezes their cards.
+    const shared = TEAM_MEMBERS.find(x => x.id === m.id);
+    if (shared) shared.status = "removed";
     setMembers(prev => prev.filter(x => x.id !== m.id));
     setRemoving(null);
     onToast(`${m.name} removed`);
@@ -345,6 +344,15 @@ function TeamSection({ onToast }) {
       {removing && (
         <Sheet open onClose={() => setRemoving(null)} title={`Remove ${removing.name}?`}>
           <p className="set-sheet-lede">They lose access immediately and are signed out everywhere. Any API keys they created stop working. You can invite them again later.</p>
+          {heldCards(removing.id) > 0 && (
+            <div className="td-banner warn" style={{ marginTop: 12 }}>
+              <SIcon.alert />
+              <div><div className="s">
+                They hold {heldCards(removing.id) === 1 ? "a card" : `${heldCards(removing.id)} cards`}. {heldCards(removing.id) === 1 ? "It'll be" : "They'll be"} frozen
+                until someone who manages cards reassigns or terminates {heldCards(removing.id) === 1 ? "it" : "them"}.
+              </div></div>
+            </div>
+          )}
           <div className="set-modal-foot">
             <button className="btn btn-ghost" onClick={() => setRemoving(null)}>Cancel</button>
             <button className="btn btn-lg btn-danger" onClick={() => remove(removing)}>Remove</button>
@@ -378,7 +386,7 @@ function RoleWarning({ role }) {
     <div className="set-support-note warn">
       <SIcon.alert />
       <div>{role === "admin"
-        ? "Admins can send payments, create API keys, and add or remove team members."
+        ? "Admins can send payments, manage cards, create API keys, and add or remove team members."
         : "Developers can create API keys. A key gives full programmatic access to your account, including moving money."}</div>
     </div>
   );

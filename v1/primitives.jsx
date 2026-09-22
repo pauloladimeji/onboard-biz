@@ -25,7 +25,7 @@ const CONSUMER_APP_LINKS = {
   android: "https://play.google.com/store/apps/details?id=com.onboard.wallet&hl=en",
   ios: "https://apps.apple.com/us/app/onboard-global/id1665198778",
 };
-const SIGNED_IN = { name: "Jide Nwosu", initials: "JN" };
+const SIGNED_IN = { id: "m1", name: "Jide Nwosu", initials: "JN" };
 const SALES_CALL_URL = "https://calendar.app.google/u5Nx8oTyomazzE1h7";
 
 // ---------- Demo mode ----------
@@ -104,16 +104,18 @@ function Flag({ cc, size = 22 }) {
 const ROLES = [
   { id: "viewer",    label: "Viewer",    blurb: "Accounts and transactions, read-only" },
   { id: "developer", label: "Developer", blurb: "Viewer access plus API keys" },
-  { id: "operator",  label: "Operator",  blurb: "Recipients and payments, plus API keys" },
+  { id: "operator",  label: "Operator",  blurb: "Payments, recipients, cards and API keys" },
   { id: "admin",     label: "Admin",     blurb: "Everything, including the team" },
 ];
 const ROLE_LABEL = ROLES.reduce((m, r) => { m[r.id] = r.label; return m; }, {});
 const CAN = {
-  //           pay    recipients  apiKeys  team   provision
-  viewer:    { pay: false, recipients: false, apiKeys: false, team: false, provision: false },
-  developer: { pay: false, recipients: false, apiKeys: true,  team: false, provision: false },
-  operator:  { pay: true,  recipients: true,  apiKeys: true,  team: false, provision: true  },
-  admin:     { pay: true,  recipients: true,  apiKeys: true,  team: true,  provision: true  },
+  // `cards` = manage every card (create, fund, assign, limits, unfreeze, terminate). Without it,
+  // a member sees only the cards they hold, and can use and freeze them.
+  //           pay    recipients  apiKeys  team   provision  cards
+  viewer:    { pay: false, recipients: false, apiKeys: false, team: false, provision: false, cards: false },
+  developer: { pay: false, recipients: false, apiKeys: true,  team: false, provision: false, cards: false },
+  operator:  { pay: true,  recipients: true,  apiKeys: true,  team: false, provision: true,  cards: true  },
+  admin:     { pay: true,  recipients: true,  apiKeys: true,  team: true,  provision: true,  cards: true  },
 };
 function can(role, action) {
   const set = CAN[role] || CAN.admin;
