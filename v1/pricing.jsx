@@ -35,16 +35,16 @@ const PLANS = [
     id: "pro", name: "Pro", price: "$350", per: "/month",
     // Names the API audience without turning Pro into "the API plan" — API access is on every
     // plan, so the pull is the help you get building, not the capability.
-    bestFor: "For growing teams with regular payments, run from the dashboard or wired into their own systems.",
+    bestFor: "For growing teams paying out in their business name, from the dashboard or their own systems.",
     hint: "Usually moving $250,000+ a month",
     benefits: ["Lower transaction fees", "Guided onboarding for your integration", "Priority support"],
     cta: "Talk to us",
   },
   {
     id: "business", name: "Business", price: "$1,000", per: "/month",
-    bestFor: "For treasury teams and businesses that need accounts in their own name.",
+    bestFor: "For treasury teams running high volumes across several named accounts.",
     hint: "Usually moving $1m+ a month",
-    benefits: ["Free account applications", "USD payouts in your business name", "Dedicated account manager"],
+    benefits: ["Free account applications", "Additional named USD accounts", "Dedicated account manager"],
     cta: "Talk to us",
   },
   {
@@ -74,11 +74,11 @@ const COMPARISON = [
     rows: [
       { label: "Named USD, EUR and GBP account application", star: true, values: [["$200", "one-time fee"], ["$75", "one-time fee"], "Free", "Free"] },
       { label: "Additional named USD accounts", values: [false, false, "On request", "Custom"] },
-      { label: "USD payouts in your business name", values: [false, false, true, true] },
+      { label: "USD payouts in your business name", values: [false, true, true, true] },
       { label: "Card limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
       // Billed per *active* account, so the definition rides with the row — it's the number
       // people dispute at the end of a month.
-      { label: "Sub-accounts", note: "Active = held a balance or transacted that month", values: [false, ["$1.50", "per active account/month"], ["$0.25", "per active account/month"], "Custom"] },
+      { label: "Sub-accounts", note: "Separate balances for your customers or teams. Active = held a balance or transacted that month.", values: [["$5.00", "per active account/month"], ["$1.50", "per active account/month"], ["$0.25", "per active account/month"], "Custom"] },
     ],
   },
   {
@@ -219,7 +219,7 @@ function ComparisonTable() {
           <tr className="cmp-group"><th scope="rowgroup" colSpan={5}>{g.title}</th></tr>
           {g.rows.map((r) => (
             <tr key={r.label}>
-              <th scope="row"><span>{r.label}{r.star && <sup>*</sup>}</span>{r.note && <em>{r.note}</em>}</th>
+              <th scope="row"><span>{r.label}{r.star && <sup className="cmp-mark">†</sup>}</span>{r.note && <em>{r.note}</em>}</th>
               {r.values.map((v, i) => <td key={i}><CellValue v={v} /></td>)}
             </tr>
           ))}
@@ -347,7 +347,7 @@ function PricingDoc() {
             <tbody>
               {g.rows.map((r) => (
                 <tr key={r.label}>
-                  <th scope="row">{r.label}{r.star ? "*" : ""}{r.note && <em>{r.note}</em>}</th>
+                  <th scope="row">{r.label}{r.star && <span className="doc-mark">†</span>}{r.note && <em>{r.note}</em>}</th>
                   {r.values.map((v, i) => <td key={i} className="doc-num"><DocCell v={v} /></td>)}
                 </tr>
               ))}
@@ -375,7 +375,8 @@ function PricingDoc() {
         <h3 className="letter-h3">Notes</h3>
         <div className="doc-notes">
           <p>
-            *The account application and compliance fee is charged once per business, before review
+            <span className="doc-mark">†</span> The account application and compliance fee is
+            charged once per business, before review
             begins. It covers compliance review and non-refundable costs from our banking partner,
             and is not returned if an account cannot be issued. Account issuance is always subject
             to eligibility, compliance checks and provider approval.
@@ -448,9 +449,10 @@ function PricingScreen() {
               <PlanAccordion key={p.id} plan={p} open={openPlan === p.id} onToggle={() => setOpenPlan(openPlan === p.id ? null : p.id)} />
             ))}
         <p className="cmp-note">
-          {isDesktop && "* "}The account application and compliance fee is charged once per
-          business, before review begins. It covers compliance review and non-refundable costs from
-          our banking partner, and is not returned if an account cannot be issued.
+          {isDesktop && <span className="cmp-mark">†</span>}
+          The account application and compliance fee is charged once per business, before review
+          begins. It covers compliance review and non-refundable costs from our banking partner,
+          and is not returned if an account cannot be issued.
         </p>
       </div>
 
