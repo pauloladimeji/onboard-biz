@@ -10,6 +10,7 @@ const { AddRecipientScreen } = window.OBAddRecipient;
 const { TransactionsScreen, TransactionDetailScreen } = window.OBTransactions;
 const { SettingsScreen, DeveloperSection } = window.OBSettings;
 const { CardsScreen } = window.OBCards;
+const { PricingScreen } = window.OBPricing;
 const { SubAccountsScreen } = window.OBSubAccounts;
 const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
@@ -678,6 +679,8 @@ function App() {
     screen = <SubAccountsScreen key={subAccountsOn} onToast={setToast} mode={subAccountsOn === "customers" ? "customers" : "units"} />;
   } else if (route === "cards") {
     screen = <CardsScreen key={`${cardsAccess}-${role}`} onToast={setToast} cardsAccess={cardsAccess} role={role} />;
+  } else if (route === "pricing") {
+    screen = <PricingScreen onToast={setToast} />;
   } else if (route === "settings") {
     screen = <SettingsScreen key={`${settingsSection}-${role}-${roleFocus}`} onToast={setToast} initialSection={settingsSection} role={role} focusRole={roleFocus} />;
   } else if (route === "developer") {

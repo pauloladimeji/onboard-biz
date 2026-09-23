@@ -37,6 +37,7 @@ const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card };
 // in the demo or a normal review pass. Same placement rules as Cards.
 const SUBACCOUNTS_NAV = { id: "subaccounts", label: "Sub-accounts", icon: Icon.wallet };
 const WORKSPACE_NAV = [
+  { id: "pricing",   label: "Pricing",   icon: Icon.doc },
   { id: "settings",  label: "Settings",  icon: Icon.cog },
   { id: "developer", label: "Developer", icon: Icon.doc, needs: "apiKeys" },
 ];
