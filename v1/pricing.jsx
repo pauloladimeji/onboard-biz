@@ -32,10 +32,12 @@ const PLANS = [
     cta: "Talk to us",
   },
   {
-    id: "pro", name: "Pro", price: "$300", per: "/month",
-    bestFor: "For growing teams managing regular payments and business spend.",
-    hint: "Usually moving $200,000+ a month",
-    benefits: ["Lower transaction fees", "Reduced account application fee", "Priority support"],
+    id: "pro", name: "Pro", price: "$350", per: "/month",
+    // Names the API audience without turning Pro into "the API plan" — API access is on every
+    // plan, so the pull is the help you get building, not the capability.
+    bestFor: "For growing teams with regular payments, run from the dashboard or wired into their own systems.",
+    hint: "Usually moving $250,000+ a month",
+    benefits: ["Lower transaction fees", "Guided onboarding for your integration", "Priority support"],
     cta: "Talk to us",
   },
   {
