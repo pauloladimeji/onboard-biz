@@ -1849,6 +1849,18 @@ table.records-table th.num { text-align: right; }
   .letter { display: block; min-height: 0; padding-bottom: 104px; overflow: visible; }
   .letter-foot { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; background: #fff; }
   @page { margin: 14mm; }
+
+  /* The pricing sheet is tables, not prose. Sections are allowed to break across pages (keeping
+     whole sections together strands half-empty pages), rows are not, and the header row repeats
+     so a group that spills still reads. Tighter than the letter on purpose. */
+  #pricing-doc .letter-section { break-inside: auto; margin-bottom: 16px; }
+  #pricing-doc .letter-lede { margin-bottom: 14px; }
+  #pricing-doc .letter-h3 { margin-bottom: 6px; break-after: avoid; }
+  #pricing-doc .doc-table thead { display: table-header-group; }
+  #pricing-doc .doc-table tr { break-inside: avoid; }
+  #pricing-doc .doc-table th, #pricing-doc .doc-table td { padding: 4px 8px 4px 0; font-size: 10px; line-height: 1.4; }
+  #pricing-doc .doc-notes p { font-size: 9.5px; line-height: 1.5; margin-bottom: 6px; }
+  #pricing-doc .doc-note { font-size: 9.5px; }
 }
 
 /* Failed and terminated cards pile up and can never become active again, so they can be hidden.

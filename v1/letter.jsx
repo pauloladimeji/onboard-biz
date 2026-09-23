@@ -160,10 +160,16 @@ function openDocument(id, title) {
   const win = node && window.open("", "_blank");
   if (!win) return;
   // Carry whatever stylesheets the app is running, so the document can't drift from the app and
-  // nothing here has to track cache-busting versions.
+  // nothing here has to track cache-busting versions. Use each link's resolved `.href`, not the
+  // attribute: the deployed site rewrites "/" to /v1/index.html, so a relative "app.css" written
+  // into the new tab would resolve against the root and 404 — the document then opened unstyled.
   const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-    .map((l) => `<link rel="stylesheet" href="${l.getAttribute("href")}">`)
+    .map((l) => `<link rel="stylesheet" href="${l.href}">`)
     .join("");
+  // Same for images (the logo), for the same reason.
+  const clone = node.cloneNode(true);
+  const originals = node.querySelectorAll("img");
+  clone.querySelectorAll("img").forEach((img, i) => { if (originals[i]) img.setAttribute("src", originals[i].src); });
   win.document.write(
     '<!doctype html><html><head><meta charset="utf-8">' +
     `<title>${title}</title>` +
@@ -176,7 +182,7 @@ function openDocument(id, title) {
       '@media print { body { margin: 0; padding: 0; background: #fff; } .lt-bar { display: none; } .letter { max-width: none; box-shadow: none; } }' +
     '</style></head><body>' +
     '<div class="lt-bar"><button onclick="window.print()">Download as PDF</button></div>' +
-    node.outerHTML +
+    clone.outerHTML +
     '</body></html>'
   );
   win.document.close();
