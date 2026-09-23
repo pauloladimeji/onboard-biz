@@ -15,7 +15,7 @@
 
 const { useState: useStateR } = React;
 const RIcon = window.OBIcon;
-const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta } = window.OBPrimitives;
+const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon } = window.OBPrimitives;
 const { DocFrame: PDocFrame, openDocument: pOpenDocument } = window.OBLetter;
 
 const PRICING_WA = "https://wa.me/14313404484";
@@ -65,6 +65,8 @@ const COMPARISON = [
     title: "Transaction fees",
     rows: [
       { label: "USD deposits and withdrawals", values: ["0.40% + method fee", "0.25% + method fee", "0.15% + method fee", "Custom"] },
+      // Free on every plan: the margin on these rails is in the conversion rate, not a fee.
+      { label: "Local currency payouts", note: "NGN, GHS, IDR and more", values: ["Free", "Free", "Free", "Free"] },
       { label: "USDT payouts", values: ["$5 per payout", "$3 per payout", "$1 per payout", "Custom"] },
       { label: "USDC payouts", values: ["0.25% per payout", "0.10% per payout", "0.05% per payout", "Custom"] },
     ],
@@ -72,7 +74,10 @@ const COMPARISON = [
   {
     title: "Accounts and cards",
     rows: [
-      { label: "Named USD, EUR and GBP account application", star: true, values: [["$200", "one-time fee"], ["$75", "one-time fee"], "Free", "Free"] },
+      // A capability, not a fee line: the accounts come with every plan and the deposits into
+      // them are free, so it belongs here rather than in the rate card.
+      { label: "NGN collection accounts", note: "Named and one-time. Deposits are converted to USD at the live rate", values: [true, true, true, true] },
+      { label: "Named USD, EUR and GBP accounts", values: [["$200", "one-time application fee", true], ["$75", "one-time application fee", true], "Free", "Free"] },
       { label: "Additional named USD accounts", values: [false, false, "On request", "Custom"] },
       { label: "USD payouts in your business name", values: [false, true, true, true] },
       { label: "Card limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
@@ -165,8 +170,8 @@ const planIndex = (id) => PLANS.findIndex((p) => p.id === id);
 
 function CellValue({ v }) {
   if (v === true) return <RIcon.check className="cmp-tick" />;
-  if (v === false) return <span className="cmp-dash">—</span>;
-  if (Array.isArray(v)) return <><span>{v[0]}</span><em className="cmp-sub">{v[1]}</em></>;
+  if (v === false) return <PXIcon className="cmp-x" />;
+  if (Array.isArray(v)) return <><span>{v[0]}</span><em className="cmp-sub">{v[1]}{v[2] && <sup className="cmp-mark">†</sup>}</em></>;
   return <span>{v}</span>;
 }
 
@@ -221,7 +226,7 @@ function ComparisonTable() {
           <tr className="cmp-group"><th scope="rowgroup" colSpan={5}>{g.title}</th></tr>
           {g.rows.map((r) => (
             <tr key={r.label}>
-              <th scope="row"><span>{r.label}{r.star && <sup className="cmp-mark">†</sup>}</span>{r.note && <em>{r.note}</em>}</th>
+              <th scope="row"><span>{r.label}</span>{r.note && <em>{r.note}</em>}</th>
               {r.values.map((v, i) => <td key={i}><CellValue v={v} /></td>)}
             </tr>
           ))}
@@ -310,7 +315,7 @@ function Faq({ item, open, onToggle }) {
 function DocCell({ v }) {
   if (v === true) return <span>Included</span>;
   if (v === false) return <span>—</span>;
-  if (Array.isArray(v)) return <span>{v[0]}<em>{v[1]}</em></span>;
+  if (Array.isArray(v)) return <span>{v[0]}<em>{v[1]}{v[2] && <span className="doc-mark">†</span>}</em></span>;
   return <span>{v}</span>;
 }
 
@@ -349,13 +354,13 @@ function PricingDoc() {
             <tbody>
               {g.rows.map((r) => (
                 <tr key={r.label}>
-                  <th scope="row">{r.label}{r.star && <span className="doc-mark">†</span>}{r.note && <em>{r.note}</em>}</th>
+                  <th scope="row">{r.label}{r.note && <em>{r.note}</em>}</th>
                   {r.values.map((v, i) => <td key={i} className="doc-num"><DocCell v={v} /></td>)}
                 </tr>
               ))}
             </tbody>
           </table>
-          {g.rows.some((r) => r.star) && (
+          {g.rows.some((r) => r.values.some((v) => Array.isArray(v) && v[2])) && (
             <p className="doc-note"><span className="doc-mark">†</span> {ACCOUNT_FEE_NOTE}</p>
           )}
         </div>
