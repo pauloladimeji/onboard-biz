@@ -159,6 +159,8 @@ const FAQS = [
   },
 ];
 
+const ACCOUNT_FEE_NOTE = "The account application and compliance fee is charged once per business, before review begins. It covers compliance review and non-refundable costs from our banking partner, and is not returned if an account cannot be issued.";
+
 const planIndex = (id) => PLANS.findIndex((p) => p.id === id);
 
 function CellValue({ v }) {
@@ -353,6 +355,9 @@ function PricingDoc() {
               ))}
             </tbody>
           </table>
+          {g.rows.some((r) => r.star) && (
+            <p className="doc-note"><span className="doc-mark">†</span> {ACCOUNT_FEE_NOTE}</p>
+          )}
         </div>
       ))}
 
@@ -374,13 +379,7 @@ function PricingDoc() {
       <div className="letter-section">
         <h3 className="letter-h3">Notes</h3>
         <div className="doc-notes">
-          <p>
-            <span className="doc-mark">†</span> The account application and compliance fee is
-            charged once per business, before review
-            begins. It covers compliance review and non-refundable costs from our banking partner,
-            and is not returned if an account cannot be issued. Account issuance is always subject
-            to eligibility, compliance checks and provider approval.
-          </p>
+          <p>Account issuance is always subject to eligibility, compliance checks and provider approval.</p>
           {FAQS.filter((f) => !f.fees && !f.defs).map((f) => <p key={f.q}><strong>{f.q}</strong> {f.a}</p>)}
           {FAQS.filter((f) => f.defs).map((f) => (
             <p key={f.q}>
@@ -450,9 +449,7 @@ function PricingScreen() {
             ))}
         <p className="cmp-note">
           {isDesktop && <span className="cmp-mark">†</span>}
-          The account application and compliance fee is charged once per business, before review
-          begins. It covers compliance review and non-refundable costs from our banking partner,
-          and is not returned if an account cannot be issued.
+          {ACCOUNT_FEE_NOTE}
         </p>
       </div>
 
