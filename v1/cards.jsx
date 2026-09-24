@@ -125,6 +125,11 @@ function LimitSliders({ value, onChange, spent }) {
 const BILLING_ADDRESS = { street: "14 Admiralty Way", city: "Lekki", state: "Lagos", zip: "106104", country: "Nigeria" };
 const CARD_CREATION_FEE = 5;
 const CARD_FUNDING_FEE_PCT = 0.01;
+// Per top-up, not a balance cap — a card can hold more than this, you just can't move it in one
+// go. Over the limit the funding fails outright; nothing partial goes through. Both halves of
+// that came from a customer who had to ask (Yinka, Sep 2026), so both are said before they type.
+const CARD_FUND_MAX = 10000;
+const CARD_FUND_MAX_LABEL = "$10,000";
 const CARD_XB_FEE_PCT = 0.0175;
 const CARD_XB_FEE_FLAT = 1;
 const pctLabel = (r) => `${+(r * 100).toFixed(2)}%`;
@@ -411,7 +416,8 @@ function FundCardSheet({ card, onClose, onFund }) {
   const usdBalance = Data.V0_USD_BALANCE;
   const tooLow = amount !== "" && parsed < 1;
   const tooHigh = parsed > usdBalance;
-  const valid = parsed >= 1 && !tooHigh;
+  const overMax = parsed > CARD_FUND_MAX;
+  const valid = parsed >= 1 && !tooHigh && !overMax;
   const fundingFee = valid ? parsed * CARD_FUNDING_FEE_PCT : 0;
   const netAmount = parsed - fundingFee;
 
@@ -446,14 +452,19 @@ function FundCardSheet({ card, onClose, onFund }) {
           <div style={{ padding: "10px 14px", background: "var(--gray-50)", borderRadius: 8, display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, color: "var(--gray-600)" }}>Card balance</span><span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", fontVariantNumeric: "tabular-nums" }}>${fmtBal(card.balance || 0)}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 12.5, color: "var(--gray-600)" }}>USD balance (source)</span><span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", fontVariantNumeric: "tabular-nums" }}>${fmtBal(usdBalance)}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, borderTop: "1px solid var(--gray-200)", paddingTop: 10 }}>
+              <span style={{ fontSize: 12.5, color: "var(--gray-600)" }}>Most you can add at once<div style={{ fontSize: 11.5, color: "var(--gray-500)", marginTop: 1 }}>The card itself can hold more</div></span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", fontVariantNumeric: "tabular-nums" }}>{CARD_FUND_MAX_LABEL}</span>
+            </div>
           </div>
           <div className="field">
             <div className="lbl">Amount from USD balance</div>
             <div style={{ position: "relative" }}>
               <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "var(--gray-500)", pointerEvents: "none" }}>$</span>
-              <input className={`inp${(tooLow || tooHigh) ? " inp-error" : ""}`} type="number" min="1" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ paddingLeft: 30 }} autoFocus />
+              <input className={`inp${(tooLow || tooHigh || overMax) ? " inp-error" : ""}`} type="number" min="1" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ paddingLeft: 30 }} autoFocus />
             </div>
             {tooLow && <div className="help" style={{ color: "#DC2626" }}>Minimum $1.00.</div>}
+            {overMax && !tooHigh && <div className="help" style={{ color: "#DC2626" }}>More than {CARD_FUND_MAX_LABEL} in one go will fail — nothing goes through. Add {CARD_FUND_MAX_LABEL} now and top up again for the rest.</div>}
             {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Insufficient funds. Your USD balance is ${fmtBal(usdBalance)}.</div>}
             {valid && (
               <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
@@ -555,7 +566,8 @@ function CreateCardSheet({ onClose, onCreate }) {
   const MIN_FUND = CARD_CREATION_FEE + 1;
   const usdBalance = Data.V0_USD_BALANCE;
   const parsed = parseFloat(fundAmount) || 0;
-  const validFund = parsed >= MIN_FUND;
+  const validFund = parsed >= MIN_FUND && parsed <= CARD_FUND_MAX;
+  const overMax = parsed > CARD_FUND_MAX;
   const tooHigh = parsed > usdBalance;
   const fundingFee = validFund ? parsed * CARD_FUNDING_FEE_PCT : 0;
   const cardBalance = validFund ? (parsed - CARD_CREATION_FEE - fundingFee) : 0;
@@ -644,7 +656,8 @@ function CreateCardSheet({ onClose, onCreate }) {
               <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "var(--gray-500)", pointerEvents: "none" }}>$</span>
               <input className={`inp${(fundAmount && !validFund) || tooHigh ? " inp-error" : ""}`} type="number" min={MIN_FUND} step="0.01" placeholder="0.00" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} style={{ paddingLeft: 30 }} />
             </div>
-            {fundAmount && !validFund && !tooHigh && <div className="help" style={{ color: "#DC2626" }}>Minimum $6.00 required — $5.00 creation fee + $1.00 minimum balance.</div>}
+            {fundAmount && !validFund && !tooHigh && !overMax && <div className="help" style={{ color: "#DC2626" }}>Minimum $6.00 required — $5.00 creation fee + $1.00 minimum balance.</div>}
+            {overMax && !tooHigh && <div className="help" style={{ color: "#DC2626" }}>More than {CARD_FUND_MAX_LABEL} in one go will fail. Create the card with {CARD_FUND_MAX_LABEL} and top it up after — the card can hold more.</div>}
             {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Insufficient funds. Your USD balance is ${fmtBal(usdBalance)}.</div>}
             {validFund && !tooHigh && <div className="help">After $5.00 creation fee + {FUNDING_FEE_LABEL} funding fee: <strong style={{ color: "var(--gray-900)" }}>${cardBalance.toFixed(2)}</strong></div>}
           </div>
@@ -710,6 +723,7 @@ const CARD_FEES = [
   { label: "Chargeback", value: "$50.00", note: "Per chargeback raised" },
 ];
 const CARD_TERMS = [
+  { title: "Funding limit", body: `Up to ${CARD_FUND_MAX_LABEL} per top-up. A card can hold more than that — add the rest in another top-up.` },
   { title: "Minimum balance", body: `Keep at least $${CARD_MIN_BALANCE.toFixed(2)} on a card, or it's frozen until you fund it.` },
   { title: "Repeated declines", body: `${DECLINE_LIMIT.domestic} declined domestic or ${DECLINE_LIMIT.international} declined international payments terminates the card.` },
   { title: "Termination", body: "Final. Any balance left on the card returns to your USD balance." },
@@ -1364,4 +1378,4 @@ function CardsScreen({ onToast, cardsAccess = "active", role = "admin" }) {
   );
 }
 
-window.OBCards = { CardsScreen };
+window.OBCards = { CardsScreen, CardVisual };

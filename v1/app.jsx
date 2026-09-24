@@ -182,7 +182,7 @@ function MockControls({
   stablecoinIssuance, onStablecoinIssuance, fiatConvert, onFiatConvert,
   payMode, onPayMode, paymentApproval, onPaymentApproval, paymentApprovalMethod, onPaymentApprovalMethod,
   complianceHold, onComplianceHold, route, nameLookupMock, onNameLookupMock,
-  apiAccess, onApiAccess, cardsAccess, onCardsAccess, subAccountsOn, onSubAccountsOn, role, onRole,
+  apiAccess, onApiAccess, cardsAccess, onCardsAccess, cardsHome, onCardsHome, subAccountsOn, onSubAccountsOn, role, onRole,
   flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState,
   recoveryLink, onRecoveryLink, withdrawalHoldActive, onWithdrawalHoldTest, inviteLink, onInviteLink,
 }) {
@@ -370,6 +370,13 @@ function MockControls({
         </div>
       </div>
       <div className="mock-group">
+        <div className="mock-label">Cards on Home (exploring)</div>
+        <div className="mock-row">
+          {[["off", "Off"], ["action", "Hero action"], ["split", "Beside account"], ["strip", "One line"], ["section", "Section"], ["tiles", "Card art"], ["discovery", "Discovery only"]].map(([v, l]) => (
+            <button key={v} className={cardsHome === v ? "on" : ""} onClick={() => onCardsHome(v)}>{l}</button>
+          ))}
+        </div>
+
         <div className="mock-label">Sub-accounts (exploratory)</div>
         <div className="mock-row">
           <button className={subAccountsOn === "off" ? "on" : ""} onClick={() => onSubAccountsOn("off")}>Hidden</button>
@@ -428,6 +435,7 @@ function App() {
   const [nameLookupMock, setNameLookupMock] = useState("default");
   const [apiAccess, setApiAccess] = useState("granted");
   const [cardsAccess, setCardsAccess] = useState("active");
+  const [cardsHome, setCardsHome] = useState("off");
   const [subAccountsOn, setSubAccountsOn] = useState("off"); // "off" | "units" | "customers"
   const [role, setRole] = useState("admin"); // ACL — see ACL-SPEC.md
   const [inviteLink, setInviteLink] = useState("valid"); // "valid" | "invalid"
@@ -458,6 +466,7 @@ function App() {
       route={route} nameLookupMock={nameLookupMock} onNameLookupMock={setNameLookupMock}
       apiAccess={apiAccess} onApiAccess={setApiAccess}
       cardsAccess={cardsAccess} onCardsAccess={setCardsAccess}
+      cardsHome={cardsHome} onCardsHome={setCardsHome}
       subAccountsOn={subAccountsOn} onSubAccountsOn={setSubAccountsOn}
       role={role} onRole={setRole}
       inviteLink={inviteLink} onInviteLink={setInviteLink}
@@ -608,6 +617,9 @@ function App() {
         subAccountsOn={subAccountsOn === "units"}
         onOpenSubAccounts={() => setRoute("subaccounts")}
         onOpenRole={() => { setSettingsSection("profile"); setRoleFocus(n => n + 1); setRoute("settings"); }}
+        cardsHome={cardsHome}
+        cardsAccess={cardsAccess}
+        onOpenCards={() => setRoute("cards")}
         role={role} />
     );
   } else if (route === "add-money") {

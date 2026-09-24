@@ -152,7 +152,7 @@ const FAQS = [
   },
   {
     q: "What are the card terms?",
-    a: "Keep at least $1.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance.",
+    a: "You can add up to $10,000 to a card per top-up, though a card can hold more than that. Keep at least $1.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance.",
   },
   {
     q: "Is everything available to every business?",
