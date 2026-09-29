@@ -38,6 +38,8 @@ const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card };
 const SUBACCOUNTS_NAV = { id: "subaccounts", label: "Sub-accounts", icon: Icon.wallet };
 const WORKSPACE_NAV = [
   { id: "pricing",   label: "Pricing",   icon: Icon.doc },
+  // Internal for now — kept out of the public demo until it's a real feature.
+  ...(isDemoMode() ? [] : [{ id: "invoices", label: "Invoices", icon: Icon.inbox }]),
   { id: "settings",  label: "Settings",  icon: Icon.cog },
   { id: "developer", label: "Developer", icon: Icon.doc, needs: "apiKeys" },
 ];

@@ -212,4 +212,4 @@ function ReceiptPrintable({ tx }) {
 
 const openReceipt = (tx) => openDocument("receipt-doc", `Receipt — ${tx.ref}`);
 
-window.OBReceipt = { txMoney, fmtAmt, feeText, receiptModel, ReceiptDoc, ReceiptPrintable, openReceipt };
+window.OBReceipt = { txMoney, fmtAmt, feeText, receiptModel, ReceiptDoc, ReceiptPrintable, openReceipt, EXPLORERS, NETWORK_NAMES };

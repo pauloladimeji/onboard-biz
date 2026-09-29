@@ -1323,7 +1323,7 @@ const withHolderState = (cards) => cards.map((c) => {
 
 function seedCards(access) {
   if (access === "no_cards") return [];
-  if (access === "no_txns") return [{ ...Data.CARDS[0], balance: 0 }];
+  if (access === "no_txns") return [{ ...Data.CARDS[0], balance: 500, spent: { today: 0, month: 0 } }];
   if (access === "rejected") return [{ ...Data.CARDS[0], status: "rejected", balance: 0 }];
   if (access === "low_balance") return Data.CARDS.map((c, i) => i === 0 ? { ...c, status: "frozen", lowBalance: true, balance: 0.2 } : c);
   return [

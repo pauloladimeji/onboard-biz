@@ -11,6 +11,7 @@ const { TransactionsScreen, TransactionDetailScreen } = window.OBTransactions;
 const { SettingsScreen, DeveloperSection } = window.OBSettings;
 const { CardsScreen } = window.OBCards;
 const { PricingScreen } = window.OBPricing;
+const { InvoicesScreen } = window.OBInvoices;
 const { SubAccountsScreen } = window.OBSubAccounts;
 const {
   ApplyForAccessScreen, SignInScreen, SignInPasswordScreen, ForgotPasswordScreen,
@@ -370,18 +371,18 @@ function MockControls({
         </div>
       </div>
       <div className="mock-group">
-        <div className="mock-label">Cards on Home (exploring)</div>
+        <div className="mock-label">Cards on Home</div>
         <div className="mock-row">
-          {[["off", "Off"], ["action", "Hero action"], ["split", "Beside account"], ["strip", "One line"], ["section", "Section"], ["tiles", "Card art"], ["discovery", "Discovery only"]].map(([v, l]) => (
+          {[["off", "Off"], ["on", "On"]].map(([v, l]) => (
             <button key={v} className={cardsHome === v ? "on" : ""} onClick={() => onCardsHome(v)}>{l}</button>
           ))}
         </div>
 
-        <div className="mock-label">Sub-accounts (exploratory)</div>
+        <div className="mock-label">Sub-accounts</div>
         <div className="mock-row">
           <button className={subAccountsOn === "off" ? "on" : ""} onClick={() => onSubAccountsOn("off")}>Hidden</button>
-          <button className={subAccountsOn === "units" ? "on" : ""} onClick={() => onSubAccountsOn("units")}>Business units</button>
-          <button className={subAccountsOn === "customers" ? "on" : ""} onClick={() => onSubAccountsOn("customers")}>Many customers</button>
+          <button className={subAccountsOn === "none" ? "on" : ""} onClick={() => onSubAccountsOn("none")}>None yet</button>
+          <button className={subAccountsOn === "on" ? "on" : ""} onClick={() => onSubAccountsOn("on")}>On</button>
         </div>
       </div>
     </>
@@ -435,7 +436,7 @@ function App() {
   const [nameLookupMock, setNameLookupMock] = useState("default");
   const [apiAccess, setApiAccess] = useState("granted");
   const [cardsAccess, setCardsAccess] = useState("active");
-  const [cardsHome, setCardsHome] = useState("off");
+  const [cardsHome, setCardsHome] = useState("on");
   const [subAccountsOn, setSubAccountsOn] = useState("off"); // "off" | "units" | "customers"
   const [role, setRole] = useState("admin"); // ACL — see ACL-SPEC.md
   const [inviteLink, setInviteLink] = useState("valid"); // "valid" | "invalid"
@@ -614,7 +615,7 @@ function App() {
         onSendPayment={() => setRoute("payments")}
         onOpenTx={() => {}}
         onViewAll={() => setRoute("activity")}
-        subAccountsOn={subAccountsOn === "units"}
+        subAccountsOn={subAccountsOn === "off" ? false : subAccountsOn}
         onOpenSubAccounts={() => setRoute("subaccounts")}
         onOpenRole={() => { setSettingsSection("profile"); setRoleFocus(n => n + 1); setRoute("settings"); }}
         cardsHome={cardsHome}
@@ -688,9 +689,11 @@ function App() {
         onToast={setToast} />
     );
   } else if (route === "subaccounts") {
-    screen = <SubAccountsScreen key={subAccountsOn} onToast={setToast} mode={subAccountsOn === "customers" ? "customers" : "units"} />;
+    screen = <SubAccountsScreen key={`${subAccountsOn}-${role}`} onToast={setToast} mode={subAccountsOn} role={role} />;
   } else if (route === "cards") {
     screen = <CardsScreen key={`${cardsAccess}-${role}`} onToast={setToast} cardsAccess={cardsAccess} role={role} />;
+  } else if (route === "invoices") {
+    screen = <InvoicesScreen onToast={setToast} />;
   } else if (route === "pricing") {
     screen = <PricingScreen onToast={setToast} />;
   } else if (route === "settings") {

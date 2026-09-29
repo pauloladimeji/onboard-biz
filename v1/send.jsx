@@ -274,7 +274,7 @@ function SwappableAmountFields({ srcCcy, setSrcCcy, dstCcy, setDstCcy, amount, s
         <div className="hint" style={overBal ? { color: "var(--danger-600)" } : undefined}>
           {hasBalance && overBal
             ? <>Total with fee: <strong style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(amtNum + fee)}</strong> · Available: <strong style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(availBalance)}</strong></>
-            : hasBalance ? <>Available: <strong style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(availBalance)}</strong></> : `From your ${srcCcy} balance`}
+            : hasBalance ? <>From your main {srcCcy} account · <strong style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(availBalance)}</strong> available</> : `From your main ${srcCcy} account`}
         </div>
       </div>
 

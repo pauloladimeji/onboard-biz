@@ -435,6 +435,7 @@ function DepositPage({ onBack, onToast, onSeeAllLimits, role = "admin", usdAccou
           <div className="deposit-head">
             <div className="deposit-head-row">
               <h2>Choose a funding method</h2>
+              <span className="deposit-head-badge"><Icon.bank /> Main USD account</span>
               <span className="deposit-head-note">All deposits are held as USD</span>
             </div>
             {isDesktop ? (

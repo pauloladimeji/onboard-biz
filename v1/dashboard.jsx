@@ -3,7 +3,7 @@ const Icon = window.OBIcon;
 const { TXNS } = window.OBData;
 const { useState: useStateD } = React;
 const { CcyFlag, Page, Records, Sheet, can, ROLE_LABEL, SIGNED_IN, useIsDesktop } = window.OBPrimitives;
-const { SubAccountsHomeSection } = window.OBSubAccounts;
+
 const HomeData = window.OBData;
 
 // Cards live in the sidebar on desktop and behind "More" on mobile, which is where features go
@@ -15,161 +15,68 @@ const fmtMoney = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, 
 const liveCards = (access) => {
   if (access === "no_cards" || access === "not_applied" || access === "rejected") return [];
   const all = (HomeData.CARDS || []).filter((c) => c.status === "active" || c.status === "frozen");
-  if (access === "no_txns") return all.slice(0, 1).map((c) => ({ ...c, balance: 0, spent: { today: 0, month: 0 } }));
+  if (access === "no_txns") return all.slice(0, 1).map((c) => ({ ...c, balance: 500, spent: { today: 0, month: 0 } }));
   if (access === "low_balance") return all.map((c, i) => (i === 0 ? { ...c, status: "frozen", lowBalance: true, balance: 0.2 } : c));
   return all;
 };
 const sumSpend = (cards) => cards.reduce((s, c) => s + ((c.spent || {}).month || 0), 0);
 const sumBalance = (cards) => cards.reduce((s, c) => s + (c.balance || 0), 0);
 
-// A. One line. Cheapest possible footprint — a signpost, not a workspace.
-function CardsHomeStrip({ onOpen, cards }) {
-  const spend = sumSpend(cards);
-  const summary = cards.length === 0
-    ? "Virtual cards for subscriptions and online spend"
-    : `${cards.length} card${cards.length > 1 ? "s" : ""} · $${fmtMoney(sumBalance(cards))} available${spend > 0 ? ` · $${fmtMoney(spend)} spent this month` : ""}`;
-  return (
-    <div className="home-cards-strip" onClick={onOpen}>
-      <Icon.card />
-      <span className="t">Cards</span>
-      <span className="s">{summary}</span>
-      <span className="go">{cards.length === 0 ? "Create →" : "View →"}</span>
-    </div>
-  );
-}
-
-// B. The sub-accounts pattern: header, spend, three rows. Familiar, scannable, ~150px.
-function CardsHomeSection({ onOpen, cards }) {
-  return (
-    <div className="records-card" style={{ marginBottom: 18 }}>
-      <div className="records-head">
-        <h2>Cards</h2>
-        <div className="records-head-right">
-          <span className="meta">{sumSpend(cards) > 0 ? `$${fmtMoney(sumSpend(cards))} spent this month` : `$${fmtMoney(sumBalance(cards))} available`}</span>
-          <a className="records-viewall" onClick={onOpen}>View all →</a>
-        </div>
-      </div>
-      <div style={{ borderTop: "1px solid var(--gray-100)" }}>
-        {cards.slice(0, 3).map((c) => (
-          <div key={c.id} className="home-card-row" onClick={onOpen}>
-            <span className="ic"><Icon.card /></span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="nm">{c.name}</div>
-              <div className="sub">•• {c.last4}{c.status === "frozen" ? " · Frozen" : ""}</div>
-            </div>
-            <div className="bal">${fmtMoney(c.balance || 0)}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// C. Card art, the Revolut/Brex move. Most discoverable, biggest footprint, and the only one
-// that makes cards look like a product rather than a row in a list.
-function CardsHomeTiles({ onOpen, cards: all }) {
-  const Visual = (window.OBCards || {}).CardVisual;
-  const cards = all.slice(0, 3);
-  return (
-    <div className="records-card" style={{ marginBottom: 18 }}>
-      <div className="records-head">
-        <h2>Cards</h2>
-        <div className="records-head-right">
-          <span className="meta">{sumSpend(cards) > 0 ? `$${fmtMoney(sumSpend(cards))} spent this month` : `$${fmtMoney(sumBalance(cards))} available`}</span>
-          <a className="records-viewall" onClick={onOpen}>View all →</a>
-        </div>
-      </div>
-      <div className="home-cards-rail">
-        {cards.map((c) => (
-          <div key={c.id} className="home-card-tile" onClick={onOpen}>
-            {Visual ? <Visual card={c} compact fillWidth /> : null}
-            <div className="nm">{c.name}</div>
-            <div className="bal">${fmtMoney(c.balance || 0)}</div>
-          </div>
-        ))}
-        <div className="home-card-new" onClick={onOpen}><Icon.plus /><span>New card</span></div>
-      </div>
-    </div>
-  );
-}
-
 // Three realities, not one: no cards, a single card, or several. The headline number follows —
 // spend only once there is spend to report, otherwise what's actually on the cards.
+// Same four rows as the account card — label, figure, action, divider, note — in every state,
+// so the two panels read as one row and the card state is the only thing that changes.
 function CardsHomePanel({ onOpen, cards }) {
-  const spend = sumSpend(cards);
-  const balance = sumBalance(cards);
+  // Two states, not five. Whether the business never applied, was declined, or simply hasn't
+  // made one, from Home it's the same thing: no cards yet. The Cards screen handles the
+  // difference, where there's room to explain it.
   const none = cards.length === 0;
-  const single = cards.length === 1;
-  return (
-    <div className="home-cards-panel">
-      <div className="home-hero-top">
-        <div className="home-acct-label"><Icon.card style={{ width: 17, height: 17, color: "var(--gray-500)" }} /><span>Cards</span></div>
-        {!none && <a className="records-viewall" onClick={onOpen}>View all →</a>}
-      </div>
+  const balance = sumBalance(cards);
 
-      {none ? (
-        <>
-          <p className="home-cards-pitch">Create a virtual card for subscriptions, ad spend and anything else you pay for online — funded from your USD balance.</p>
-          <div className="home-actions"><button className="btn btn-lg" onClick={onOpen}><Icon.plus /> Create card</button></div>
-        </>
-      ) : (
-        <>
-          <div className="home-balance">
-            <span className="home-balance-num">${fmtMoney(spend > 0 ? spend : balance)}</span>
-            <span className="home-balance-ccy">{spend > 0 ? "spent this month" : "available"}</span>
-          </div>
-          <div className="home-cards-panel-rows">
-            {cards.slice(0, 3).map((c) => (
-              <div key={c.id} className="r" onClick={onOpen}>
-                <span className="nm">{c.name}</span>
-                <span className="d">{c.status === "frozen" ? (c.lowBalance ? "Needs funding" : "Frozen") : `•• ${c.last4}`}</span>
-                <span className="b">${fmtMoney(c.balance || 0)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="home-actions">
-            <button className="btn btn-soft btn-lg" onClick={onOpen}>{single ? "View card" : "View cards"}</button>
-          </div>
-        </>
-      )}
+  const head = (link) => (
+    <div className="home-hero-top">
+      <div className="home-acct-label"><span className="home-card-badge"><Icon.card /></span><span>Cards</span></div>
+      {link && <a className="records-viewall" onClick={onOpen}>View all →</a>}
     </div>
   );
-}
 
-function MoveToCardSheet({ cards, onClose, onPick, onCreate }) {
-  return (
-    <Sheet open onClose={onClose} title="Move money to a card">
-      <p className="set-sheet-lede" style={{ marginTop: 0 }}>From your USD balance. Pick the card to fund.</p>
-      <div className="home-pick-list">
-        {cards.map((c) => (
-          <div key={c.id} className="home-pick" onClick={() => onPick(c)}>
-            <span className="ic"><Icon.card /></span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="nm">{c.name}</div>
-              <div className="sub">{c.status === "frozen" ? (c.lowBalance ? "Needs funding" : "Frozen") : `•• ${c.last4}`}</div>
-            </div>
-            <span className="b">${fmtMoney(c.balance || 0)}</span>
-          </div>
-        ))}
-        <div className="home-pick new" onClick={onCreate}>
-          <span className="ic"><Icon.plus /></span>
-          <div style={{ flex: 1 }}><div className="nm">Create a new card</div></div>
+  if (none) {
+    return (
+      <div className="home-cards-panel">
+        {head(false)}
+        <div className="home-balance">
+          <span className="home-balance-num">$0.00</span>
+          <span className="home-balance-ccy">on 0 cards</span>
         </div>
+        <div className="home-actions"><button className="btn btn-lg" onClick={onOpen}><Icon.plus /> Create card</button></div>
+        <div className="home-divider" />
+        <div className="sa-panel-foot">For subscriptions, ad spend and online payments — funded from your USD balance.</div>
       </div>
-    </Sheet>
-  );
-}
+    );
+  }
 
-// D. Discovery only: shown until they have a card, then gone for good. Zero permanent cost.
-function CardsHomeDiscovery({ onOpen }) {
+  // Balance, always: it totals the cards underneath, and it's the number you act on. Spend
+  // lives on the Cards screen, against the limits it's measured by.
+
   return (
-    <div className="home-cards-discover">
-      <div className="ic"><Icon.card /></div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="t">Virtual cards for online spend</div>
-        <div className="s">Create a card for subscriptions and ad spend, funded from your USD balance.</div>
+    <div className="home-cards-panel">
+      {head(true)}
+      <div className="home-balance">
+        <span className="home-balance-num">${fmtMoney(balance)}</span>
+        <span className="home-balance-ccy">on {cards.length} card{cards.length === 1 ? "" : "s"}</span>
       </div>
-      <button className="btn" onClick={onOpen}>Create card</button>
+      {/* Chips, not rows: fixed height however many cards there are, and the card that needs
+          funding says so on its own chip instead of in a tally underneath. */}
+      <div className="home-card-chips">
+        {cards.slice(0, 2).map((c) => (
+          <span key={c.id} className={`home-card-chip${c.lowBalance ? " warn" : ""}`} onClick={onOpen}>
+            <Icon.card />{c.name}
+          </span>
+        ))}
+        {cards.length > 2 && <span className="home-card-chip more" onClick={onOpen}>+{cards.length - 2} more</span>}
+      </div>
+      <div className="home-divider" />
+      <div className="sa-panel-foot">Spend online in USD — top up, freeze or set limits on any card.</div>
     </div>
   );
 }
@@ -178,14 +85,14 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
   const isEmpty = dataState === "empty";
   const wide = useIsDesktop();
   const homeCards = liveCards(isEmpty ? "no_cards" : cardsAccess);
-  const split = cardsHome === "split" && wide && !isEmpty;
+  // Sub-accounts sit beside the account card on desktop rather than under it: the hero has
+  // spare width, and a section below pushed recent activity off the fold.
+  // Sub-accounts are reached from the nav only for now: no Home placement until there's
+  // adoption data to judge it by. SubAccountsHomePanel is still in subaccounts.jsx for when
+  // there is.
+  const showCards = cardsHome !== "off" && wide;
   // With no cards there is nothing to list — the only version that still says something is the
   // pitch, so the list-shaped variants fall back to it.
-  const noCards = homeCards.length === 0;
-  const [picking, setPicking] = useStateD(false);
-  // No cards yet means there's nothing to pick from — the button becomes the way in to making
-  // one, which is the discovery case this variant is really for.
-  const moveToCard = () => (noCards ? onOpenCards() : setPicking(true));
   const balance = isEmpty ? "0.00" : "84,231.50";
   const recentTxns = isEmpty ? [] : TXNS.slice(0, 8);
 
@@ -208,10 +115,10 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
         </div>
       )}
 
-      <div className={split ? "home-split" : undefined}>
+      <div className={showCards ? "home-split" : undefined}>
       <div className="home-hero">
         <div className="home-hero-top">
-          <div className="home-acct-label"><CcyFlag code="USD" size={22} /><span>Global USD Account</span></div>
+          <div className="home-acct-label"><CcyFlag code="USD" size={22} /><span>Main USD account</span></div>
           <div className="home-status"><span className="dot" />Active</div>
         </div>
         <div className="home-balance">
@@ -221,24 +128,14 @@ function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, o
         <div className="home-actions">
           <button className="btn btn-lg" onClick={onAddMoney}><Icon.plus /> Deposit</button>
           {can(role, "pay") && <button className="btn btn-soft btn-lg" onClick={onSendPayment} disabled={accountSuspended}><Icon.paperplane /> Send money</button>}
-          {cardsHome === "action" && <button className="btn btn-soft btn-lg" onClick={moveToCard} disabled={accountSuspended}><Icon.card /> Move to card</button>}
         </div>
         <div className="home-divider" />
         <div className="home-rails-note">Fund with USD, GBP, EUR, NGN, or stablecoins — all deposits are held as USD</div>
       </div>
-      {split && <CardsHomePanel onOpen={onOpenCards} cards={homeCards} />}
+      {showCards && <CardsHomePanel onOpen={onOpenCards} cards={homeCards} />}
       </div>
 
-      {cardsHome === "split" && !wide && <CardsHomeStrip onOpen={onOpenCards} cards={homeCards} />}
-
-      {cardsHome === "strip" && <CardsHomeStrip onOpen={onOpenCards} cards={homeCards} />}
-      {cardsHome === "section" && (noCards ? <CardsHomeDiscovery onOpen={onOpenCards} /> : <CardsHomeSection onOpen={onOpenCards} cards={homeCards} />)}
-      {cardsHome === "tiles" && (noCards ? <CardsHomeDiscovery onOpen={onOpenCards} /> : <CardsHomeTiles onOpen={onOpenCards} cards={homeCards} />)}
-      {cardsHome === "discovery" && noCards && <CardsHomeDiscovery onOpen={onOpenCards} />}
-
-      {subAccountsOn && !isEmpty && <SubAccountsHomeSection onOpen={onOpenSubAccounts} />}
-
-      {picking && <MoveToCardSheet cards={homeCards} onClose={() => setPicking(false)} onPick={() => { setPicking(false); onOpenCards(); }} onCreate={() => { setPicking(false); onOpenCards(); }} />}
+      {cardsHome !== "off" && !wide && <CardsHomePanel onOpen={onOpenCards} cards={homeCards} />}
 
       <Records
         title="Recent activity"
