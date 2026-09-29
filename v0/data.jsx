@@ -50,6 +50,9 @@ const NetworkIcon = {
   polygon: (p) => <svg viewBox="0 0 24 24" {...p}><path d="M16.2 9.2c-.4-.2-.9-.2-1.2 0l-2.8 1.6-1.9 1.1-2.8 1.6c-.4.2-.9.2-1.2 0L4 12.3c-.4-.2-.6-.6-.6-1v-2.4c0-.4.2-.8.6-1l2.2-1.3c.4-.2.9-.2 1.2 0l2.2 1.3c.4.2.6.6.6 1v1.6l1.9-1.1V7.8c0-.4-.2-.8-.6-1l-4-2.3c-.4-.2-.9-.2-1.2 0l-4.1 2.4c-.4.2-.6.6-.6 1v4.6c0 .4.2.8.6 1l4.1 2.3c.4.2.9.2 1.2 0l2.8-1.6 1.9-1.1 2.8-1.6c.4-.2.9-.2 1.2 0l2.2 1.3c.4.2.6.6.6 1v2.4c0 .4-.2.8-.6 1l-2.2 1.3c-.4.2-.9.2-1.2 0l-2.2-1.3c-.4-.2-.6-.6-.6-1v-1.6l-1.9 1.1v1.6c0 .4.2.8.6 1l4.1 2.3c.4.2.9.2 1.2 0l4.1-2.3c.4-.2.6-.6.6-1v-4.6c0-.4-.2-.8-.6-1L16.2 9.2z" fill="#8247E5"/></svg>,
   solana:  (p) => <svg viewBox="0 0 24 24" {...p}><path d="M6.1 16.3c.1-.1.3-.2.5-.2h13.3c.3 0 .5.4.3.6l-2.7 2.7c-.1.1-.3.2-.5.2H3.7c-.3 0-.5-.4-.3-.6l2.7-2.7z" fill="url(#sol1)"/><path d="M6.1 4.6c.1-.1.3-.2.5-.2h13.3c.3 0 .5.4.3.6L17.5 7.7c-.1.1-.3.2-.5.2H3.7c-.3 0-.5-.4-.3-.6L6.1 4.6z" fill="url(#sol2)"/><path d="M17.5 10.4c-.1-.1-.3-.2-.5-.2H3.7c-.3 0-.5.4-.3.6l2.7 2.7c.1.1.3.2.5.2h13.3c.3 0 .5-.4.3-.6l-2.7-2.7z" fill="url(#sol3)"/><defs><linearGradient id="sol1" x1="18.5" y1="2.3" x2="6.6" y2="21.5" gradientUnits="userSpaceOnUse"><stop stopColor="#00FFA3"/><stop offset="1" stopColor="#DC1FFF"/></linearGradient><linearGradient id="sol2" x1="14.2" y1="0" x2="2.3" y2="19.2" gradientUnits="userSpaceOnUse"><stop stopColor="#00FFA3"/><stop offset="1" stopColor="#DC1FFF"/></linearGradient><linearGradient id="sol3" x1="16.3" y1="1.2" x2="4.5" y2="20.4" gradientUnits="userSpaceOnUse"><stop stopColor="#00FFA3"/><stop offset="1" stopColor="#DC1FFF"/></linearGradient></defs></svg>,
   tron:    (p) => <svg viewBox="0 0 24 24" {...p}><path d="M4.2 4.5l15.5 5.6-8.8 11L4.2 4.5z" fill="#FF060A" opacity=".8"/><path d="M4.2 4.5L19.7 10l-3.5-7.5L4.2 4.5z" fill="#FF060A"/><path d="M10.9 21.1l8.8-11.1-3.5-7.5L10.9 21z" fill="#FF060A" opacity=".6"/></svg>,
+  bnb:     (p) => <svg viewBox="0 0 24 24" {...p}><circle cx="12" cy="12" r="10" fill="#F3BA2F"/><path d="M12 6.2l1.9 1.9-1.9 1.9-1.9-1.9L12 6.2zm3.9 3.9l1.9 1.9-1.9 1.9-1.9-1.9 1.9-1.9zm-7.8 0L10 12l-1.9 1.9L6.2 12l1.9-1.9zm3.9 3.9l1.9 1.9-1.9 1.9-1.9-1.9 1.9-1.9zm0-3.9l1.9 1.9-1.9 1.9-1.9-1.9 1.9-1.9z" fill="#fff"/></svg>,
+  optimism:(p) => <svg viewBox="0 0 24 24" {...p}><circle cx="12" cy="12" r="10" fill="#FF0420"/><path d="M8.6 14.9c-.9 0-1.6-.2-2.1-.6-.5-.4-.8-1-.8-1.8 0-.2 0-.4.1-.6.1-.7.3-1.5.5-2.4.6-2.2 2-3.3 4.2-3.3.6 0 1.1.1 1.6.3.5.2.8.5 1.1.9.3.4.4.9.4 1.4 0 .2 0 .4-.1.6-.2 1-.3 1.8-.5 2.4-.3 1.1-.8 1.9-1.6 2.4-.7.5-1.6.7-2.8.7zm.2-1.7c.4 0 .8-.1 1.1-.4.3-.3.5-.7.7-1.2.2-.9.4-1.6.5-2.1 0-.2.1-.3.1-.5 0-.7-.4-1.1-1.1-1.1-.4 0-.8.1-1.1.4-.3.3-.5.7-.7 1.2-.1.4-.2 1.1-.5 2.1 0 .2-.1.3-.1.5 0 .7.4 1.1 1.1 1.1zM14.3 14.8c-.1 0-.1 0-.2-.1v-.2l1.7-7.9c0-.1.1-.1.1-.2h3.2c.9 0 1.6.2 2.1.6.5.4.8.9.8 1.6 0 .2 0 .4-.1.6-.2 1-.7 1.7-1.3 2.2-.7.5-1.6.7-2.7.7h-1.6l-.6 2.6c0 .1-.1.1-.1.2h-1.3zm3.9-4.4c.4 0 .7-.1.9-.3.3-.2.4-.5.5-.8v-.3c0-.2-.1-.4-.2-.6-.2-.1-.4-.2-.8-.2h-1.4l-.5 2.2h1.5z" fill="#fff"/></svg>,
+  arbitrum:(p) => <svg viewBox="0 0 24 24" {...p}><circle cx="12" cy="12" r="10" fill="#213147"/><path d="M12 4.5l6.5 3.8v7.4L12 19.5l-6.5-3.8V8.3L12 4.5z" fill="#12AAFF" opacity=".25"/><path d="M11 9.3l2.6 4.4-1.4 2.4L8.4 9.8 9.7 7.6l1.3 1.7zm3.4-1.6l4.1 7-1.4 2.4-4.1-7 1.4-2.4z" fill="#12AAFF"/></svg>,
 };
 
 // ---------- Currency metadata ----------
@@ -235,16 +238,27 @@ const BUSINESS_PROFILE = {
 window.OBIcon = Icon;
 
 // Stablecoin chains supported per coin (mock)
+// The networks production actually supports, in the order the live app lists them.
+const USDC_ADDR = "0x572F56C228AdeF277B2324Bde7aD8576FEB45DE9";
+const USDT_ADDR = "0x572F56C228AdeF277B2324Bde7aD8576FEB45DE9";
 const STABLECOIN_CHAINS = {
   USDC: [
-    { id: "eth",     name: "Ethereum",       short: "ERC-20", address: "0x9F2c4a8b1E5d7a3c91F0bD2e4cAb7fE6Dd31B0c4a", min: "10",  arrival: "~2 min after 12 confirmations" },
-    { id: "base",    name: "Base",            short: "Base",   address: "0x7E2bD4cF6aE1c5B82d3F9CdA4b5e6F7E8d12C0aB9", min: "1",   arrival: "~10 sec" },
-    { id: "polygon", name: "Polygon",         short: "Polygon",address: "0xA1bC3d5E7F90123456789aBCdEf0123456789ABCd", min: "1",   arrival: "~5 sec" },
-    { id: "solana",  name: "Solana",          short: "SPL",    address: "6dGN1MzCN3pUDmkXfpqCkX4Yp9rJfb7s5kKR3Z2VQwTm", min: "1",   arrival: "~10 sec" },
+    { id: "bnb",      name: "BNB Smart Chain", short: "BEP-20",  address: USDC_ADDR, min: "1", arrival: "~1 min" },
+    { id: "optimism", name: "Optimism",        short: "Optimism",address: USDC_ADDR, min: "1", arrival: "~30 sec" },
+    { id: "eth",      name: "Ethereum",        short: "ERC-20",  address: USDC_ADDR, min: "1", arrival: "~2 min" },
+    { id: "polygon",  name: "Polygon",         short: "Polygon", address: USDC_ADDR, min: "1", arrival: "~5 sec" },
+    { id: "solana",   name: "Solana",          short: "SPL",     address: "6dGN1MzCN3pUDmkXfpqCkX4Yp9rJfb7s5kKR3Z2VQwTm", min: "1", arrival: "~10 sec" },
+    { id: "arbitrum", name: "Arbitrum",        short: "Arbitrum",address: USDC_ADDR, min: "1", arrival: "~30 sec" },
+    { id: "base",     name: "Base",            short: "Base",    address: USDC_ADDR, min: "1", arrival: "~10 sec" },
   ],
   USDT: [
-    { id: "eth",     name: "Ethereum",       short: "ERC-20", address: "0x9F2c4a8b1E5d7a3c91F0bD2e4cAb7fE6Dd31B0c4a", min: "10",  arrival: "~2 min after 12 confirmations" },
-    { id: "tron",    name: "Tron",            short: "TRC-20", address: "TZ9bD4cF6aE1c5B82d3F9CdA4b5e6F7E8d12C0aB9",   min: "5",   arrival: "~1 min" },
+    { id: "optimism", name: "Optimism",        short: "Optimism",address: USDT_ADDR, min: "0.5", arrival: "~30 sec" },
+    { id: "solana",   name: "Solana",          short: "SPL",     address: "6dGN1MzCN3pUDmkXfpqCkX4Yp9rJfb7s5kKR3Z2VQwTm", min: "0.5", arrival: "~10 sec" },
+    { id: "tron",     name: "TRON",            short: "TRC-20",  address: "TZ9bD4cF6aE1c5B82d3F9CdA4b5e6F7E8d12C0aB9", min: "0.5", arrival: "~1 min" },
+    { id: "arbitrum", name: "Arbitrum",        short: "Arbitrum",address: USDT_ADDR, min: "0.5", arrival: "~30 sec" },
+    { id: "polygon",  name: "Polygon",         short: "Polygon", address: USDT_ADDR, min: "0.5", arrival: "~5 sec" },
+    { id: "bnb",      name: "BNB Smart Chain", short: "BEP-20",  address: USDT_ADDR, min: "0.5", arrival: "~1 min" },
+    { id: "eth",      name: "Ethereum",        short: "ERC-20",  address: USDT_ADDR, min: "0.5", arrival: "~2 min" },
   ],
 };
 

@@ -380,7 +380,6 @@ function MockControls({
 
         <div className="mock-label">Sub-accounts</div>
         <div className="mock-row">
-          <button className={subAccountsOn === "off" ? "on" : ""} onClick={() => onSubAccountsOn("off")}>Hidden</button>
           <button className={subAccountsOn === "none" ? "on" : ""} onClick={() => onSubAccountsOn("none")}>None yet</button>
           <button className={subAccountsOn === "on" ? "on" : ""} onClick={() => onSubAccountsOn("on")}>On</button>
         </div>
@@ -437,7 +436,7 @@ function App() {
   const [apiAccess, setApiAccess] = useState("granted");
   const [cardsAccess, setCardsAccess] = useState("active");
   const [cardsHome, setCardsHome] = useState("on");
-  const [subAccountsOn, setSubAccountsOn] = useState("off"); // "off" | "units" | "customers"
+  const [subAccountsOn, setSubAccountsOn] = useState("on"); // "none" | "on"
   const [role, setRole] = useState("admin"); // ACL — see ACL-SPEC.md
   const [inviteLink, setInviteLink] = useState("valid"); // "valid" | "invalid"
   const [openTx, setOpenTx] = useState(null);
@@ -615,7 +614,6 @@ function App() {
         onSendPayment={() => setRoute("payments")}
         onOpenTx={() => {}}
         onViewAll={() => setRoute("activity")}
-        subAccountsOn={subAccountsOn === "off" ? false : subAccountsOn}
         onOpenSubAccounts={() => setRoute("subaccounts")}
         onOpenRole={() => { setSettingsSection("profile"); setRoleFocus(n => n + 1); setRoute("settings"); }}
         cardsHome={cardsHome}
@@ -725,7 +723,7 @@ function App() {
 
   return (
     <>
-      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner} subAccountsOn={subAccountsOn !== "off"} role={role}>
+      <Shell active={route} onNavigate={navigate} mockControls={mockControls} banner={holdBanner} role={role}>
         {screen}
       </Shell>
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}

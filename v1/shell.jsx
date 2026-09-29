@@ -33,8 +33,7 @@ const NAV = [
 // Cards sits inline in the desktop sidebar (not a 6th bottom tab — would crowd the tab bar);
 // mobile reaches it through the "More" sheet instead.
 const CARDS_NAV = { id: "cards", label: "Cards", icon: Icon.card };
-// Sub-accounts is exploratory — hidden unless the mock toggle turns it on, so it never shows
-// in the demo or a normal review pass. Same placement rules as Cards.
+// Sub-accounts sits inline in the sidebar and in the mobile "More" sheet, same as Cards.
 const SUBACCOUNTS_NAV = { id: "subaccounts", label: "Sub-accounts", icon: Icon.wallet };
 const WORKSPACE_NAV = [
   { id: "pricing",   label: "Pricing",   icon: Icon.doc },
@@ -154,7 +153,7 @@ function TopBar({ onOpenMock, isDemo }) {
   );
 }
 
-function SidebarV1({ active, onNavigate, subAccountsOn, role }) {
+function SidebarV1({ active, onNavigate, role }) {
   const item = (n) => (
     <div key={n.id} className={`sb-item ${active === n.id ? "active" : ""}`} onClick={() => onNavigate(n.id)}>
       <n.icon />
@@ -165,7 +164,7 @@ function SidebarV1({ active, onNavigate, subAccountsOn, role }) {
   return (
     <aside className="sidebar-v1">
       {visibleNav(NAV, role).map(item)}
-      {subAccountsOn && item(SUBACCOUNTS_NAV)}
+      {item(SUBACCOUNTS_NAV)}
       {item(CARDS_NAV)}
       <div className="sb-group">Workspace</div>
       {visibleNav(WORKSPACE_NAV, role).map(item)}
@@ -207,8 +206,8 @@ function BottomTabs({ active, onNavigate, onMore, role }) {
   );
 }
 
-function MoreSheet({ open, onClose, onNavigate, subAccountsOn, role }) {
-  const items = visibleNav(subAccountsOn ? [SUBACCOUNTS_NAV, ...MORE_NAV] : MORE_NAV, role);
+function MoreSheet({ open, onClose, onNavigate, role }) {
+  const items = visibleNav([SUBACCOUNTS_NAV, ...MORE_NAV], role);
   return (
     <Sheet open={open} onClose={onClose} title="More">
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -227,7 +226,7 @@ function MoreSheet({ open, onClose, onNavigate, subAccountsOn, role }) {
 // Adaptive shell: sidebar+topnav on desktop, bottom tabs+topbar on mobile. Same route state either way.
 // Mock controls open from the same small gear icon in the top bar on both breakpoints, as a Sheet —
 // except in demo mode, where the gear (and the whole harness) doesn't render at all. See HANDOFF.md.
-function Shell({ active, onNavigate, mockControls, banner, subAccountsOn = false, role = "admin", children }) {
+function Shell({ active, onNavigate, mockControls, banner, role = "admin", children }) {
   const isDesktop = useIsDesktop();
   const isDemo = isDemoMode();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -238,7 +237,7 @@ function Shell({ active, onNavigate, mockControls, banner, subAccountsOn = false
       <div className={`shell is-desktop ${isDemo ? "has-demo-banner" : ""}`}>
         {isDemo && <DemoBanner />}
         <TopBar onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
-        <SidebarV1 active={active} onNavigate={onNavigate} subAccountsOn={subAccountsOn} role={role} />
+        <SidebarV1 active={active} onNavigate={onNavigate} role={role} />
         <div className="content-desktop">{banner}{children}</div>
         {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
         {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
@@ -251,7 +250,7 @@ function Shell({ active, onNavigate, mockControls, banner, subAccountsOn = false
       <TopBarMobile onOpenMock={() => setMockOpen(true)} isDemo={isDemo} />
       <div className="content-mobile">{banner}{children}</div>
       <BottomTabs active={active} onNavigate={onNavigate} onMore={() => setMoreOpen(true)} role={role} />
-      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} onNavigate={onNavigate} subAccountsOn={subAccountsOn} role={role} />
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} onNavigate={onNavigate} role={role} />
       {isDemo && <GuidedNudges active={active} onNavigate={onNavigate} />}
       {!isDemo && <Sheet open={mockOpen} onClose={() => setMockOpen(false)} title="Mock controls">{mockControls}</Sheet>}
     </div>

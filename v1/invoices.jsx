@@ -20,19 +20,34 @@ const INVOICE_KEY = "ob_invoices";
 const CCY_SYMBOL = { USD: "$", NGN: "₦", GBP: "£", EUR: "€" };
 const INVOICE_CCYS = ["USD", "NGN", "GBP", "EUR"];
 
-// The accounts an invoice can ask to be paid into. Built from the same fixtures the Deposit page
-// shows, so an invoice can never quote details the account doesn't actually have.
+// Bank details are the ones this business already holds — picked, not typed, because an invoice
+// must never quote an account that doesn't exist. Stablecoin addresses are typed for now: the
+// wallet being invoiced into may be one Onboard doesn't issue.
+const PAY_KINDS = [
+  { id: "usd", label: "USD account", hint: "Wire, ACH or SWIFT" },
+  { id: "ngn", label: "NGN account", hint: "Naira bank transfer" },
+  { id: "eurgbp", label: "EUR or GBP account", hint: "SEPA, FPS or CHAPS" },
+  { id: "stablecoin", label: "Stablecoin", hint: "USDC or USDT on any network", coin: true },
+];
+const STABLE_COINS = ["USDC", "USDT"];
+// One source for the networks — the same list Deposit and sub-accounts render.
+const chainsFor = (coin) => ((IData.STABLECOIN_CHAINS || {})[coin] || []);
+const kindOf = (id) => PAY_KINDS.find((k) => k.id === id) || PAY_KINDS[0];
+
+// The accounts this business actually holds. USD is one account, not three: ACH, Fedwire and
+// SWIFT all arrive at the same details, which is how the Deposit page states it.
 function payAccounts() {
-  const rails = (IData.FIAT_RAILS || []).map((r) => ({
-    id: r.id,
-    label: `${r.name} · USD`,
-    sub: r.desc,
-    fields: r.fields.map((f) => [f.k, f.v]),
-  }));
+  const wire = (IData.FIAT_RAILS || []).find((r) => r.id === "usd-wire");
+  const rails = wire ? [{
+    id: "usd",
+    label: "USD account",
+    sub: "ACH, Fedwire or SWIFT",
+    fields: wire.fields.map((f) => [f.k, f.v]),
+  }] : [];
   const ngn = {
     id: "ngn",
-    label: "Bank transfer · NGN",
-    sub: "Naira virtual account",
+    label: "NGN account",
+    sub: "Naira bank transfer",
     fields: [["Account name", "GFS / Acme Trading Co"], ["Bank", "Aella Microfinance Bank"], ["Account number", "5200 0443 12"]],
   };
   const chains = IData.STABLECOIN_CHAINS || {};
@@ -78,7 +93,21 @@ function nextNumber(list) {
 const BP = IData.BUSINESS_PROFILE || {};
 const addrLines = (a) => (a ? [a.line1, a.line2, [a.city, a.region].filter(Boolean).join(", "), a.postalCode, a.country].filter(Boolean) : []);
 
+// Who most invoices are from and to while this is used internally. A new invoice inherits
+// whoever the last one was addressed to, so switching customers sticks without editing these.
+const DEFAULT_FROM = {
+  name: "Gopay Financial Services Inc. (Onboard Pay)",
+  address: "3080 Yonge St, Suite 6060\nToronto, ON M4N 3N1, Canada",
+  email: "finance@onboard.xyz",
+};
+const DEFAULT_TO = {
+  name: "Muva Networks Limited",
+  address: "1 Ayo Makun Street, Richmond Gate Estate 1\nLagos, Nigeria",
+  email: "babasola@muvanetworks.com",
+};
+
 function blankInvoice(list) {
+  const last = (list || [])[0];
   return {
     id: "inv-" + Date.now(),
     number: nextNumber(list),
@@ -86,27 +115,33 @@ function blankInvoice(list) {
     due: plusDays(14),
     currency: "USD",
     status: "draft",
-    from: { name: BP.legalName || "", address: addrLines(BP.registeredAddress).join("\n"), email: (BP.primaryContact || {}).email || "" },
-    to: { name: "", email: "", address: "" },
+    from: last ? { ...last.from } : { ...DEFAULT_FROM },
+    to: last ? { ...last.to } : { ...DEFAULT_TO },
+    payTo: last ? (last.payTo || []).map((m) => ({ ...m, id: m.id + "-c" })) : [],
     items: [{ desc: "", qty: "1", price: "" }],
     taxRate: "",
-    payTo: ["usd-wire"],
+    discount: "",
+    discountType: "pct",
     notes: "",
   };
 }
 
+// Discount comes off before tax, which is how tax is assessed nearly everywhere.
 const invoiceTotals = (inv) => {
   const subtotal = (inv.items || []).reduce((s, it) => s + parseNum(it.qty) * parseNum(it.price), 0);
-  const tax = subtotal * (parseNum(inv.taxRate) / 100);
-  return { subtotal, tax, total: subtotal + tax };
+  const raw = parseNum(inv.discount);
+  const discount = Math.min(inv.discountType === "amt" ? raw : subtotal * (raw / 100), subtotal);
+  const taxable = subtotal - discount;
+  const tax = taxable * (parseNum(inv.taxRate) / 100);
+  return { subtotal, discount, taxable, tax, total: taxable + tax };
 };
 
 // ---------- The document ----------
 // Not the Onboard letterhead: this invoice comes from the business, so the business's name is the
 // masthead and Onboard appears once, small, at the foot.
 function InvoiceDoc({ inv }) {
-  const { subtotal, tax, total } = invoiceTotals(inv);
-  const accounts = payAccounts().filter((a) => (inv.payTo || []).includes(a.id));
+  const { subtotal, discount, tax, total } = invoiceTotals(inv);
+  const accounts = (inv.payTo || []).filter((a) => a && a.fields && a.fields.length);
   const fromLines = (inv.from.address || "").split("\n").filter(Boolean);
   const toLines = (inv.to.address || "").split("\n").filter(Boolean);
   return (
@@ -150,6 +185,9 @@ function InvoiceDoc({ inv }) {
 
       <div className="inv-totals">
         <div className="r"><span>Subtotal</span><span>{money(subtotal, inv.currency)}</span></div>
+        {discount > 0 && (
+          <div className="r"><span>Discount{inv.discountType === "pct" ? ` (${parseNum(inv.discount)}%)` : ""}</span><span>−{money(discount, inv.currency)}</span></div>
+        )}
         {parseNum(inv.taxRate) > 0 && <div className="r"><span>Tax ({parseNum(inv.taxRate)}%)</span><span>{money(tax, inv.currency)}</span></div>}
         <div className="r total"><span>Total due</span><span>{money(total, inv.currency)} {inv.currency}</span></div>
       </div>
@@ -161,7 +199,7 @@ function InvoiceDoc({ inv }) {
             {accounts.map((a) => (
               <div className="inv-pay-block" key={a.id}>
                 <div className="t">{a.label}</div>
-                {a.fields.map(([k, v]) => (
+                {a.fields.filter(([, v]) => v).map(([k, v]) => (
                   <div className="inv-pay-row" key={k}><span>{k}</span><strong>{v}</strong></div>
                 ))}
               </div>
@@ -185,16 +223,123 @@ function InvoiceDoc({ inv }) {
 
 const openInvoice = (inv) => iOpenDocument("invoice-doc", `Invoice ${inv.number}`);
 
+
+// One payment method at a time: pick what kind, then fill the fields that kind needs. Checkboxes
+// over a fixed list didn't survive a business with several accounts per currency.
+function PaymentMethodSheet({ method, onClose, onSave }) {
+  const [kindId, setKindId] = useStateI(method ? method.kind : "usd");
+  const [accountId, setAccountId] = useStateI(method ? method.accountId || "" : "");
+  const [coin, setCoin] = useStateI(method ? method.coin || "USDC" : "USDC");
+  const [chainId, setChainId] = useStateI(method ? method.chainId || "" : "");
+  const [address, setAddress] = useStateI(() => {
+    const f = (method ? method.fields : []).find(([k]) => k === "Address");
+    return f ? f[1] : "";
+  });
+  const kind = kindOf(kindId);
+
+  const accounts = payAccounts().filter((a) => (
+    kindId === "usd" ? a.id === "usd" : kindId === "ngn" ? a.id === "ngn" : false
+  ));
+  const account = accounts.find((a) => a.id === accountId);
+  const chains = chainsFor(coin);
+  const chain = chains.find((c) => c.id === chainId) || chains[0];
+  const ready = kind.coin ? !!(chain && address.trim()) : !!account;
+
+  const save = () => {
+    if (kind.coin) {
+      onSave({
+        id: method ? method.id : "pm-" + Date.now(),
+        kind: kindId, coin, chainId: chain.id,
+        label: `${coin} · ${chain.name}`,
+        fields: [["Network", `${chain.name} (${chain.short})`], ["Address", address.trim()]],
+      });
+      return;
+    }
+    onSave({
+      id: method ? method.id : "pm-" + Date.now(),
+      kind: kindId, accountId: account.id,
+      label: account.label,
+      fields: account.fields,
+    });
+  };
+
+  return (
+    <Sheet open onClose={onClose} title={method ? "Edit payment method" : "Add payment method"}>
+      <div className="field">
+        <div className="lbl">What can they pay into?</div>
+        <select className="inp" value={kindId} onChange={(e) => { setKindId(e.target.value); setAccountId(""); }}>
+          {PAY_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label} — {k.hint}</option>)}
+        </select>
+      </div>
+
+      {kind.coin ? (
+        <>
+          <div className="inv-grid-2">
+            <div className="field">
+              <div className="lbl">Coin</div>
+              <select className="inp" value={coin} onChange={(e) => { setCoin(e.target.value); setChainId(""); }}>
+                {STABLE_COINS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <div className="lbl">Network</div>
+              <select className="inp" value={chain ? chain.id : ""} onChange={(e) => setChainId(e.target.value)}>
+                {chains.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.short})</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="field">
+            <div className="lbl">Address</div>
+            <input className="inp" placeholder={chain && chain.id === "solana" ? "Solana address" : "0x…"} value={address} onChange={(e) => setAddress(e.target.value)} />
+            <div className="help">Must be the address for {chain ? chain.name : "this network"} — anything sent on another network is lost.</div>
+          </div>
+        </>
+      ) : accounts.length === 0 ? (
+        <div className="td-banner info">
+          <IIcon.info />
+          <div><div className="s">No {kind.label.replace(" account", "")} account details on this business yet. Request one from Deposit, then add it here.</div></div>
+        </div>
+      ) : (
+        <>
+          <div className="field">
+            <div className="lbl">Which account?</div>
+            <select className="inp" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+              <option value="">Select an account…</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.label} — {a.sub}</option>)}
+            </select>
+          </div>
+          {account && (
+            <div className="inv-preview">
+              {account.fields.map(([k, v]) => (
+                <div className="inv-pay-row" key={k}><span>{k}</span><strong>{v}</strong></div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="set-modal-foot">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-lg" disabled={!ready} onClick={save}>{method ? "Save changes" : "Add method"}</button>
+      </div>
+    </Sheet>
+  );
+}
+
 // ---------- Editor ----------
 function InvoiceEditor({ invoice, onChange, onCancel, onSave, onPreview }) {
   const inv = invoice;
-  const { subtotal, tax, total } = invoiceTotals(inv);
-  const accounts = payAccounts();
+  const { subtotal, discount, tax, total } = invoiceTotals(inv);
+  const [editingMethod, setEditingMethod] = useStateI(null);
   const set = (patch) => onChange({ ...inv, ...patch });
   const setItem = (i, patch) => onChange({ ...inv, items: inv.items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)) });
   const addItem = () => onChange({ ...inv, items: [...inv.items, { desc: "", qty: "1", price: "" }] });
   const removeItem = (i) => onChange({ ...inv, items: inv.items.filter((_, idx) => idx !== i) });
-  const togglePay = (id) => onChange({ ...inv, payTo: inv.payTo.includes(id) ? inv.payTo.filter((x) => x !== id) : [...inv.payTo, id] });
+  const saveMethod = (m) => {
+    const exists = inv.payTo.some((x) => x.id === m.id);
+    onChange({ ...inv, payTo: exists ? inv.payTo.map((x) => (x.id === m.id ? m : x)) : [...inv.payTo, m] });
+    setEditingMethod(null);
+  };
   const ready = inv.to.name.trim() && total > 0;
 
   return (
@@ -215,6 +360,17 @@ function InvoiceEditor({ invoice, onChange, onCancel, onSave, onPreview }) {
               </select>
             </div>
             <div className="field"><div className="lbl">Tax rate (optional)</div><input className="inp" type="number" min="0" step="0.5" placeholder="0" value={inv.taxRate} onChange={(e) => set({ taxRate: e.target.value })} /></div>
+            <div className="field">
+              <div className="lbl">Discount (optional)</div>
+              <div className="inv-discount">
+                <input className="inp" type="number" min="0" step="0.01" placeholder="0" value={inv.discount} onChange={(e) => set({ discount: e.target.value })} />
+                <select className="inp" value={inv.discountType} onChange={(e) => set({ discountType: e.target.value })}>
+                  <option value="pct">%</option>
+                  <option value="amt">{CCY_SYMBOL[inv.currency] || inv.currency}</option>
+                </select>
+              </div>
+              <div className="help">Taken off before tax.</div>
+            </div>
           </div>
         </div>
 
@@ -250,6 +406,7 @@ function InvoiceEditor({ invoice, onChange, onCancel, onSave, onPreview }) {
           <button className="btn btn-ghost btn-sm" onClick={addItem}><IIcon.plus style={{ width: 13, height: 13 }} /> Add line</button>
           <div className="inv-sum">
             <div className="r"><span>Subtotal</span><span>{money(subtotal, inv.currency)}</span></div>
+            {discount > 0 && <div className="r"><span>Discount</span><span>−{money(discount, inv.currency)}</span></div>}
             {parseNum(inv.taxRate) > 0 && <div className="r"><span>Tax ({parseNum(inv.taxRate)}%)</span><span>{money(tax, inv.currency)}</span></div>}
             <div className="r total"><span>Total due</span><span>{money(total, inv.currency)}</span></div>
           </div>
@@ -257,22 +414,37 @@ function InvoiceEditor({ invoice, onChange, onCancel, onSave, onPreview }) {
 
         <div className="card inv-card">
           <h2 className="inv-card-h">How to pay</h2>
-          <p className="inv-card-sub">Pick the accounts to print on the invoice. Two is usually plenty — every extra rail is another one to reconcile.</p>
-          <div className="inv-pay-picks">
-            {accounts.map((a) => (
-              <label className={`inv-pick${inv.payTo.includes(a.id) ? " on" : ""}`} key={a.id}>
-                <input type="checkbox" checked={inv.payTo.includes(a.id)} onChange={() => togglePay(a.id)} />
-                <span><span className="nm">{a.label}</span><span className="sub">{a.sub}</span></span>
-              </label>
-            ))}
-          </div>
-          {inv.payTo.length === 0 && <div className="help" style={{ color: "#B45309" }}>No payment details selected — the invoice won't say where to pay.</div>}
+          <p className="inv-card-sub">The accounts this invoice asks to be paid into. Two is usually plenty — every extra one is another to reconcile.</p>
+          {inv.payTo.length > 0 && (
+            <div className="inv-methods">
+              {inv.payTo.map((m) => (
+                <div className="inv-method" key={m.id}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="nm">{m.label}</div>
+                    <div className="sub">{m.fields.map(([, v]) => v).filter(Boolean).slice(0, 2).join(" · ")}</div>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setEditingMethod(m)}>Edit</button>
+                  <button className="inv-x" onClick={() => onChange({ ...inv, payTo: inv.payTo.filter((x) => x.id !== m.id) })} aria-label="Remove"><IIcon.trash /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditingMethod("new")}><IIcon.plus style={{ width: 13, height: 13 }} /> Add payment method</button>
+          {inv.payTo.length === 0 && <div className="help" style={{ color: "#B45309", marginTop: 8 }}>No payment details yet — the invoice won't say where to pay.</div>}
           <div className="field" style={{ marginTop: 16 }}>
             <div className="lbl">Notes (optional)</div>
             <textarea className="inp" rows={2} placeholder="Payment terms, PO number, thanks." value={inv.notes} onChange={(e) => set({ notes: e.target.value })} />
           </div>
         </div>
       </div>
+
+      {editingMethod && (
+        <PaymentMethodSheet
+          method={editingMethod === "new" ? null : editingMethod}
+          onClose={() => setEditingMethod(null)}
+          onSave={saveMethod}
+        />
+      )}
 
       <div className="inv-actions">
         <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>

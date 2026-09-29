@@ -81,7 +81,7 @@ function CardsHomePanel({ onOpen, cards }) {
   );
 }
 
-function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, subAccountsOn = false, onOpenSubAccounts, onOpenRole, role = "admin", cardsHome = "off", onOpenCards, cardsAccess = "active" }) {
+function Dashboard({ dataState = "full", accountSuspended = false, onAddMoney, onSendPayment, onOpenTx, onViewAll, onOpenSubAccounts, onOpenRole, role = "admin", cardsHome = "off", onOpenCards, cardsAccess = "active" }) {
   const isEmpty = dataState === "empty";
   const wide = useIsDesktop();
   const homeCards = liveCards(isEmpty ? "no_cards" : cardsAccess);

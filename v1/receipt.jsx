@@ -75,8 +75,12 @@ function txMoney(tx) {
 const EXPLORERS = {
   eth: "https://etherscan.io/tx/", base: "https://basescan.org/tx/", tron: "https://tronscan.org/#/transaction/",
   polygon: "https://polygonscan.com/tx/", solana: "https://solscan.io/tx/",
+  bnb: "https://bscscan.com/tx/", optimism: "https://optimistic.etherscan.io/tx/", arbitrum: "https://arbiscan.io/tx/",
 };
-const NETWORK_NAMES = { eth: "Ethereum (ERC-20)", base: "Base", polygon: "Polygon", solana: "Solana (SPL)", tron: "Tron (TRC-20)" };
+const NETWORK_NAMES = {
+  eth: "Ethereum (ERC-20)", base: "Base", polygon: "Polygon", solana: "Solana (SPL)", tron: "TRON (TRC-20)",
+  bnb: "BNB Smart Chain (BEP-20)", optimism: "Optimism", arbitrum: "Arbitrum",
+};
 
 // Rows are [label, value]; a value may be { text, href } for a link. Empty rows are dropped, and
 // a section with nothing left is dropped with them.
