@@ -36,7 +36,7 @@ const { RECIPIENTS_FULL } = window.OBData;
 const DEMO_ENTRY_FEATURES = [
   "Hold a global USD balance",
   "Get paid and payout in 5+ currencies",
-  "Corporate cards (coming soon)",
+  "Corporate cards",
 ];
 
 // Onboard wordmark as inline SVG (from the design reference) — single-colour via currentColor,
