@@ -1,10 +1,10 @@
 /* global React */
 /* Auth / sign-in — adaptive port of v0/screens-onboarding.jsx (active flow only).
-   Sign-up is off-app via Tally, so the signup/express-interest/status-gate screens
-   stay v0-only reference material and are not ported here. */
+   Sign-up runs through the embedded intake form, so the signup/express-interest/status-gate
+   screens stay v0-only reference material and are not ported here. */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
-const { useIsDesktop, QrCode, TALLY_URL, DEMO_URL } = window.OBPrimitives;
+const { useIsDesktop, QrCode, INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, DEMO_URL } = window.OBPrimitives;
 
 const SUPPORT_WA = "https://wa.me/14313404484";
 const TOS_URL = "https://www.onboard.xyz/terms";
@@ -94,7 +94,67 @@ function AuthShell({ children }) {
 }
 
 // =====================================================
-// Apply for access — info page (no form; form is on Tally)
+// Intake form — the KYB application, embedded from the vetting platform (replaces Tally).
+// Layout rule (Dami, 2026-10-06): the column must never scroll and the iframe takes exactly the
+// height left under the bar, so the only scroller is the form inside the frame. Sizing the frame to
+// the height the form reports scrolls the page instead, which chains against the form's own scroll
+// and eats a gesture at either end of a step — the "scroll twice" bug.
+// We still listen for the form's messages, but nothing in the layout depends on them: `submitted`
+// carries the application reference, and silence means the frame was refused.
+// =====================================================
+function IntakeFrame({ onClose }) {
+  const frameRef = useRef(null);
+  const [reference, setReference] = useState(null);
+  // A host outside the allow-list gets a refused frame and never posts, so treat silence as blocked.
+  const [blocked, setBlocked] = useState(false);
+
+  useEffect(() => {
+    let heard = false;
+    const onMessage = (e) => {
+      if (e.origin !== INTAKE_ORIGIN) return;
+      if (!frameRef.current || e.source !== frameRef.current.contentWindow) return;
+      heard = true;
+      const m = e.data || {};
+      if (m.type === "onboard-intake:submitted") setReference(m.reference || null);
+    };
+    window.addEventListener("message", onMessage);
+    const timer = setTimeout(() => { if (!heard) setBlocked(true); }, 5000);
+    return () => { window.removeEventListener("message", onMessage); clearTimeout(timer); };
+  }, []);
+
+  return (
+    <div className="auth-intake">
+      <div className="auth-intake-bar">
+        <button onClick={onClose} className="btn btn-sm btn-soft">
+          {reference ? "Done" : "✕ Close form"}
+        </button>
+        {reference && <span className="auth-intake-ref">Application <b>{reference}</b></span>}
+      </div>
+      {blocked ? (
+        <div className="auth-intake-blocked">
+          <h2>Open the application form</h2>
+          <p>
+            The form only runs inside business.onboard.xyz, so it can't be shown here. It opens in
+            a new tab instead — the application is the same one.
+          </p>
+          <a href={INTAKE_PAGE_URL} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-dark">
+            Open the form in a new tab
+          </a>
+        </div>
+      ) : (
+        <iframe
+          ref={frameRef}
+          src={INTAKE_URL}
+          title="Onboard business account application"
+          allow="clipboard-write"
+          className="auth-intake-frame" />
+      )}
+    </div>
+  );
+}
+
+// =====================================================
+// Apply for access — info page (the form itself is the embed above)
 // =====================================================
 function ApplyForAccessScreen({ onSignIn }) {
   const [showForm, setShowForm] = useState(false);
@@ -106,28 +166,13 @@ function ApplyForAccessScreen({ onSignIn }) {
   ];
 
   if (showForm) {
-    const closeBtn = (
-      <button onClick={() => setShowForm(false)} className="auth-iframe-close">✕ Close form</button>
-    );
-    const iframe = (
-      <iframe
-        src={`${TALLY_URL}?transparentBackground=1`}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", display: "block" }}
-        title="Onboard Business KYB Onboarding" />
-    );
-    if (!isDesktop) {
-      return (
-        <div className="auth-iframe-mobile">
-          {closeBtn}
-          {iframe}
-        </div>
-      );
-    }
+    const form = <IntakeFrame onClose={() => setShowForm(false)} />;
+    if (!isDesktop) return <div className="auth-iframe-mobile">{form}</div>;
+    // Fixed height, not min-height: the column fills the window instead of growing with the form.
     return (
-      <div className="auth-split">
+      <div className="auth-split" style={{ height: "100vh" }}>
         <div className="auth-split-left" style={{ padding: 0, overflow: "hidden", display: "block", position: "relative" }}>
-          {closeBtn}
-          {iframe}
+          {form}
         </div>
         <div className="auth-split-right"><AuthInfoPanel /></div>
       </div>

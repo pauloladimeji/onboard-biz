@@ -15,9 +15,14 @@ const shortRef = r => r.length > 22 ? r.slice(0, 22) + "…" : r;
 // Public apply page — where every outbound "Open an account" CTA sends the visitor (demo chrome,
 // nudges, completion moments). Shared so they never drift apart.
 const APPLY_URL = "https://business.onboard.xyz/apply";
-// Raw Tally form — used only as the embedded iframe in the real "Apply for access" auth flow
-// (the apply page above is a full page, not embeddable), so keep it separate.
-const TALLY_URL = "https://tally.so/r/5BMoRP";
+// The intake form, embedded in the real "Apply for access" flow (the apply page above is a full
+// page, not embeddable). This replaces Tally. Test host for now; production becomes
+// https://vetting-office.onboardpay.co/apply/embed once intake is switched off Tally.
+// Only business.onboard.xyz and localhost (any port) may embed it — anywhere else, including this
+// prototype's Vercel host, the frame is refused, so the screen falls back to a link.
+const INTAKE_ORIGIN = "https://vetting-checklist.damilolaemmanuel.com";
+const INTAKE_URL = INTAKE_ORIGIN + "/apply/embed";
+const INTAKE_PAGE_URL = INTAKE_ORIGIN + "/apply";
 // The reverse direction of APPLY_URL — from the real "Apply for access" screen, a "not ready yet"
 // visitor can try the interactive demo instead of committing to KYB.
 const DEMO_URL = "https://demo.business.onboard.xyz";
@@ -561,6 +566,6 @@ function Toast({ msg, onDone }) {
 window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
-  TALLY_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
+  INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
   ROLES, ROLE_LABEL, can, NoAccess, NoAccessNote, SIGNED_IN,
 };

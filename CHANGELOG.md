@@ -4,6 +4,30 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-10-06
+
+### Apply for access: intake form replaces Tally
+- "Start your application" now embeds the vetting platform's intake form
+  (`https://vetting-checklist.damilolaemmanuel.com/apply/embed`) instead of the Tally form. Same
+  screen and placement as before — full-screen on mobile, left panel of the split shell on desktop.
+- New `IntakeFrame`. The column it sits in has a fixed height and never scrolls; the close bar keeps
+  its own height and the iframe takes the rest, so **the only scroller is the form inside the
+  frame**. Growing the frame to the height the form reports (`onboard-intake:resize`) instead makes
+  the column scroll as well, and the two scrollers chain — each gesture dies at the top or bottom of
+  a step and you have to scroll twice. Dami diagnosed and measured that; this is his layout.
+- `onboard-intake:submitted` carries the application reference, shown in the bar, and the close
+  button becomes "Done". `onboard-intake:step` is unused — the form scrolls itself back to the top.
+- The close control moved from a floating pill over the form into a bar above it — the embed has no
+  header of its own, so an overlay would have covered its first heading.
+- The form only allows `business.onboard.xyz` and `localhost` (any port) to embed it. Everywhere
+  else the frame is refused, including this prototype's Vercel host, so if nothing arrives within
+  5 seconds the screen offers a link to open the form in a new tab instead.
+- Still the test host. Production becomes `https://vetting-office.onboardpay.co/apply/embed` once
+  intake switches off Tally — until then that URL 404s.
+- **Files changed**: `v1/primitives.jsx`, `v1/auth.jsx`, `v1/app.jsx`, `v1/app.css`, `v1/HANDOFF.md`, `CLAUDE.md`
+
+---
+
 ## 2026-09-22
 
 ### Team card assignment

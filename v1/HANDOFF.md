@@ -154,9 +154,9 @@ render before it exists, with their own shell.
 ## 7. Auth (`auth.jsx`) — pre-login flow
 
 Covers the **active real sign-in flow**, plus the **Apply-for-access** entry point for users with
-no account yet. The KYB application itself is Tally's hosted form — `ApplyForAccessScreen` embeds
-it via iframe (§ table below) so the applicant never leaves the app; Tally owns the form logic and
-hosting, not the surrounding UI. What's excluded is v0's *older*, superseded sign-up screens — see
+no account yet. The KYB application itself is the vetting platform's intake form —
+`ApplyForAccessScreen` embeds it via iframe (§ table below) so the applicant never leaves the app;
+the vetting platform owns the form logic and hosting, not the surrounding UI. It replaces Tally. What's excluded is v0's *older*, superseded sign-up screens — see
 §13 for what and why.
 
 **Screens** (`window.OBAuth`):
@@ -168,7 +168,8 @@ hosting, not the surrounding UI. What's excluded is v0's *older*, superseded sig
 | `ForgotPasswordScreen` | Request a reset link → "check your email" confirmation state. |
 | `TotpVerifyScreen` | Returning user — 6-digit code entry. |
 | `TotpSetupScreen` | First sign-in — QR code + manual key + 6-digit verify. The QR uses the `QrCode` primitive (decorative, not scannable). |
-| `ApplyForAccessScreen` | Info page for users with no account; "Start your application" opens the real Tally KYB form in an iframe (full-screen overlay on mobile, left panel of the split shell on desktop). |
+| `ApplyForAccessScreen` | Info page for users with no account; "Start your application" opens the real KYB intake form in an iframe (full-screen overlay on mobile, left panel of the split shell on desktop). |
+| `IntakeFrame` | The embed itself. **The host column must never scroll**: it is a fixed-height flex column with the close bar at `flex: none` and the iframe at `flex: 1; min-height: 0`, so the only scroller is the form inside the frame. Sizing the frame to the height the form reports (its `onboard-intake:resize` message) makes the column scroll too, which chains against the form's own scroll and swallows a gesture at the top and bottom of each step — the "scroll twice" bug Dami diagnosed on 2026-10-06. The form scrolls itself back to the top on a step change, so `onboard-intake:step` is unused. `onboard-intake:submitted` carries the application reference, shown in the bar. The form only permits `business.onboard.xyz` and `localhost` as embedders, so if no message arrives within 5s the frame was refused and the panel offers a link to open the form in a new tab instead. |
 | `SetPasswordScreen` | Magic-link landing page (password + confirm) — reached via an email link in the real app. |
 
 **Shell:** its own `AuthShell` (local to `auth.jsx`, not a shared primitive) — desktop renders a
@@ -382,7 +383,7 @@ All the below are built.
     (`"KYC record for UBO ... has no personal data or date of birth"`), but that internal specific
     (which record, which field) is a back-office concern — the business-facing copy just says
     something needs verifying and that we'll follow up by email, not the raw reason. Worth noting
-    that specific error is also more likely to surface during KYC review via the Tally-embedded
+    that specific error is also more likely to surface during KYC review via the embedded intake
     flow (a back-office concern) than something this screen would naturally hit — the registry
     pattern is general-purpose, this was just the seed example.
 - **Send payment** — Recipient-first or amount-first (mock toggle); FX send/receive fields with live
@@ -519,7 +520,7 @@ a pre-existing gap the demo surfaced.
 **Deliberately excluded — not a gap, don't port these:**
 
 - `ExpressInterestScreen` + `SignUpConfirmationScreen` in `v0/screens-onboarding.jsx` — an earlier,
-  bespoke multi-field sign-up form. It's been **superseded by the Tally iframe embed** now used in
+  bespoke multi-field sign-up form. It's been **superseded by the intake-form iframe embed** now used in
   `ApplyForAccessScreen` (§7), so it's dead UI, not an alternate path to support.
 - `SignInStatusScreen` + `OtpScreen` (email OTP) in the same file — a legacy post-email status gate
   and email-based 2FA, both superseded by the direct password → TOTP-only flow (2FA is TOTP-only in
@@ -577,7 +578,7 @@ param; there's nothing to "undo".
 **Conversion tracking convention:** every outbound CTA (banner, entry-gate, `DemoCta`, nudges
 panel) wraps its href in `withDemoUtm(url, { utm_campaign: "…" })` (`primitives.jsx`). No analytics
 SDK is wired up yet — this only tags links so Google Analytics (or similar) can be dropped in later
-to see who's converting, without touching every CTA again. `TALLY_URL` (real signup) and
+to see who's converting, without touching every CTA again. `INTAKE_URL` (the real signup form) and
 `CONSUMER_APP_LINKS` (consumer app store links) are the two destinations; both live in
 `primitives.jsx` so every screen points at the same URLs rather than a local copy each could drift
 from.

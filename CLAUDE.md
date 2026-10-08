@@ -100,7 +100,7 @@ Everything below is built in `v1/` and works on both breakpoints. See `v1/HANDOF
 behaviour detail.
 
 - **Auth** — sign-in (password → TOTP), forgot/set password, account recovery, apply-for-access
-  (Tally embed). 2FA is TOTP-only; email OTP is retired.
+  (intake form embedded from the vetting platform; replaces Tally). 2FA is TOTP-only; email OTP is retired.
 - **Home** — global USD balance, Deposit / Send actions, recent activity, role in the greeting.
 - **Deposit** — funding-method picker (tabs desktop / selector mobile): NGN convert-on-deposit,
   USDC/USDT with network picker, and USD/EUR/GBP fiat accounts sharing one provisioning state model

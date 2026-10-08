@@ -26,7 +26,7 @@ function formatHoldUntil(ts) {
   const d = new Date(ts);
   return `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
-const { Page, Toast, Sheet, isDemoMode, withDemoUtm, TALLY_URL, CONSUMER_APP_LINKS, useIsDesktop, ROLES, can, NoAccess } = window.OBPrimitives;
+const { Page, Toast, Sheet, isDemoMode, withDemoUtm, CONSUMER_APP_LINKS, useIsDesktop, ROLES, can, NoAccess } = window.OBPrimitives;
 const { RECIPIENTS_FULL } = window.OBData;
 
 // ---------- Demo entry gate (demo mode only) ----------
