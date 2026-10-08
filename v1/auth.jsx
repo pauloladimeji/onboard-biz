@@ -159,10 +159,12 @@ function IntakeFrame({ onClose }) {
 function ApplyForAccessScreen({ onSignIn }) {
   const [showForm, setShowForm] = useState(false);
   const isDesktop = useIsDesktop();
-  const steps = [
-    { n: 1, text: "Complete the KYB form — about 5 minutes" },
-    { n: 2, text: "We review it and send KYC links to each UBO" },
-    { n: 3, text: "Once approved, sign-in details arrive by email" },
+  // Why the KYB is worth doing. Deliberately not what the right panel says — that one covers
+  // funding and payouts, so these are the things it doesn't: accounts, free local rails, platform.
+  const included = [
+    "USD, EUR and GBP accounts in your business name",
+    "Free payouts to Nigeria, Ghana and more, at live rates",
+    "Corporate cards, sub-accounts and an API for your own systems",
   ];
 
   if (showForm) {
@@ -193,27 +195,26 @@ function ApplyForAccessScreen({ onSignIn }) {
         Start your application
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}><polyline points="9 18 15 12 9 6" /></svg>
       </button>
-      <a href={DEMO_URL} target="_blank" rel="noopener noreferrer"
-        className="btn btn-lg btn-block btn-ghost"
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8, textDecoration: "none", border: "1px solid var(--gray-300)", background: "#fff" }}>
-        Try the live demo
-      </a>
       <LegalConsent action="starting your application" />
-      <div style={{ marginBottom: 26 }} />
+      <div style={{ marginBottom: 24 }} />
+
+      <div className="apply-demo">
+        <div className="apply-demo-h">Not ready to apply?</div>
+        <p>See the whole product first. No sign-up.</p>
+        <a href={DEMO_URL} target="_blank" rel="noopener noreferrer">
+          Try the live demo
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+        </a>
+      </div>
 
       <div style={{ borderTop: "1px solid var(--gray-200)", paddingTop: 20, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-800)", marginBottom: 14 }}>
-          Here&rsquo;s how it works
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-800)", marginBottom: 12 }}>
+          What an account gets you
         </div>
-        {steps.map(({ n, text }) => (
-          <div key={n} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: "50%",
-              background: "var(--gray-100)", color: "var(--gray-600)",
-              display: "grid", placeItems: "center",
-              fontSize: 11, fontWeight: 700, flexShrink: 0,
-            }}>{n}</div>
-            <div style={{ fontSize: 13, color: "var(--gray-800)", lineHeight: 1.4 }}>{text}</div>
+        {included.map((text) => (
+          <div key={text} className="apply-inc">
+            <Icon.check />
+            <div>{text}</div>
           </div>
         ))}
       </div>
@@ -236,6 +237,9 @@ function ApplyForAccessScreen({ onSignIn }) {
       </div>
 
       <div className="auth-foot">
+        Already started an application? <a onClick={() => setShowForm(true)}>Resume it</a>
+      </div>
+      <div className="auth-foot" style={{ marginTop: 6 }}>
         Already have an account? <a onClick={onSignIn}>Sign in</a>
       </div>
     </AuthShell>

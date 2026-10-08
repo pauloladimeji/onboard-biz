@@ -4,6 +4,21 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-10-08
+
+### Apply for access: the left panel sells, the demo is the hook
+- The live demo was a grey ghost button under the primary CTA, which reads as the lesser option.
+  It now has its own block with a reason to click — "Not ready to apply? See the whole product
+  first. No sign-up." — aimed at the visitor who came to look, not to hand over a shareholder
+  register, so they have somewhere to go that isn't the back button.
+- "Here's how it works" (three process steps) replaced with **What an account gets you**: accounts
+  in your business name, free local payouts, cards/sub-accounts/API. Deliberately not what the
+  right panel says — that covers funding and payouts, so this covers what it doesn't.
+- Returning-user links grouped at the foot: resume an application, or sign in.
+- **Files changed**: `v1/auth.jsx`, `v1/app.css`, `v1/index.html`
+
+---
+
 ## 2026-10-06
 
 ### Apply for access: intake form replaces Tally
