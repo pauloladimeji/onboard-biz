@@ -199,7 +199,7 @@ function ApplyForAccessScreen({ onSignIn }) {
       <div style={{ marginBottom: 24 }} />
 
       <div className="apply-demo">
-        <div className="apply-demo-h">Not ready to apply?</div>
+        <div className="apply-demo-h">Want to look around first?</div>
         <p>See the whole product first. No sign-up.</p>
         <a href={DEMO_URL} target="_blank" rel="noopener noreferrer">
           Try the live demo
