@@ -6,6 +6,25 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Apply for access: the right panel shows the whole product
+- The apply page is what the website and other entry points link to, and its panel only talked
+  about cross-border payments. It now shows Onboard Business as a whole, built from the product's
+  own pieces rather than illustration: the **main USD account in the business's name** (with its
+  funding rails), a **Business Classic card** (the real `CardVisual` from `cards.jsx`), and a
+  **payout to a Nigerian bank** that lands and clears from Processing to Completed.
+- Headline: "Accounts, cards and payouts for your business." The gradient on "money" went with
+  the old one; purple is now the card art and the brand mark only.
+- **Apply page only.** `AuthShell` takes the panel as a prop; sign-in, two-factor and password
+  screens keep `AuthInfoPanel` as it was. The form-open state shows the showcase too.
+- Kept the left column's "What an account gets you": it says it in words, the panel shows it.
+- **Motion**: one GSAP entrance (account, then card, then payout), then still. No loops.
+  Reduced motion, or GSAP failing to load, shows the finished state at once. GSAP 3.13 is loaded
+  from unpkg with an SRI hash, like the other CDN scripts.
+- Below 1100px wide the split column is too narrow for the composition, so it shows the
+  headline and badges only. Trust badges use the SVG flags instead of emoji.
+- **Files changed**: `v1/auth.jsx`, `v1/app.css`, `v1/index.html`
+
+
 ### Pricing: comparison restyle, and card plan rates held as internal reference
 - **Card fees stay as they were** — flat on every plan, in the FAQ and the PDF: creation $5.00,
   funding 1%, monthly free, USD transactions free, cross-border 1.75% + $1.00, chargeback $50.00.
