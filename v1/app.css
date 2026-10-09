@@ -1516,77 +1516,25 @@ table.records-table th.num { text-align: right; }
 .auth-info-tagline span { background: linear-gradient(135deg, #818CF8, #A78BFA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .auth-info-sub { font-size: 14.5px; color: rgba(255,255,255,0.52); line-height: 1.65; margin: 0; }
 
-/* Apply for access: product showcase (ApplyShowcase in auth.jsx). The real account, card and payout,
-   laid on the dark panel like objects on a desk. Light product surfaces on the dark panel, so
-   they read as the product rather than as part of the page. Scoped to .showcase: sign-in and
-   the other auth screens keep .auth-info-panel as it was. */
+/* Apply for access: product showcase (ApplyShowcase in apply-showcase.jsx), a slice of the real
+   dashboard on the dark panel. Scoped to .showcase: sign-in and the other auth screens keep
+   .auth-info-panel as it was. Below 1100px the column is too narrow for the dashboard, so only
+   the headline and badges show. */
 .auth-info-panel.showcase { justify-content: center; gap: 44px; max-width: 460px; }
 .showcase-copy { display: flex; flex-direction: column; gap: 14px; }
 .showcase-mark { width: 30px; height: 30px; mix-blend-mode: screen; display: block; margin-bottom: 6px; }
 .showcase-title { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; color: #fff; max-width: 15em; }
-.showcase-sub { margin: 0; font-size: 15px; line-height: 1.6; color: rgba(255,255,255,0.72); max-width: 34em; }
-
-.showcase-stage { position: relative; height: 350px; }
-.showcase-account {
-  position: absolute; top: 0; left: 0; width: 78%;
-  background: #fff; border-radius: 16px; padding: 20px 22px 22px;
-  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.45);
-}
-.showcase-account-head { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: var(--gray-900); }
-.showcase-active { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 400; color: var(--gray-600); }
-.showcase-active::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--success-500); }
-.showcase-balance { margin-top: 18px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: var(--gray-900); font-variant-numeric: tabular-nums; }
-.showcase-balance span { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--gray-500); letter-spacing: 0; }
-.showcase-holder { margin-top: 4px; font-size: 12.5px; color: var(--gray-600); }
-.showcase-funding { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--gray-200); display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray-600); }
-
-.showcase-card { position: absolute; right: 0; top: 152px; transform: rotate(-5deg); filter: drop-shadow(0 22px 34px rgba(2, 6, 23, 0.55)); }
-.showcase-payout {
-  position: absolute; left: 0; bottom: 0; width: 300px;
-  display: flex; align-items: center; gap: 12px;
-  background: #fff; border-radius: 14px; padding: 12px 14px;
-  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.45);
-}
-.showcase-payout-who { min-width: 0; white-space: nowrap; font-size: 13px; font-weight: 500; color: var(--gray-900); }
-.showcase-payout-who div + div { font-size: 12px; font-weight: 400; color: var(--gray-600); margin-top: 1px; }
-.showcase-payout-amt { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font-size: 13px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; }
-
 .showcase-trust { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); }
 .showcase-trust span { display: inline-flex; align-items: center; gap: 7px; }
 
-/* B and C sit on a calmer ground than the shared auth panel: deep ink with one neutral light
-   behind the object (light, not colour), instead of the two coloured glows. */
-.auth-split-right:has(.showcase-b), .auth-split-right:has(.showcase-c) { background: #0A0F1C; }
-.auth-split-right:has(.showcase-b)::before { background: radial-gradient(460px 340px at 50% 48%, rgba(255, 255, 255, 0.07), transparent 70%); }
-.auth-split-right:has(.showcase-c)::before { background: radial-gradient(560px 420px at 85% 60%, rgba(255, 255, 255, 0.06), transparent 70%); }
-
-/* B: the card. One lit object, then a ruled spec sheet. */
-.auth-info-panel.showcase-b { gap: 36px; }
-.sc-card-stage { position: relative; padding-bottom: 30px; }
-.sc-card-tilt {
-  position: relative; width: min(380px, 100%); border-radius: 16px;
-  --sheen-x: 50; --sheen-y: 30;
-  /* The resting angle (REST in apply-showcase.jsx), so it holds with motion off too. */
-  transform: perspective(900px) rotateX(10deg) rotateY(-14deg);
-  box-shadow: 0 40px 70px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
-}
-.sc-card-tilt .card-visual { border-radius: 16px !important; }
-.sc-card-sheen {
-  position: absolute; inset: 0; z-index: 3; border-radius: 16px; pointer-events: none; mix-blend-mode: soft-light;
-  background: radial-gradient(circle at calc(var(--sheen-x) * 1%) calc(var(--sheen-y) * 1%), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 48%);
-}
-.sc-card-floor {
-  position: absolute; left: 4%; bottom: 0; width: min(350px, 92%); height: 34px;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85), transparent 70%); filter: blur(8px);
-}
-.sc-spec { margin: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-.sc-spec-row { display: grid; grid-template-columns: 84px 1fr; gap: 16px; padding: 13px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.sc-spec-row dt { font-size: 13px; font-weight: 600; color: #fff; }
-.sc-spec-row dd { margin: 0; font-size: 13.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.7); }
+/* The apply panel sits on a calmer ground than the shared auth panel: deep ink with one neutral
+   light behind the dashboard (light, not colour), instead of the two coloured glows. */
+.auth-split-right:has(.showcase-ledger) { background: #0A0F1C; }
+.auth-split-right:has(.showcase-ledger)::before { background: radial-gradient(560px 420px at 85% 60%, rgba(255, 255, 255, 0.06), transparent 70%); }
 
 /* C: the ledger. A window onto the dashboard, running off the panel's right edge and fading at
    the foot. */
-.auth-info-panel.showcase-c { gap: 40px; }
+.auth-info-panel.showcase-ledger { gap: 40px; }
 .sc-ledger { position: relative; height: clamp(320px, calc(100vh - 360px), 500px); }
 .sc-ledger-window {
   /* Runs off the panel's right edge, but the canvas either side of the content is equal: 14px
@@ -1634,10 +1582,8 @@ table.records-table th.num { text-align: right; }
 .sc-ledger-merchant { width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #fff; border: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 .sc-ledger-merchant img { height: 14px; width: auto; display: block; }
 
-@media (max-width: 1099px) { .sc-card-stage, .sc-spec, .sc-ledger { display: none; } }
+@media (max-width: 1099px) { .sc-ledger { display: none; } }
 
-/* The narrow end of the split layout has no room for the stage: words and badges only. */
-@media (max-width: 1099px) { .showcase-stage { display: none; } }
 
 .auth-iframe-mobile { position: fixed; inset: 0; z-index: 60; background: #fff; }
 

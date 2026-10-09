@@ -6,6 +6,19 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Apply panel: the Ledger is the one (Paul, 9 Oct)
+- Paul chose the Ledger. The other two directions (Desk, Card), the **Apply panel** switch in
+  Mock controls and the `?apply=` link are removed; they are in git history (the commits before
+  this one on the `apply-showcase-panel` branch).
+- `apply-showcase.jsx` now exports one `ApplyShowcase` with no variant prop; `ApplyForAccessScreen`
+  and `app.jsx` lose their panel plumbing. Its class is `.showcase-ledger` (was `.showcase-c`), and
+  the unused Desk and Card styles are gone from `app.css`.
+- Re-checked after the cleanup at 1280, 1440, 1536 and 1920: the window bleeds, inner canvas is
+  14/14, no row collisions, reduced motion lands finished, sign-in keeps its panel, no console
+  errors.
+- **Files changed**: `v1/apply-showcase.jsx`, `v1/auth.jsx`, `v1/app.jsx`, `v1/app.css`,
+  `v1/index.html`
+
 ### Apply panel C (Ledger): even padding, real USDC and Figma marks
 - **Padding**: the window still runs off the panel's right edge, but the canvas either side of the
   content is now equal: 14px from the window's left edge to the tiles and the activity card, and

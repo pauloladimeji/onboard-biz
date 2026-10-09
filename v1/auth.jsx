@@ -157,8 +157,7 @@ function IntakeFrame({ onClose }) {
 // =====================================================
 // Apply for access — info page (the form itself is the embed above)
 // =====================================================
-// `panel` picks the right-panel variant (apply-showcase.jsx); Mock controls > Apply panel.
-function ApplyForAccessScreen({ onSignIn, panel = "a" }) {
+function ApplyForAccessScreen({ onSignIn }) {
   const [showForm, setShowForm] = useState(false);
   const isDesktop = useIsDesktop();
   // Why the KYB is worth doing, in words. The right panel (ApplyShowcase) shows the same product
@@ -178,13 +177,13 @@ function ApplyForAccessScreen({ onSignIn, panel = "a" }) {
         <div className="auth-split-left" style={{ padding: 0, overflow: "hidden", display: "block", position: "relative" }}>
           {form}
         </div>
-        <div className="auth-split-right"><ApplyShowcase variant={panel} /></div>
+        <div className="auth-split-right"><ApplyShowcase /></div>
       </div>
     );
   }
 
   return (
-    <AuthShell panel={<ApplyShowcase variant={panel} />}>
+    <AuthShell panel={<ApplyShowcase />}>
       <h1>Apply for access</h1>
       <p className="auth-lede" style={{ marginBottom: 22 }}>
         Onboard Business is invite only. Apply to get started.
