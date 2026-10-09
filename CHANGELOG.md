@@ -6,6 +6,16 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Apply panel C (Ledger): Home's account and cards row
+- Paul preferred C and asked for a card in it. The window now mirrors Home: on the grey canvas,
+  the **Main USD account** tile (balance, Deposit, Send money) beside the **Cards** tile ($10,910.50
+  on 3 cards, the Business Classic card art, first card name and "+2 more"), with Recent activity
+  in its own white card below. One card name where Home shows two: the tile is half the panel.
+- The visible content width is now derived from the panel's own width and padding
+  (`--sc-content`), so nothing but empty canvas is ever cut by the bleed. Checked at 1280, 1440
+  and 1536 with a script that flags any tile, amount, pill or chip past the panel edge.
+- **Files changed**: `v1/apply-showcase.jsx`, `v1/app.css`, `v1/index.html`
+
 ### Apply for access: two more panel variants, switchable
 - The showcase moved into its own file, `v1/apply-showcase.jsx` (`window.OBApplyShowcase`), with
   three variants. Pick one in **Mock controls > Apply panel** (shown on the apply flow), or link

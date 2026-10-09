@@ -186,8 +186,9 @@ function CardShowcase() {
 }
 
 // ---------- C: the ledger ----------
-// The product itself, bleeding off the edge: the dashboard's account header and its activity,
-// filling in newest first. The range of the product comes across through real entries (a
+// The product itself, bleeding off the edge: Home's top row (the account beside the cards, as on
+// the dashboard; Paul, 9 Oct, so a card is in the picture) and its activity, filling in newest
+// first. The range of the product comes across through real entries (a
 // stablecoin deposit, a UK bank deposit, payouts in three currencies, a card payment) rather
 // than through claims about it. The top payout clears once the feed has landed.
 const LEDGER = [
@@ -199,13 +200,18 @@ const LEDGER = [
   { id: "l6", party: "Joseph Mwangi", detail: "Payout to M-Pesa", amount: "−KSh62,500.00", out: true, flag: "ke" },
 ];
 
+const CARD_ART = "../v0/design-system/assets/card-bg.svg";
+
 function LedgerShowcase() {
   const ref = useRef(null);
+  const cards = Data.CARDS;
+  const cardsTotal = cards.reduce((n, c) => n + (c.balance || 0), 0);
   const [cleared, setCleared] = useState(false);
 
   useEntrance(ref, (gsap) => {
     gsap.timeline({ defaults: { ease: "power3.out" } })
       .from(".sc-ledger-window", { x: 48, autoAlpha: 0, duration: 0.8 })
+      .from(".sc-ledger-tile", { y: 12, autoAlpha: 0, duration: 0.5, stagger: 0.1 }, "-=0.4")
       .from(".sc-ledger-row", { y: -10, autoAlpha: 0, duration: 0.45, stagger: 0.11 }, "-=0.35")
       .call(() => setCleared(true), null, "+=0.8");
   }, () => setCleared(true));
@@ -215,11 +221,23 @@ function LedgerShowcase() {
       <ShowcaseCopy withSub={false} />
       <div className="sc-ledger" aria-hidden="true">
         <div className="sc-ledger-window">
-          <div className="sc-ledger-account">
-            <div className="sc-ledger-account-name"><Flag cc="us" size={20} />Main USD account</div>
-            <div className="sc-ledger-balance">${usd(Data.V0_USD_BALANCE)}<span>USD</span></div>
-            <div className="sc-ledger-actions"><span className="sc-btn-primary">Deposit</span><span className="sc-btn-soft">Send money</span></div>
+          <div className="sc-ledger-tiles">
+            <div className="sc-ledger-tile">
+              <div className="sc-ledger-tile-name"><Flag cc="us" size={18} />Main USD account</div>
+              <div className="sc-ledger-balance">${usd(Data.V0_USD_BALANCE)}<span>USD</span></div>
+              <div className="sc-ledger-actions"><span className="sc-btn-primary">Deposit</span><span className="sc-btn-soft">Send money</span></div>
+            </div>
+            <div className="sc-ledger-tile">
+              <div className="sc-ledger-tile-name"><span className="sc-ledger-cardart" style={{ backgroundImage: `url(${CARD_ART})` }} />Cards</div>
+              <div className="sc-ledger-balance">${usd(cardsTotal)}<span>on {cards.length} cards</span></div>
+              <div className="sc-ledger-chips">
+                {/* One name where Home shows two: the tile is half the panel's width. */}
+                <span>{cards[0].name}</span>
+                {cards.length > 1 && <span className="more">+{cards.length - 1} more</span>}
+              </div>
+            </div>
           </div>
+          <div className="sc-ledger-feed">
           <div className="sc-ledger-head">Recent activity</div>
           {LEDGER.map((row) => (
             <div className="sc-ledger-row" key={row.id}>
@@ -232,6 +250,7 @@ function LedgerShowcase() {
               {row.pending && <Pill tone={cleared ? "success" : "warn"}>{cleared ? "Completed" : "Processing"}</Pill>}
             </div>
           ))}
+          </div>
         </div>
       </div>
       <TrustBadges />
