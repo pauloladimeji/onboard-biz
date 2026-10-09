@@ -6,6 +6,83 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Apply panel: the Ledger is the one (Paul, 9 Oct)
+- Paul chose the Ledger. The other two directions (Desk, Card), the **Apply panel** switch in
+  Mock controls and the `?apply=` link are removed; they are in git history (the commits before
+  this one on the `apply-showcase-panel` branch).
+- `apply-showcase.jsx` now exports one `ApplyShowcase` with no variant prop; `ApplyForAccessScreen`
+  and `app.jsx` lose their panel plumbing. Its class is `.showcase-ledger` (was `.showcase-c`), and
+  the unused Desk and Card styles are gone from `app.css`.
+- Re-checked after the cleanup at 1280, 1440, 1536 and 1920: the window bleeds, inner canvas is
+  14/14, no row collisions, reduced motion lands finished, sign-in keeps its panel, no console
+  errors.
+- **Files changed**: `v1/apply-showcase.jsx`, `v1/auth.jsx`, `v1/app.jsx`, `v1/app.css`,
+  `v1/index.html`
+
+### Apply panel C (Ledger): even padding, real USDC and Figma marks
+- **Padding**: the window still runs off the panel's right edge, but the canvas either side of the
+  content is now equal: 14px from the window's left edge to the tiles and the activity card, and
+  14px from them to where the panel cuts the window off (it was 14 and about 22). The visible
+  width is measured in `LedgerShowcase` (a ResizeObserver sets `--sc-visible`), so it holds at any
+  width. Measured at 1280, 1440, 1536 and 1920.
+- **USDC on Base** showed a US flag (a stablecoin is not a country, and `CcyFlag` falls back to
+  "us" for USDC). It now shows the USDC mark, `v0/design-system/assets/tokens/usdc.svg`, and its
+  line reads "Stablecoin deposit, Base network".
+- **Figma** showed a generic card glyph; it now shows Figma's own logo on a white disc,
+  `v0/design-system/assets/merchants/figma.svg`, as a statement would. Both SVGs are the published
+  marks, checked for script before adding.
+- At narrow widths a tile's suffix ("on 3 cards") drops under the figure, chips wrap, and a row's
+  name truncates before its amount or status can be touched.
+- **Files changed**: `v1/apply-showcase.jsx`, `v1/app.css`, `v1/index.html`, the two SVGs
+
+### Apply panel C (Ledger): Home's account and cards row
+- Paul preferred C and asked for a card in it. The window now mirrors Home: on the grey canvas,
+  the **Main USD account** tile (balance, Deposit, Send money) beside the **Cards** tile ($10,910.50
+  on 3 cards, the Business Classic card art, first card name and "+2 more"), with Recent activity
+  in its own white card below. One card name where Home shows two: the tile is half the panel.
+- The visible content width is now derived from the panel's own width and padding
+  (`--sc-content`), so nothing but empty canvas is ever cut by the bleed. Checked at 1280, 1440
+  and 1536 with a script that flags any tile, amount, pill or chip past the panel edge.
+- **Files changed**: `v1/apply-showcase.jsx`, `v1/app.css`, `v1/index.html`
+
+### Apply for access: two more panel variants, switchable
+- The showcase moved into its own file, `v1/apply-showcase.jsx` (`window.OBApplyShowcase`), with
+  three variants. Pick one in **Mock controls > Apply panel** (shown on the apply flow), or link
+  straight to it with **`?apply=a`**, **`?apply=b`** or **`?apply=c`**.
+  - **A, Desk**: the first version below (account, card, payout clearing).
+  - **B, Card**: one Business Classic card at hero scale, resting at an angle like a card in the
+    hand; it tilts a few degrees toward the pointer and catches the light where it points (fine
+    pointers only). Under it, a ruled three-line spec sheet (Account, Cards, Payouts), no icons.
+  - **C, Ledger**: the dashboard's account header and recent activity, running off the panel's
+    right edge and fading at the foot. The feed fills in newest first (naira payout, USDC
+    deposit, card payment, cedi payout, Faster Payments deposit, M-Pesa payout) and the top payout
+    clears. Rows keep their content inside the panel, so the bleed only cuts empty window.
+- B and C sit on deep ink with one neutral light behind the object instead of the shared panel's
+  two coloured glows, and drop the subhead (the spec sheet and the feed say it).
+- Same rules for all three: one GSAP entrance then still; reduced motion shows the finished state
+  (B keeps its resting angle in CSS); below 1100px only the headline and badges show.
+- **Files changed**: `v1/apply-showcase.jsx` (new), `v1/auth.jsx`, `v1/app.jsx`, `v1/app.css`,
+  `v1/index.html`
+
+### Apply for access: the right panel shows the whole product
+- The apply page is what the website and other entry points link to, and its panel only talked
+  about cross-border payments. It now shows Onboard Business as a whole, built from the product's
+  own pieces rather than illustration: the **main USD account in the business's name** (with its
+  funding rails), a **Business Classic card** (the real `CardVisual` from `cards.jsx`), and a
+  **payout to a Nigerian bank** that lands and clears from Processing to Completed.
+- Headline: "Accounts, cards and payouts for your business." The gradient on "money" went with
+  the old one; purple is now the card art and the brand mark only.
+- **Apply page only.** `AuthShell` takes the panel as a prop; sign-in, two-factor and password
+  screens keep `AuthInfoPanel` as it was. The form-open state shows the showcase too.
+- Kept the left column's "What an account gets you": it says it in words, the panel shows it.
+- **Motion**: one GSAP entrance (account, then card, then payout), then still. No loops.
+  Reduced motion, or GSAP failing to load, shows the finished state at once. GSAP 3.13 is loaded
+  from unpkg with an SRI hash, like the other CDN scripts.
+- Below 1100px wide the split column is too narrow for the composition, so it shows the
+  headline and badges only. Trust badges use the SVG flags instead of emoji.
+- **Files changed**: `v1/auth.jsx`, `v1/app.css`, `v1/index.html`
+
+
 ### Pricing: comparison restyle, and card plan rates held as internal reference
 - **Card fees stay as they were** — flat on every plan, in the FAQ and the PDF: creation $5.00,
   funding 1%, monthly free, USD transactions free, cross-border 1.75% + $1.00, chargeback $50.00.

@@ -1516,6 +1516,75 @@ table.records-table th.num { text-align: right; }
 .auth-info-tagline span { background: linear-gradient(135deg, #818CF8, #A78BFA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .auth-info-sub { font-size: 14.5px; color: rgba(255,255,255,0.52); line-height: 1.65; margin: 0; }
 
+/* Apply for access: product showcase (ApplyShowcase in apply-showcase.jsx), a slice of the real
+   dashboard on the dark panel. Scoped to .showcase: sign-in and the other auth screens keep
+   .auth-info-panel as it was. Below 1100px the column is too narrow for the dashboard, so only
+   the headline and badges show. */
+.auth-info-panel.showcase { justify-content: center; gap: 44px; max-width: 460px; }
+.showcase-copy { display: flex; flex-direction: column; gap: 14px; }
+.showcase-mark { width: 30px; height: 30px; mix-blend-mode: screen; display: block; margin-bottom: 6px; }
+.showcase-title { margin: 0; font-size: 30px; font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; color: #fff; max-width: 15em; }
+.showcase-trust { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); }
+.showcase-trust span { display: inline-flex; align-items: center; gap: 7px; }
+
+/* The apply panel sits on a calmer ground than the shared auth panel: deep ink with one neutral
+   light behind the dashboard (light, not colour), instead of the two coloured glows. */
+.auth-split-right:has(.showcase-ledger) { background: #0A0F1C; }
+.auth-split-right:has(.showcase-ledger)::before { background: radial-gradient(560px 420px at 85% 60%, rgba(255, 255, 255, 0.06), transparent 70%); }
+
+/* C: the ledger. A window onto the dashboard, running off the panel's right edge and fading at
+   the foot. */
+.auth-info-panel.showcase-ledger { gap: 40px; }
+.sc-ledger { position: relative; height: clamp(320px, calc(100vh - 360px), 500px); }
+.sc-ledger-window {
+  /* Runs off the panel's right edge, but the canvas either side of the content is equal: 14px
+     from the window's left edge to the tiles, and 14px from the tiles to where the panel cuts
+     the window off (Damilola, 9 Oct). --sc-visible is how much of the window shows, measured in
+     LedgerShowcase; the fallback assumes the panel is 40vw with the copy centred in it. The
+     window carries on 160px past the cut as empty canvas. */
+  --sc-bleed: 160px;
+  position: absolute; top: 0; left: 0; height: 100%; box-sizing: border-box;
+  width: calc(var(--sc-visible, calc((40vw + 100%) / 2)) + var(--sc-bleed));
+  padding: 14px calc(14px + var(--sc-bleed)) 0 14px;
+  background: var(--gray-100); border-radius: 16px 0 0 16px; overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+  -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+}
+/* Home's top row: the account beside the cards, two white tiles on the grey canvas. */
+.sc-ledger-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sc-ledger-tile { background: #fff; border-radius: 12px; padding: 14px 16px 16px; min-width: 0; }
+.sc-ledger-tile-name { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--gray-900); white-space: nowrap; }
+.sc-ledger-cardart { width: 27px; height: 17px; border-radius: 3px; background-size: cover; background-position: center; flex-shrink: 0; }
+/* The suffix ("USD", "on 3 cards") sits beside the figure, and drops under it when the tile is
+   too narrow to hold both. */
+.sc-ledger-balance { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 5px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--gray-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sc-ledger-balance span { font-size: 11.5px; font-weight: 500; color: var(--gray-500); letter-spacing: 0; }
+.sc-ledger-actions { margin-top: 12px; display: flex; gap: 6px; }
+.sc-btn-primary, .sc-btn-soft { font-size: 11.5px; font-weight: 500; padding: 6px 10px; border-radius: 7px; white-space: nowrap; }
+.sc-btn-primary { background: var(--info-700); color: #fff; }
+.sc-btn-soft { background: var(--info-100); color: var(--info-700); }
+.sc-ledger-chips { margin-top: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sc-ledger-chips span { font-size: 11.5px; color: var(--gray-700); border: 1px solid var(--gray-200); border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+.sc-ledger-chips span.more { border: 0; padding: 4px 2px; color: var(--primary-500); font-weight: 500; }
+/* Recent activity, in its own white card under the tiles. */
+.sc-ledger-feed { margin-top: 10px; background: #fff; border-radius: 12px; overflow: hidden; }
+.sc-ledger-head { padding: 12px 16px; font-size: 12.5px; font-weight: 600; color: var(--gray-700); }
+.sc-ledger-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--gray-200); }
+/* Name and description give way (ellipsis) before the amount or the status ever do. */
+.sc-ledger-who { flex: 1 1 auto; min-width: 0; white-space: nowrap; font-size: 13px; font-weight: 500; color: var(--gray-900); }
+.sc-ledger-who div { overflow: hidden; text-overflow: ellipsis; }
+.sc-ledger-row .pill, .sc-ledger-row .ccy-flag { flex-shrink: 0; }
+.sc-ledger-who div + div { font-size: 12px; font-weight: 400; color: var(--gray-600); margin-top: 1px; }
+.sc-ledger-amt { flex-shrink: 0; margin-left: auto; font-size: 13px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sc-ledger-amt.in { color: var(--success-700); }
+.sc-ledger-token { width: 28px; height: 28px; flex-shrink: 0; background-size: contain; background-repeat: no-repeat; }
+.sc-ledger-merchant { width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #fff; border: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.sc-ledger-merchant img { height: 14px; width: auto; display: block; }
+
+@media (max-width: 1099px) { .sc-ledger { display: none; } }
+
+
 .auth-iframe-mobile { position: fixed; inset: 0; z-index: 60; background: #fff; }
 
 /* Embedded intake form: fixed bar, frame takes the rest. This column must never scroll — the form

@@ -4,6 +4,7 @@
    screens stay v0-only reference material and are not ported here. */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
+const { ApplyShowcase } = window.OBApplyShowcase;
 const { useIsDesktop, QrCode, INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, DEMO_URL } = window.OBPrimitives;
 
 const SUPPORT_WA = "https://wa.me/14313404484";
@@ -65,7 +66,7 @@ function AuthInfoPanel() {
 // column, no right panel — same shell v0 used for its "centered" variant, tuned for phone widths.
 // Mobile is flat white with a small logo (not the earlier tinted canvas) — matches desktop,
 // which is already flat white via .auth-split-left.
-function AuthShell({ children }) {
+function AuthShell({ children, panel = <AuthInfoPanel /> }) {
   const isDesktop = useIsDesktop();
   if (isDesktop) {
     return (
@@ -76,7 +77,7 @@ function AuthShell({ children }) {
           </div>
           <div className="auth-centered-legal">{LEGAL_TEXT}</div>
         </div>
-        <div className="auth-split-right"><AuthInfoPanel /></div>
+        <div className="auth-split-right">{panel}</div>
       </div>
     );
   }
@@ -159,8 +160,8 @@ function IntakeFrame({ onClose }) {
 function ApplyForAccessScreen({ onSignIn }) {
   const [showForm, setShowForm] = useState(false);
   const isDesktop = useIsDesktop();
-  // Why the KYB is worth doing. Deliberately not what the right panel says — that one covers
-  // funding and payouts, so these are the things it doesn't: accounts, free local rails, platform.
+  // Why the KYB is worth doing, in words. The right panel (ApplyShowcase) shows the same product
+  // as the product itself, so the two read as one pitch rather than two lists.
   const included = [
     "USD, EUR and GBP accounts in your business name",
     "Free payouts to Nigeria, Ghana and more, at live rates",
@@ -176,13 +177,13 @@ function ApplyForAccessScreen({ onSignIn }) {
         <div className="auth-split-left" style={{ padding: 0, overflow: "hidden", display: "block", position: "relative" }}>
           {form}
         </div>
-        <div className="auth-split-right"><AuthInfoPanel /></div>
+        <div className="auth-split-right"><ApplyShowcase /></div>
       </div>
     );
   }
 
   return (
-    <AuthShell>
+    <AuthShell panel={<ApplyShowcase />}>
       <h1>Apply for access</h1>
       <p className="auth-lede" style={{ marginBottom: 22 }}>
         Onboard Business is invite only. Apply to get started.
