@@ -4,6 +4,34 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-10-09
+
+### Pricing: cards get their own section, and card funding becomes a plan rate
+- **Cards is now its own group** in the comparison grid, alongside Transaction fees, Accounts and
+  Support. Card funding, creation and cross-border are plan rates; the flat list in the FAQ and the
+  separate "Card fees" table in the PDF are gone, so each rate has one home and can't drift.
+- **Funding is the plan lever: 1% / 0.5% / 0.25% / Custom.** Miden charges 0.5% per load plus $0.05
+  an authorisation, so carrying card spend costs about 0.6%. Standard stays profitable unsubsidised;
+  the discounts on Pro and Business are paid for by the subscription. Flat rates, not allowances —
+  a cap needs a per-business counter, a reset boundary, split fees on a straddling load and reversal
+  rules, where a flat rate needs a lookup table.
+- Card creation tiers $5 / $3 / $1, and cross-border drops from **1.75% + $1.00 to + $0.50** — at a
+  dollar a transaction, a $20 charge paid 6.75% in fees, and almost all card spend is under the $400
+  crossover.
+- Monthly fee and chargeback came out of the grid. Chargeback moved into the card terms FAQ.
+- No cashback: without interchange there's nothing to pay it from, and the funding cut hands the
+  customer more for less — with no accrual ledger, reversals or liability to build.
+- **Comparison rows restyled**: one white card per group instead of zebra stripes. `--gray-50` is
+  almost the page background, so alternating rows read as pills of random height once labels ran to
+  two and three lines.
+- **Mobile**: plan accordions start closed and each is a card — Standard opened by default buried
+  the other three plans twenty rows down. Rows whose value carries a descriptor stack the label and
+  put value · descriptor on one line.
+- The account-fee note sits under the Accounts table again, not at the foot of the whole grid.
+- **Files changed**: `v1/pricing.jsx`, `v1/app.css`, `v1/index.html`
+
+---
+
 ## 2026-10-08
 
 ### Apply for access: the left panel sells, the demo is the hook

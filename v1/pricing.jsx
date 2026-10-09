@@ -19,7 +19,7 @@ const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon } = window.O
 const { DocFrame: PDocFrame, openDocument: pOpenDocument } = window.OBLetter;
 
 const PRICING_WA = "https://wa.me/14313404484";
-const PRICING_UPDATED = "23 September 2026";
+const PRICING_UPDATED = "9 October 2026";
 
 const PLANS = [
   {
@@ -72,7 +72,7 @@ const COMPARISON = [
     ],
   },
   {
-    title: "Accounts and cards",
+    title: "Accounts",
     rows: [
       // A capability, not a fee line: the accounts come with every plan and the deposits into
       // them are free, so it belongs here rather than in the rate card.
@@ -80,10 +80,19 @@ const COMPARISON = [
       { label: "Named USD, EUR and GBP accounts", values: [["$200", "one-time application fee", true], ["$75", "one-time application fee", true], "Free", "Free"] },
       { label: "Additional named USD accounts", values: [false, false, "On request", "Custom"] },
       { label: "USD payouts in your business name", values: [false, true, true, true] },
-      { label: "Card limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
       // Billed per *active* account, so the definition rides with the row — it's the number
       // people dispute at the end of a month.
       { label: "Sub-accounts", note: "Separate balances for your customers or teams. Active = held a balance or transacted that month.", values: [["$5.00", "per active account/month"], ["$1.50", "per active account/month"], ["$0.25", "per active account/month"], "Custom"] },
+    ],
+  },
+  {
+    title: "Cards",
+    rows: [
+      { label: "Card creation", note: "Per card, once", values: ["$5.00", "$3.00", "$1.00", "Custom"] },
+      { label: "Card funding", note: "Charged when you add money to a card", values: ["1%", "0.5%", "0.25%", "Custom"] },
+      { label: "USD payments", note: "US merchants, in USD", values: ["Free", "Free", "Free", "Free"] },
+      { label: "Cross-border payments", note: "Non-US merchants, or any non-USD currency", values: ["1.75% + $0.50", "1.5% + $0.50", "1.25% + $0.50", "Custom"] },
+      { label: "Spending limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
     ],
   },
   {
@@ -95,16 +104,6 @@ const COMPARISON = [
       { label: "Custom workflows", values: [false, false, false, true] },
     ],
   },
-];
-
-// Per card, on every plan — so a flat list, not a column per plan. Lives inside the FAQ.
-const CARD_FEES_ROWS = [
-  { label: "Card creation", value: "$5.00" },
-  { label: "Funding fee", value: "1%" },
-  { label: "Monthly fee", value: "Free" },
-  { label: "USD transactions", value: "Free", note: "US merchants, in USD" },
-  { label: "Cross-border transactions", value: "1.75% + $1.00", note: "Non-US merchants, or any non-USD currency" },
-  { label: "Chargeback", value: "$50.00" },
 ];
 
 // Everything that would otherwise be prose on the page. The account-fee answer carries the
@@ -146,13 +145,8 @@ const FAQS = [
     ],
   },
   {
-    q: "What do cards cost?",
-    a: "Cards are included on every plan. These fees are charged per card, whatever plan you're on.",
-    fees: true,
-  },
-  {
     q: "What are the card terms?",
-    a: "You can add up to $10,000 to a card per top-up, though a card can hold more than that. Keep at least $1.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance.",
+    a: "You can add up to $10,000 to a card per top-up, though a card can hold more than that. Keep at least $1.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance. A disputed payment that becomes a chargeback is charged at $50.00.",
   },
   {
     q: "Is everything available to every business?",
@@ -230,6 +224,11 @@ function ComparisonTable() {
               {r.values.map((v, i) => <td key={i}><CellValue v={v} /></td>)}
             </tr>
           ))}
+          {g.rows.some((r) => r.values.some((v) => Array.isArray(v) && v[2])) && (
+            <tr className="cmp-note-row">
+              <td colSpan={5}><span className="cmp-mark">†</span>{ACCOUNT_FEE_NOTE}</td>
+            </tr>
+          )}
         </tbody>
       ))}
     </table>
@@ -253,7 +252,7 @@ function PlanAccordion({ plan, open, onToggle }) {
             <React.Fragment key={g.title}>
               <div className="plan-acc-group">{g.title}</div>
               {g.rows.map((r) => (
-                <div className="plan-acc-row" key={r.label}>
+                <div className={`plan-acc-row${Array.isArray(r.values[i]) ? " stacked" : ""}`} key={r.label}>
                   <span>{r.label}</span>
                   <strong><CellValue v={r.values[i]} /></strong>
                 </div>
@@ -282,16 +281,6 @@ function Faq({ item, open, onToggle }) {
                 <div className="price-def" key={d.t}>
                   <div className="t">{d.t}</div>
                   <div className="b">{d.b}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {item.fees && (
-            <div className="price-fees">
-              {CARD_FEES_ROWS.map((r) => (
-                <div key={r.label} className="price-fee-row">
-                  <span className="k">{r.label}{r.note && <em>{r.note}</em>}</span>
-                  <span className={`v${r.value === "Free" ? " free" : ""}`}>{r.value}</span>
                 </div>
               ))}
             </div>
@@ -367,21 +356,6 @@ function PricingDoc() {
       ))}
 
       <div className="letter-section">
-        <h3 className="letter-h3">Card fees</h3>
-        <p className="doc-note">Charged per card, on every plan.</p>
-        <table className="doc-table">
-          <tbody>
-            {CARD_FEES_ROWS.map((r) => (
-              <tr key={r.label}>
-                <th scope="row">{r.label}{r.note && <em>{r.note}</em>}</th>
-                <td className="doc-num">{r.value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="letter-section">
         <h3 className="letter-h3">Notes</h3>
         <div className="doc-notes">
           <p>Account issuance is always subject to eligibility, compliance checks and provider approval.</p>
@@ -418,7 +392,7 @@ function TalkSheet({ plan, onClose }) {
 function PricingScreen() {
   const isDesktop = useIsDesktop();
   const [talk, setTalk] = useStateR(null);
-  const [openPlan, setOpenPlan] = useStateR(PLANS[0].id);
+  const [openPlan, setOpenPlan] = useStateR(null);
   const [openFaq, setOpenFaq] = useStateR(null);
 
   return (
@@ -452,10 +426,7 @@ function PricingScreen() {
           : PLANS.map((p) => (
               <PlanAccordion key={p.id} plan={p} open={openPlan === p.id} onToggle={() => setOpenPlan(openPlan === p.id ? null : p.id)} />
             ))}
-        <p className="cmp-note">
-          {isDesktop && <span className="cmp-mark">†</span>}
-          {ACCOUNT_FEE_NOTE}
-        </p>
+        {!isDesktop && <p className="cmp-note"><span className="cmp-mark">†</span>{ACCOUNT_FEE_NOTE}</p>}
       </div>
 
       <div className="price-block">
