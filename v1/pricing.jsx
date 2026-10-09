@@ -15,11 +15,11 @@
 
 const { useState: useStateR } = React;
 const RIcon = window.OBIcon;
-const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon } = window.OBPrimitives;
+const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon, isDemoMode: pIsDemoMode } = window.OBPrimitives;
 const { DocFrame: PDocFrame, openDocument: pOpenDocument } = window.OBLetter;
 
 const PRICING_WA = "https://wa.me/14313404484";
-const PRICING_UPDATED = "9 October 2026";
+const PRICING_UPDATED = "23 September 2026";
 
 const PLANS = [
   {
@@ -72,7 +72,7 @@ const COMPARISON = [
     ],
   },
   {
-    title: "Accounts",
+    title: "Accounts and cards",
     rows: [
       // A capability, not a fee line: the accounts come with every plan and the deposits into
       // them are free, so it belongs here rather than in the rate card.
@@ -80,19 +80,10 @@ const COMPARISON = [
       { label: "Named USD, EUR and GBP accounts", values: [["$200", "one-time application fee", true], ["$75", "one-time application fee", true], "Free", "Free"] },
       { label: "Additional named USD accounts", values: [false, false, "On request", "Custom"] },
       { label: "USD payouts in your business name", values: [false, true, true, true] },
+      { label: "Card limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
       // Billed per *active* account, so the definition rides with the row — it's the number
       // people dispute at the end of a month.
       { label: "Sub-accounts", note: "Separate balances for your customers or teams. Active = held a balance or transacted that month.", values: [["$5.00", "per active account/month"], ["$1.50", "per active account/month"], ["$0.25", "per active account/month"], "Custom"] },
-    ],
-  },
-  {
-    title: "Cards",
-    rows: [
-      { label: "Card creation", note: "Per card, once", values: ["$5.00", "$3.00", "$1.00", "Custom"] },
-      { label: "Card funding", note: "Charged when you add money to a card", values: ["1%", "0.5%", "0.25%", "Custom"] },
-      { label: "USD payments", note: "US merchants, in USD", values: ["Free", "Free", "Free", "Free"] },
-      { label: "Cross-border payments", note: "Non-US merchants, or any non-USD currency", values: ["1.75% + $0.50", "1.5% + $0.50", "1.25% + $0.50", "Custom"] },
-      { label: "Spending limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
     ],
   },
   {
@@ -105,6 +96,30 @@ const COMPARISON = [
     ],
   },
 ];
+
+// Per card, on every plan — so a flat list, not a column per plan. Lives inside the FAQ.
+// These are the rates production actually charges.
+const CARD_FEES_ROWS = [
+  { label: "Card creation", value: "$5.00" },
+  { label: "Funding fee", value: "1%" },
+  { label: "Monthly fee", value: "Free" },
+  { label: "USD transactions", value: "Free", note: "US merchants, in USD" },
+  { label: "Cross-border transactions", value: "1.75% + $1.00", note: "Non-US merchants, or any non-USD currency" },
+  { label: "Chargeback", value: "$50.00" },
+];
+
+// Not live. Agreed direction for when a business takes a paid plan — kept in the app so the
+// numbers and the cost basis behind them don't live only in a chat log. Internal view only.
+const INTENDED_CARD_RATES = {
+  note: "Not live. Production charges every business the per-card fees above, whatever plan they are on. These plan rates get implemented when a business takes a paid plan. Costed against Miden's 21 September commercials: $1 card creation, $1 per card a year, 0.5% per load, $0.05 on every authorisation including declines, 1% cross-border, $45 chargeback — about 0.6% to carry card spend, so Standard stays profitable unsubsidised and the discounts are paid for by the subscription.",
+  rows: [
+    { label: "Card creation", values: ["$5.00", "$3.00", "$1.00", "Custom"] },
+    { label: "Card funding", values: ["1%", "0.5%", "0.25%", "Custom"] },
+    { label: "USD payments", values: ["Free", "Free", "Free", "Free"] },
+    { label: "Cross-border payments", values: ["1.75% + $0.50", "1.5% + $0.50", "1.25% + $0.50", "Custom"] },
+    { label: "Spending limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
+  ],
+};
 
 // Everything that would otherwise be prose on the page. The account-fee answer carries the
 // approved wording verbatim — don't paraphrase it.
@@ -145,8 +160,13 @@ const FAQS = [
     ],
   },
   {
+    q: "What do cards cost?",
+    a: "Cards are included on every plan. These fees are charged per card, whatever plan you're on.",
+    fees: true,
+  },
+  {
     q: "What are the card terms?",
-    a: "You can add up to $10,000 to a card per top-up, though a card can hold more than that. Keep at least $1.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance. A disputed payment that becomes a chargeback is charged at $50.00.",
+    a: "You can add up to $10,000 to a card per top-up, though a card can hold more than that. Keep at least $1.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance.",
   },
   {
     q: "Is everything available to every business?",
@@ -356,6 +376,21 @@ function PricingDoc() {
       ))}
 
       <div className="letter-section">
+        <h3 className="letter-h3">Card fees</h3>
+        <p className="doc-note">Charged per card, on every plan.</p>
+        <table className="doc-table">
+          <tbody>
+            {CARD_FEES_ROWS.map((r) => (
+              <tr key={r.label}>
+                <th scope="row">{r.label}{r.note && <em>{r.note}</em>}</th>
+                <td className="doc-num">{r.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="letter-section">
         <h3 className="letter-h3">Notes</h3>
         <div className="doc-notes">
           <p>Account issuance is always subject to eligibility, compliance checks and provider approval.</p>
@@ -445,6 +480,28 @@ function PricingScreen() {
         </div>
         <a className="btn" href={PRICING_WA} target="_blank" rel="noopener noreferrer">Talk about pricing</a>
       </div>
+      {!pIsDemoMode() && (
+        <div className="price-internal">
+          <div className="price-internal-head">
+            <span className="price-internal-tag">Internal</span>
+            Intended card pricing by plan — not live
+          </div>
+          <table className="price-internal-table">
+            <thead>
+              <tr><th /> {PLANS.map((p) => <th key={p.id}>{p.name}</th>)}</tr>
+            </thead>
+            <tbody>
+              {INTENDED_CARD_RATES.rows.map((r) => (
+                <tr key={r.label}>
+                  <th scope="row">{r.label}</th>
+                  {r.values.map((v, i) => <td key={i}>{v}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p>{INTENDED_CARD_RATES.note}</p>
+        </div>
+      )}
       <div className="price-updated">Last updated {PRICING_UPDATED}</div>
       <RDemoCta message="Want pricing for your own business?" campaign="pricing" />
 

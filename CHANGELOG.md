@@ -6,20 +6,16 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
-### Pricing: cards get their own section, and card funding becomes a plan rate
-- **Cards is now its own group** in the comparison grid, alongside Transaction fees, Accounts and
-  Support. Card funding, creation and cross-border are plan rates; the flat list in the FAQ and the
-  separate "Card fees" table in the PDF are gone, so each rate has one home and can't drift.
-- **Funding is the plan lever: 1% / 0.5% / 0.25% / Custom.** Miden charges 0.5% per load plus $0.05
-  an authorisation, so carrying card spend costs about 0.6%. Standard stays profitable unsubsidised;
-  the discounts on Pro and Business are paid for by the subscription. Flat rates, not allowances —
-  a cap needs a per-business counter, a reset boundary, split fees on a straddling load and reversal
-  rules, where a flat rate needs a lookup table.
-- Card creation tiers $5 / $3 / $1, and cross-border drops from **1.75% + $1.00 to + $0.50** — at a
-  dollar a transaction, a $20 charge paid 6.75% in fees, and almost all card spend is under the $400
-  crossover.
-- Monthly fee and chargeback came out of the grid. Chargeback moved into the card terms FAQ.
-- No cashback: without interchange there's nothing to pay it from, and the funding cut hands the
+### Pricing: comparison restyle, and card plan rates held as internal reference
+- **Card fees stay as they were** — flat on every plan, in the FAQ and the PDF: creation $5.00,
+  funding 1%, monthly free, USD transactions free, cross-border 1.75% + $1.00, chargeback $50.00.
+  These are what production charges, whatever plan a business is on.
+- A plan-tiered direction was costed and agreed (funding 1% / 0.5% / 0.25%, creation $5 / $3 / $1,
+  cross-border tiered at + $0.50) but **is not implemented**, so it isn't on the customer page.
+  It lives in `INTENDED_CARD_RATES` and renders in an internal-only block at the foot of the page,
+  hidden in the demo build, carrying the Miden cost basis behind the numbers. The plan rates get
+  implemented when a business takes a paid plan.
+- No cashback: without interchange there's nothing to pay it from, and a funding cut hands the
   customer more for less — with no accrual ledger, reversals or liability to build.
 - **Comparison rows restyled**: one white card per group instead of zebra stripes. `--gray-50` is
   almost the page background, so alternating rows read as pills of random height once labels ran to
@@ -27,7 +23,7 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 - **Mobile**: plan accordions start closed and each is a card — Standard opened by default buried
   the other three plans twenty rows down. Rows whose value carries a descriptor stack the label and
   put value · descriptor on one line.
-- The account-fee note sits under the Accounts table again, not at the foot of the whole grid.
+- The account-fee note sits under its own table, not at the foot of the whole grid.
 - **Files changed**: `v1/pricing.jsx`, `v1/app.css`, `v1/index.html`
 
 ---
