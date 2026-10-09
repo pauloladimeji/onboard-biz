@@ -9,7 +9,7 @@
 //
 //   A  The desk    account, card and payout laid together; the payout clears
 //   B  The card    one Business Classic card at hero scale, lit, over a printed spec sheet
-//   C  The ledger  a window onto the dashboard, its activity filling in
+//   C  The ledger  a slice of the dashboard bleeding off the panel, its activity filling in
 //
 // Switch with Mock controls > Apply panel, or link straight to one with ?apply=a|b|c.
 // Each runs one GSAP entrance and then holds still; B's card also tilts with the pointer.
@@ -186,7 +186,7 @@ function CardShowcase() {
 }
 
 // ---------- C: the ledger ----------
-// The product itself, framed: Home's top row (the account beside the cards, as on
+// The product itself, bleeding off the edge: Home's top row (the account beside the cards, as on
 // the dashboard; Paul, 9 Oct, so a card is in the picture) and its activity, filling in newest
 // first. The range of the product comes across through real entries (a
 // stablecoin deposit, a UK bank deposit, payouts in three currencies, a card payment) rather
@@ -206,6 +206,7 @@ const CARD_ART = "../v0/design-system/assets/card-bg.svg";
 
 function LedgerShowcase() {
   const ref = useRef(null);
+  const stage = useRef(null);
   const cards = Data.CARDS;
   const cardsTotal = cards.reduce((n, c) => n + (c.balance || 0), 0);
   const [cleared, setCleared] = useState(false);
@@ -218,10 +219,23 @@ function LedgerShowcase() {
       .call(() => setCleared(true), null, "+=0.8");
   }, () => setCleared(true));
 
+  // How much of the window shows before the panel cuts it off, so the content can stop the same
+  // distance from that cut as it starts from the window's left edge. Re-measured on resize.
+  useEffect(() => {
+    const el = stage.current;
+    const panel = el?.closest(".auth-split-right");
+    if (!el || !panel) return undefined;
+    const measure = () => el.style.setProperty("--sc-visible", `${panel.getBoundingClientRect().right - el.getBoundingClientRect().left}px`);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(panel);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="auth-info-panel showcase showcase-c" ref={ref}>
       <ShowcaseCopy withSub={false} />
-      <div className="sc-ledger" aria-hidden="true">
+      <div className="sc-ledger" aria-hidden="true" ref={stage}>
         <div className="sc-ledger-window">
           <div className="sc-ledger-tiles">
             <div className="sc-ledger-tile">

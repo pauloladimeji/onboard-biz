@@ -1584,16 +1584,21 @@ table.records-table th.num { text-align: right; }
 .sc-spec-row dt { font-size: 13px; font-weight: 600; color: #fff; }
 .sc-spec-row dd { margin: 0; font-size: 13.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.7); }
 
-/* C: the ledger. A window onto the dashboard, fading out at the foot. */
+/* C: the ledger. A window onto the dashboard, running off the panel's right edge and fading at
+   the foot. */
 .auth-info-panel.showcase-c { gap: 40px; }
 .sc-ledger { position: relative; height: clamp(320px, calc(100vh - 360px), 500px); }
 .sc-ledger-window {
-  /* Inside the panel with the same gap either side as the copy above it, and the same 14px of
-     canvas either side of the tiles (Damilola, 9 Oct: the old bleed off the right edge left the
-     two sides uneven). */
-  position: absolute; inset: 0; box-sizing: border-box;
-  padding: 14px 14px 0;
-  background: var(--gray-100); border-radius: 16px; overflow: hidden;
+  /* Runs off the panel's right edge, but the canvas either side of the content is equal: 14px
+     from the window's left edge to the tiles, and 14px from the tiles to where the panel cuts
+     the window off (Damilola, 9 Oct). --sc-visible is how much of the window shows, measured in
+     LedgerShowcase; the fallback assumes the panel is 40vw with the copy centred in it. The
+     window carries on 160px past the cut as empty canvas. */
+  --sc-bleed: 160px;
+  position: absolute; top: 0; left: 0; height: 100%; box-sizing: border-box;
+  width: calc(var(--sc-visible, calc((40vw + 100%) / 2)) + var(--sc-bleed));
+  padding: 14px calc(14px + var(--sc-bleed)) 0 14px;
+  background: var(--gray-100); border-radius: 16px 0 0 16px; overflow: hidden;
   box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
   -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
           mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);

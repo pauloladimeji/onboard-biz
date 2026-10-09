@@ -7,9 +7,11 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 ## 2026-10-09
 
 ### Apply panel C (Ledger): even padding, real USDC and Figma marks
-- **Padding**: the window no longer runs off the panel's right edge; it sits inside with the same
-  gap either side as the copy above (58/58 at 1440), and 14px of canvas either side of the tiles
-  and the activity card. Measured at 1280, 1440, 1536 and 1920.
+- **Padding**: the window still runs off the panel's right edge, but the canvas either side of the
+  content is now equal: 14px from the window's left edge to the tiles and the activity card, and
+  14px from them to where the panel cuts the window off (it was 14 and about 22). The visible
+  width is measured in `LedgerShowcase` (a ResizeObserver sets `--sc-visible`), so it holds at any
+  width. Measured at 1280, 1440, 1536 and 1920.
 - **USDC on Base** showed a US flag (a stablecoin is not a country, and `CcyFlag` falls back to
   "us" for USDC). It now shows the USDC mark, `v0/design-system/assets/tokens/usdc.svg`, and its
   line reads "Stablecoin deposit, Base network".
