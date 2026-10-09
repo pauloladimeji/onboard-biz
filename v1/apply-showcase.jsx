@@ -9,7 +9,7 @@
 //
 //   A  The desk    account, card and payout laid together; the payout clears
 //   B  The card    one Business Classic card at hero scale, lit, over a printed spec sheet
-//   C  The ledger  a slice of the dashboard bleeding off the panel, its activity filling in
+//   C  The ledger  a window onto the dashboard, its activity filling in
 //
 // Switch with Mock controls > Apply panel, or link straight to one with ?apply=a|b|c.
 // Each runs one GSAP entrance and then holds still; B's card also tilts with the pointer.
@@ -186,15 +186,17 @@ function CardShowcase() {
 }
 
 // ---------- C: the ledger ----------
-// The product itself, bleeding off the edge: Home's top row (the account beside the cards, as on
+// The product itself, framed: Home's top row (the account beside the cards, as on
 // the dashboard; Paul, 9 Oct, so a card is in the picture) and its activity, filling in newest
 // first. The range of the product comes across through real entries (a
 // stablecoin deposit, a UK bank deposit, payouts in three currencies, a card payment) rather
 // than through claims about it. The top payout clears once the feed has landed.
 const LEDGER = [
   { id: "l1", party: "Adaeze Okafor", detail: "Payout to First Bank", amount: "−₦1,250,000.00", out: true, flag: "ng", pending: true },
-  { id: "l2", party: "USDC on Base", detail: "Stablecoin deposit", amount: "+$5,000.00", flag: "us" },
-  { id: "l3", party: "Figma", detail: "Card ending 4821", amount: "−$45.00", out: true, card: true },
+  // A stablecoin is not a country: the USDC mark, not a flag (Paul, 9 Oct).
+  { id: "l2", party: "USDC on Base", detail: "Stablecoin deposit, Base network", amount: "+$5,000.00", token: "usdc" },
+  // A card payment shows the merchant's own mark, as a statement would.
+  { id: "l3", party: "Figma", detail: "Card ending 4821", amount: "−$45.00", out: true, merchant: "figma" },
   { id: "l4", party: "Mensah Holdings Ltd", detail: "Payout to GCB Bank", amount: "−₵48,200.00", out: true, flag: "gh" },
   { id: "l5", party: "Barclays ****8821", detail: "Faster Payments deposit", amount: "+$10,125.95", flag: "gb" },
   { id: "l6", party: "Joseph Mwangi", detail: "Payout to M-Pesa", amount: "−KSh62,500.00", out: true, flag: "ke" },
@@ -241,7 +243,9 @@ function LedgerShowcase() {
           <div className="sc-ledger-head">Recent activity</div>
           {LEDGER.map((row) => (
             <div className="sc-ledger-row" key={row.id}>
-              {row.card ? <span className="sc-ledger-cardicon" /> : <Flag cc={row.flag} size={28} />}
+              {row.merchant ? <span className="sc-ledger-merchant"><img src={`../v0/design-system/assets/merchants/${row.merchant}.svg`} alt="" /></span>
+                : row.token ? <span className="sc-ledger-token" style={{ backgroundImage: `url(../v0/design-system/assets/tokens/${row.token}.svg)` }} />
+                : <Flag cc={row.flag} size={28} />}
               <div className="sc-ledger-who">
                 <div>{row.party}</div>
                 <div>{row.detail}</div>

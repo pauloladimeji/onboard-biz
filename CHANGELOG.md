@@ -6,6 +6,20 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Apply panel C (Ledger): even padding, real USDC and Figma marks
+- **Padding**: the window no longer runs off the panel's right edge; it sits inside with the same
+  gap either side as the copy above (58/58 at 1440), and 14px of canvas either side of the tiles
+  and the activity card. Measured at 1280, 1440, 1536 and 1920.
+- **USDC on Base** showed a US flag (a stablecoin is not a country, and `CcyFlag` falls back to
+  "us" for USDC). It now shows the USDC mark, `v0/design-system/assets/tokens/usdc.svg`, and its
+  line reads "Stablecoin deposit, Base network".
+- **Figma** showed a generic card glyph; it now shows Figma's own logo on a white disc,
+  `v0/design-system/assets/merchants/figma.svg`, as a statement would. Both SVGs are the published
+  marks, checked for script before adding.
+- At narrow widths a tile's suffix ("on 3 cards") drops under the figure, chips wrap, and a row's
+  name truncates before its amount or status can be touched.
+- **Files changed**: `v1/apply-showcase.jsx`, `v1/app.css`, `v1/index.html`, the two SVGs
+
 ### Apply panel C (Ledger): Home's account and cards row
 - Paul preferred C and asked for a card in it. The window now mirrors Home: on the grey canvas,
   the **Main USD account** tile (balance, Deposit, Send money) beside the **Cards** tile ($10,910.50
