@@ -4,8 +4,8 @@
    screens stay v0-only reference material and are not ported here. */
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
-const Data = window.OBData;
-const { useIsDesktop, QrCode, Flag, Pill, INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, DEMO_URL } = window.OBPrimitives;
+const { ApplyShowcase } = window.OBApplyShowcase;
+const { useIsDesktop, QrCode, INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, DEMO_URL } = window.OBPrimitives;
 
 const SUPPORT_WA = "https://wa.me/14313404484";
 const TOS_URL = "https://www.onboard.xyz/terms";
@@ -57,85 +57,6 @@ function AuthInfoPanel() {
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-// =====================================================
-// Apply for access — product showcase (right panel)
-// =====================================================
-// The apply page is the one the website and other entry points link to, so its panel shows the
-// whole product instead of the cross-border line the other auth screens keep (Paul, 8 Oct): the
-// account held in the business's name, a corporate card, and a payout landing in local currency.
-// Built from the real CardVisual and the demo's own mock data, so it shows what an approved
-// business actually gets. The left column says it in words; this one shows it.
-// One GSAP entrance, then still. Reduced motion (or no GSAP) shows the finished state at once.
-const SHOWCASE_FUNDING = ["us", "gb", "eu", "ng"];
-
-function ApplyShowcase() {
-  const ref = useRef(null);
-  const [paid, setPaid] = useState(false);
-  const { CardVisual } = window.OBCards;
-  const card = Data.CARDS.find((c) => c.status === "active");
-  const balance = Data.V0_USD_BALANCE.toLocaleString("en-US", { minimumFractionDigits: 2 });
-
-  useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!ref.current || !window.gsap || reduce) { setPaid(true); return undefined; }
-    const ctx = window.gsap.context(() => {
-      window.gsap.timeline({ defaults: { ease: "power3.out" } })
-        .from(".showcase-account", { y: 28, autoAlpha: 0, duration: 0.6 })
-        .from(".showcase-card", { x: 36, y: 20, rotation: 2, autoAlpha: 0, duration: 0.7 }, "-=0.3")
-        .from(".showcase-payout", { y: 16, autoAlpha: 0, duration: 0.5 }, "-=0.2")
-        // The payout clears: the one change worth watching.
-        .call(() => setPaid(true), null, "+=0.9");
-    }, ref);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <div className="auth-info-panel showcase" ref={ref}>
-      <div className="showcase-copy">
-        <img src="../v0/design-system/assets/onboard-icon-512.png" alt="" className="showcase-mark" />
-        <h2 className="showcase-title">Accounts, cards and payouts for your business.</h2>
-        <p className="showcase-sub">
-          Fund in USD, GBP, EUR, NGN or stablecoins, spend on corporate cards, and pay suppliers
-          and staff in their local currency.
-        </p>
-      </div>
-
-      {/* A picture of the product; the copy above says the same thing in words. */}
-      <div className="showcase-stage" aria-hidden="true">
-        <div className="showcase-account">
-          <div className="showcase-account-head">
-            <Flag cc="us" size={22} />
-            <span>Main USD account</span>
-            <span className="showcase-active">Active</span>
-          </div>
-          <div className="showcase-balance">${balance}<span>USD</span></div>
-          <div className="showcase-holder">In the name of {Data.BUSINESS_PROFILE.legalName}</div>
-          <div className="showcase-funding">
-            {SHOWCASE_FUNDING.map((cc) => <Flag key={cc} cc={cc} size={18} />)}
-          </div>
-        </div>
-        <div className="showcase-card"><CardVisual card={card} compact /></div>
-        <div className="showcase-payout">
-          <Flag cc="ng" size={30} />
-          <div className="showcase-payout-who">
-            <div>Adaeze Okafor</div>
-            <div>First Bank, Nigeria</div>
-          </div>
-          <div className="showcase-payout-amt">
-            <div>₦1,250,000.00</div>
-            <Pill tone={paid ? "success" : "warn"}>{paid ? "Completed" : "Processing"}</Pill>
-          </div>
-        </div>
-      </div>
-
-      <div className="showcase-trust">
-        <span><Flag cc="us" size={16} />FinCEN MSB</span>
-        <span><Flag cc="ca" size={16} />FINTRAC MSB</span>
       </div>
     </div>
   );
@@ -236,7 +157,8 @@ function IntakeFrame({ onClose }) {
 // =====================================================
 // Apply for access — info page (the form itself is the embed above)
 // =====================================================
-function ApplyForAccessScreen({ onSignIn }) {
+// `panel` picks the right-panel variant (apply-showcase.jsx); Mock controls > Apply panel.
+function ApplyForAccessScreen({ onSignIn, panel = "a" }) {
   const [showForm, setShowForm] = useState(false);
   const isDesktop = useIsDesktop();
   // Why the KYB is worth doing, in words. The right panel (ApplyShowcase) shows the same product
@@ -256,13 +178,13 @@ function ApplyForAccessScreen({ onSignIn }) {
         <div className="auth-split-left" style={{ padding: 0, overflow: "hidden", display: "block", position: "relative" }}>
           {form}
         </div>
-        <div className="auth-split-right"><ApplyShowcase /></div>
+        <div className="auth-split-right"><ApplyShowcase variant={panel} /></div>
       </div>
     );
   }
 
   return (
-    <AuthShell panel={<ApplyShowcase />}>
+    <AuthShell panel={<ApplyShowcase variant={panel} />}>
       <h1>Apply for access</h1>
       <p className="auth-lede" style={{ marginBottom: 22 }}>
         Onboard Business is invite only. Apply to get started.

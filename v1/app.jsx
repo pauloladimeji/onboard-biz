@@ -183,7 +183,7 @@ function MockControls({
   stablecoinIssuance, onStablecoinIssuance, fiatConvert, onFiatConvert,
   payMode, onPayMode, paymentApproval, onPaymentApproval, paymentApprovalMethod, onPaymentApprovalMethod,
   complianceHold, onComplianceHold, route, nameLookupMock, onNameLookupMock,
-  apiAccess, onApiAccess, cardsAccess, onCardsAccess, cardsHome, onCardsHome, subAccountsOn, onSubAccountsOn, role, onRole,
+  apiAccess, onApiAccess, cardsAccess, onCardsAccess, cardsHome, onCardsHome, applyPanel, onApplyPanel, subAccountsOn, onSubAccountsOn, role, onRole,
   flow, onFlow, signinAccountStatus, onSigninAccountStatus, totpState, onTotpState,
   recoveryLink, onRecoveryLink, withdrawalHoldActive, onWithdrawalHoldTest, inviteLink, onInviteLink,
 }) {
@@ -213,6 +213,18 @@ function MockControls({
           </button>
         </div>
       </div>
+      {flow === "apply-for-access" && (
+        <div className="mock-group">
+          <div className="mock-label">Apply panel</div>
+          <div className="mock-row">
+            {window.OBApplyShowcase.APPLY_PANELS.map((v) => (
+              <button key={v} className={applyPanel === v ? "on" : ""} onClick={() => onApplyPanel(v)}>
+                {v.toUpperCase()} {window.OBApplyShowcase.APPLY_PANEL_LABELS[v]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {(flow === "invite-accept" || flow === "invite-invalid") && (
         <div className="mock-group">
           <div className="mock-label">Invite link</div>
@@ -409,7 +421,11 @@ function App() {
   // signin-totp-verify | signin-set-password | apply-for-access | app, plus the TOTP-recovery
   // sub-flow: signin-totp-recovery-{start,sent,invalid,setup,done}.
   // Sign-up is off-app via Tally, so it's not part of this state machine.
-  const [flow, setFlow] = useState("app"); // start in app for review
+  // ?apply=a|b|c opens straight on the apply page with that right-panel variant, so the
+  // variants can be compared from a link without going through Mock controls.
+  const applyParam = new URLSearchParams(window.location.search).get("apply");
+  const [flow, setFlow] = useState(applyParam ? "apply-for-access" : "app"); // start in app for review
+  const [applyPanel, setApplyPanel] = useState(window.OBApplyShowcase.APPLY_PANELS.includes(applyParam) ? applyParam : "a");
   // Demo mode only: gates everything behind a Personal/Business choice first. Non-demo
   // builds skip it entirely (starts true) since it's not part of the real product flow.
   const [demoEntryDone, setDemoEntryDone] = useState(() => !isDemoMode());
@@ -467,6 +483,7 @@ function App() {
       apiAccess={apiAccess} onApiAccess={setApiAccess}
       cardsAccess={cardsAccess} onCardsAccess={setCardsAccess}
       cardsHome={cardsHome} onCardsHome={setCardsHome}
+      applyPanel={applyPanel} onApplyPanel={setApplyPanel}
       subAccountsOn={subAccountsOn} onSubAccountsOn={setSubAccountsOn}
       role={role} onRole={setRole}
       inviteLink={inviteLink} onInviteLink={setInviteLink}
@@ -487,7 +504,7 @@ function App() {
   if (flow === "apply-for-access") {
     return (
       <AuthMockWrap mockControls={mockControls}>
-        <ApplyForAccessScreen onSignIn={() => setFlow("signin")} />
+        <ApplyForAccessScreen onSignIn={() => setFlow("signin")} panel={applyPanel} />
       </AuthMockWrap>
     );
   }

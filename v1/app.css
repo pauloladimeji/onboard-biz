@@ -1554,6 +1554,69 @@ table.records-table th.num { text-align: right; }
 .showcase-trust { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); }
 .showcase-trust span { display: inline-flex; align-items: center; gap: 7px; }
 
+/* B and C sit on a calmer ground than the shared auth panel: deep ink with one neutral light
+   behind the object (light, not colour), instead of the two coloured glows. */
+.auth-split-right:has(.showcase-b), .auth-split-right:has(.showcase-c) { background: #0A0F1C; }
+.auth-split-right:has(.showcase-b)::before { background: radial-gradient(460px 340px at 50% 48%, rgba(255, 255, 255, 0.07), transparent 70%); }
+.auth-split-right:has(.showcase-c)::before { background: radial-gradient(560px 420px at 85% 60%, rgba(255, 255, 255, 0.06), transparent 70%); }
+
+/* B: the card. One lit object, then a ruled spec sheet. */
+.auth-info-panel.showcase-b { gap: 36px; }
+.sc-card-stage { position: relative; padding-bottom: 30px; }
+.sc-card-tilt {
+  position: relative; width: min(380px, 100%); border-radius: 16px;
+  --sheen-x: 50; --sheen-y: 30;
+  /* The resting angle (REST in apply-showcase.jsx), so it holds with motion off too. */
+  transform: perspective(900px) rotateX(10deg) rotateY(-14deg);
+  box-shadow: 0 40px 70px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+.sc-card-tilt .card-visual { border-radius: 16px !important; }
+.sc-card-sheen {
+  position: absolute; inset: 0; z-index: 3; border-radius: 16px; pointer-events: none; mix-blend-mode: soft-light;
+  background: radial-gradient(circle at calc(var(--sheen-x) * 1%) calc(var(--sheen-y) * 1%), rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 48%);
+}
+.sc-card-floor {
+  position: absolute; left: 4%; bottom: 0; width: min(350px, 92%); height: 34px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85), transparent 70%); filter: blur(8px);
+}
+.sc-spec { margin: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.sc-spec-row { display: grid; grid-template-columns: 84px 1fr; gap: 16px; padding: 13px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.sc-spec-row dt { font-size: 13px; font-weight: 600; color: #fff; }
+.sc-spec-row dd { margin: 0; font-size: 13.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.7); }
+
+/* C: the ledger. The dashboard runs off the panel's right edge and fades out at the foot. */
+.auth-info-panel.showcase-c { gap: 40px; }
+.sc-ledger { position: relative; height: clamp(320px, calc(100vh - 360px), 500px); }
+.sc-ledger-window {
+  position: absolute; top: 0; left: 0; width: 640px; height: 100%;
+  background: #fff; border-radius: 16px 0 0 16px; overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+  -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 80%, transparent 100%);
+}
+/* Rows run the full window (so their rules do too) but keep their content short of the panel
+   edge, so the bleed only ever cuts empty window. --sc-content is the visible content width. */
+.sc-ledger-window { --sc-content: min(470px, calc(40vw - 64px)); }
+.sc-ledger-account, .sc-ledger-row { padding-right: calc(640px - var(--sc-content) + 26px) !important; }
+.sc-ledger-account { padding: 22px 26px 20px; }
+.sc-ledger-account-name { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; color: var(--gray-900); }
+.sc-ledger-balance { margin-top: 14px; font-size: 32px; font-weight: 700; letter-spacing: -0.02em; color: var(--gray-900); font-variant-numeric: tabular-nums; }
+.sc-ledger-balance span { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--gray-500); letter-spacing: 0; }
+.sc-ledger-actions { margin-top: 16px; display: flex; gap: 8px; }
+.sc-btn-primary, .sc-btn-soft { font-size: 12.5px; font-weight: 500; padding: 8px 14px; border-radius: 8px; }
+.sc-btn-primary { background: var(--info-700); color: #fff; }
+.sc-btn-soft { background: var(--info-100); color: var(--info-700); }
+.sc-ledger-head { padding: 12px 26px; border-top: 1px solid var(--gray-200); font-size: 12.5px; font-weight: 600; color: var(--gray-700); background: var(--gray-50); }
+.sc-ledger-row { display: flex; align-items: center; gap: 12px; padding: 11px 26px; border-top: 1px solid var(--gray-200); }
+.sc-ledger-who { min-width: 0; white-space: nowrap; font-size: 13px; font-weight: 500; color: var(--gray-900); }
+.sc-ledger-who div + div { font-size: 12px; font-weight: 400; color: var(--gray-600); margin-top: 1px; }
+.sc-ledger-amt { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sc-ledger-amt.in { color: var(--success-700); }
+.sc-ledger-cardicon { position: relative; width: 28px; height: 28px; border-radius: 999px; flex-shrink: 0; background: var(--primary-100); }
+.sc-ledger-cardicon::before { content: ""; position: absolute; left: 7px; top: 9px; width: 14px; height: 10px; border: 1.5px solid var(--primary-600); border-radius: 2px; }
+
+@media (max-width: 1099px) { .sc-card-stage, .sc-spec, .sc-ledger { display: none; } }
+
 /* The narrow end of the split layout has no room for the stage: words and badges only. */
 @media (max-width: 1099px) { .showcase-stage { display: none; } }
 

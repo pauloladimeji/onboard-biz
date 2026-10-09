@@ -6,6 +6,25 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Apply for access: two more panel variants, switchable
+- The showcase moved into its own file, `v1/apply-showcase.jsx` (`window.OBApplyShowcase`), with
+  three variants. Pick one in **Mock controls > Apply panel** (shown on the apply flow), or link
+  straight to it with **`?apply=a`**, **`?apply=b`** or **`?apply=c`**.
+  - **A, Desk**: the first version below (account, card, payout clearing).
+  - **B, Card**: one Business Classic card at hero scale, resting at an angle like a card in the
+    hand; it tilts a few degrees toward the pointer and catches the light where it points (fine
+    pointers only). Under it, a ruled three-line spec sheet (Account, Cards, Payouts), no icons.
+  - **C, Ledger**: the dashboard's account header and recent activity, running off the panel's
+    right edge and fading at the foot. The feed fills in newest first (naira payout, USDC
+    deposit, card payment, cedi payout, Faster Payments deposit, M-Pesa payout) and the top payout
+    clears. Rows keep their content inside the panel, so the bleed only cuts empty window.
+- B and C sit on deep ink with one neutral light behind the object instead of the shared panel's
+  two coloured glows, and drop the subhead (the spec sheet and the feed say it).
+- Same rules for all three: one GSAP entrance then still; reduced motion shows the finished state
+  (B keeps its resting angle in CSS); below 1100px only the headline and badges show.
+- **Files changed**: `v1/apply-showcase.jsx` (new), `v1/auth.jsx`, `v1/app.jsx`, `v1/app.css`,
+  `v1/index.html`
+
 ### Apply for access: the right panel shows the whole product
 - The apply page is what the website and other entry points link to, and its panel only talked
   about cross-border payments. It now shows Onboard Business as a whole, built from the product's
