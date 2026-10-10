@@ -6,6 +6,24 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-09
 
+### Card minimum balance is $5, and the showcase panel is every auth screen's
+- `CARD_MIN_BALANCE` goes from $1 to $5, matching our own card terms. Creating a card now needs
+  **$10.00** ($5 creation fee + $5 balance), withdrawal leaves $5 on the card, and the terms,
+  freeze panel and error copy all derive from the constant rather than repeating the number. The
+  $1 minimums on the top-up and withdraw *amount* fields are untouched — those are minimum
+  transaction sizes, not the balance floor.
+- **`ApplyShowcase` is `AuthShell`'s default panel**, so sign-in, TOTP, password and recovery show
+  the same product as apply. `AuthInfoPanel` — the "modern way to move money across borders" panel
+  with the currency chips — was the last thing using that tagline and is removed.
+- Headline: "Accounts, cards, payouts and APIs for your business."
+- The GSAP entrance is **apply-only** (`animate` prop, off by default). Replaying the activity feed
+  every time someone hits the 2FA step is noise.
+- **Files changed**: `v1/cards.jsx`, `v1/pricing.jsx`, `v1/auth.jsx`, `v1/apply-showcase.jsx`, `v1/index.html`
+
+---
+
+## 2026-10-09
+
 ### Apply panel: the Ledger is the one (Paul, 9 Oct)
 - Paul chose the Ledger. The other two directions (Desk, Card), the **Apply panel** switch in
   Mock controls and the `?apply=` link are removed; they are in git history (the commits before

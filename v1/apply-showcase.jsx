@@ -1,9 +1,11 @@
 /* global React */
 // =====================================================
-// Apply for access — product showcase (the right panel)
+// Auth — product showcase (the right panel)
 // =====================================================
 // The apply page is the one the website and other entry points link to, so its panel shows the
-// whole product instead of the cross-border line the other auth screens keep (Paul, 8 Oct).
+// whole product rather than a cross-border line (Paul, 8 Oct). It is the panel on every auth
+// screen now, not only apply (Paul, 9 Oct), so someone signing in sees the same product as
+// someone applying.
 // It is the product itself, bleeding off the panel's edge: Home's top row (the account beside the
 // cards, as on the dashboard, so a card is in the picture) and its recent activity, filling in
 // newest first. The range of the product comes across through real entries (a stablecoin
@@ -17,7 +19,7 @@ const { useState, useEffect, useRef } = React;
 const { Flag, Pill } = window.OBPrimitives;
 const Data = window.OBData;
 
-const HEADLINE = "Accounts, cards and payouts for your business.";
+const HEADLINE = "Accounts, cards, payouts and APIs for your business.";
 const CARD_ART = "../v0/design-system/assets/card-bg.svg";
 const usd = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -42,7 +44,9 @@ function LedgerIcon({ row }) {
   return <Flag cc={row.flag} size={28} />;
 }
 
-function ApplyShowcase() {
+// The entrance plays on apply, where someone arrives once. Every other auth screen gets the
+// finished state: replaying the feed on each visit to the sign-in or 2FA step is noise.
+function ApplyShowcase({ animate = false }) {
   const ref = useRef(null);
   const stage = useRef(null);
   const cards = Data.CARDS;
@@ -52,7 +56,7 @@ function ApplyShowcase() {
   // The entrance: the window slides in, the two tiles land, the feed fills in, the payout clears.
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!ref.current || !window.gsap || reduce) { setCleared(true); return undefined; }
+    if (!animate || !ref.current || !window.gsap || reduce) { setCleared(true); return undefined; }
     const ctx = window.gsap.context(() => {
       window.gsap.timeline({ defaults: { ease: "power3.out" } })
         .from(".sc-ledger-window", { x: 48, autoAlpha: 0, duration: 0.8 })
@@ -61,7 +65,7 @@ function ApplyShowcase() {
         .call(() => setCleared(true), null, "+=0.8");
     }, ref);
     return () => ctx.revert();
-  }, []);
+  }, [animate]);
 
   // How much of the window shows before the panel cuts it off, so the content can stop the same
   // distance from that cut as it starts from the window's left edge. Re-measured on resize.

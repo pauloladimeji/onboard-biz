@@ -6,7 +6,7 @@ const Data = window.OBData;
 // One constant, because the card provider (and so the product name) is still moving.
 const CARD_BRAND = "Business Classic";
 const CARD_SUPPORT_WA = "https://wa.me/14313404484";
-const CARD_MIN_BALANCE = 1;
+const CARD_MIN_BALANCE = 5;
 // Frozen is deliberately not here: the user chose it and can undo it, so hiding it would lose
 // the card they're looking for. Only states that can never become active again.
 const DEAD_STATUSES = ["failed", "terminated"];
@@ -491,7 +491,7 @@ function WithdrawCardSheet({ card, onClose, onWithdraw }) {
   const [step, setStep] = useState("form");
   const cardBalance = card.balance || 0;
   const parsed = parseFloat(amount) || 0;
-  const maxWithdraw = Math.max(0, cardBalance - 1);
+  const maxWithdraw = Math.max(0, cardBalance - CARD_MIN_BALANCE);
   const tooLow = amount !== "" && parsed < 1;
   const tooHigh = parsed > maxWithdraw;
   const valid = parsed >= 1 && !tooHigh;
@@ -531,7 +531,7 @@ function WithdrawCardSheet({ card, onClose, onWithdraw }) {
               <input className={`inp${(tooLow || tooHigh) ? " inp-error" : ""}`} type="number" min="1" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ paddingLeft: 30 }} autoFocus />
             </div>
             {tooLow && <div className="help" style={{ color: "#DC2626" }}>Minimum $1.00.</div>}
-            {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Max withdrawal is ${fmtBal(maxWithdraw)} — card must keep a $1.00 minimum balance.</div>}
+            {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Max withdrawal is ${fmtBal(maxWithdraw)} — card must keep a ${CARD_MIN_BALANCE.toFixed(2)} minimum balance.</div>}
             {!tooLow && !tooHigh && (
               <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--gray-500)" }}>
                 <span>Available: <strong style={{ color: "var(--gray-700)" }}>${fmtBal(cardBalance)}</strong></span>
@@ -563,7 +563,7 @@ function CreateCardSheet({ onClose, onCreate }) {
   const [limits, setLimits] = useState({ ...DEFAULT_LIMITS });
   const [showLimits, setShowLimits] = useState(false);
   const holder = memberById(holderId) || {};
-  const MIN_FUND = CARD_CREATION_FEE + 1;
+  const MIN_FUND = CARD_CREATION_FEE + CARD_MIN_BALANCE;
   const usdBalance = Data.V0_USD_BALANCE;
   const parsed = parseFloat(fundAmount) || 0;
   const validFund = parsed >= MIN_FUND && parsed <= CARD_FUND_MAX;
@@ -656,7 +656,7 @@ function CreateCardSheet({ onClose, onCreate }) {
               <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: "var(--gray-500)", pointerEvents: "none" }}>$</span>
               <input className={`inp${(fundAmount && !validFund) || tooHigh ? " inp-error" : ""}`} type="number" min={MIN_FUND} step="0.01" placeholder="0.00" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} style={{ paddingLeft: 30 }} />
             </div>
-            {fundAmount && !validFund && !tooHigh && !overMax && <div className="help" style={{ color: "#DC2626" }}>Minimum $6.00 required — $5.00 creation fee + $1.00 minimum balance.</div>}
+            {fundAmount && !validFund && !tooHigh && !overMax && <div className="help" style={{ color: "#DC2626" }}>Minimum ${MIN_FUND.toFixed(2)} required — ${CARD_CREATION_FEE.toFixed(2)} creation fee + ${CARD_MIN_BALANCE.toFixed(2)} minimum balance.</div>}
             {overMax && !tooHigh && <div className="help" style={{ color: "#DC2626" }}>More than {CARD_FUND_MAX_LABEL} in one go will fail. Create the card with {CARD_FUND_MAX_LABEL} and top it up after — the card can hold more.</div>}
             {tooHigh && <div className="help" style={{ color: "#DC2626" }}>Insufficient funds. Your USD balance is ${fmtBal(usdBalance)}.</div>}
             {validFund && !tooHigh && <div className="help">After $5.00 creation fee + {FUNDING_FEE_LABEL} funding fee: <strong style={{ color: "var(--gray-900)" }}>${cardBalance.toFixed(2)}</strong></div>}
@@ -1111,7 +1111,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
   const usable = card.status === "active" || card.status === "frozen";
   // The reason people keep terminated cards around: the spend history stays readable.
   const showsTxns = usable || terminated;
-  // Below the $1.00 minimum the provider freezes the card, and only funding unfreezes it — so
+  // Below the minimum balance the provider freezes the card, and only funding unfreezes it — so
   // this is frozen, but with no Unfreeze button, since pressing it would just fail.
   const lowBalance = frozen && card.lowBalance;
   // Removing a member freezes their cards until a manager reassigns or terminates them — unfreezing

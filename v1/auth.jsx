@@ -23,50 +23,11 @@ function LegalConsent({ action = "continuing" }) {
   );
 }
 
-function AuthInfoPanel() {
-  const badges = [
-    { flag: "🇺🇸", label: "FinCEN MSB" },
-    { flag: "🇨🇦", label: "FINTRAC MSB" },
-  ];
-  return (
-    <div className="auth-info-panel">
-      <div style={{ marginTop: "auto", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 20 }}>
-        <img src="../v0/design-system/assets/onboard-icon-512.png" alt="" style={{ width: 32, height: 32, mixBlendMode: "screen", display: "block" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <h2 className="auth-info-tagline" style={{ margin: 0, textAlign: "center" }}>
-            The modern way to move <span>money</span> across borders.
-          </h2>
-          <p className="auth-info-sub" style={{ margin: 0, textAlign: "center" }}>
-            Fund in USD, GBP, EUR, NGN, or stablecoins. Pay out globally.
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginTop: 4 }}>
-            {["USD", "GBP", "EUR", "USDC", "USDT", "NGN", "GHS", "KES"].map(code => (
-              <span key={code} style={{
-                fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.55)",
-                background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.13)",
-                borderRadius: 4, padding: "3px 7px", letterSpacing: "0.02em",
-              }}>{code}</span>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
-          {badges.map(({ flag, label }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.55)" }}>
-              <span style={{ fontSize: 15, lineHeight: 1 }}>{flag}</span>
-              {label}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Desktop: split two-column (form left, marketing panel right). Mobile: single centered
+// Desktop: split two-column (form left, product showcase right). Mobile: single centered
 // column, no right panel — same shell v0 used for its "centered" variant, tuned for phone widths.
 // Mobile is flat white with a small logo (not the earlier tinted canvas) — matches desktop,
 // which is already flat white via .auth-split-left.
-function AuthShell({ children, panel = <AuthInfoPanel /> }) {
+function AuthShell({ children, panel = <ApplyShowcase /> }) {
   const isDesktop = useIsDesktop();
   if (isDesktop) {
     return (
@@ -177,13 +138,13 @@ function ApplyForAccessScreen({ onSignIn }) {
         <div className="auth-split-left" style={{ padding: 0, overflow: "hidden", display: "block", position: "relative" }}>
           {form}
         </div>
-        <div className="auth-split-right"><ApplyShowcase /></div>
+        <div className="auth-split-right"><ApplyShowcase animate /></div>
       </div>
     );
   }
 
   return (
-    <AuthShell panel={<ApplyShowcase />}>
+    <AuthShell panel={<ApplyShowcase animate />}>
       <h1>Apply for access</h1>
       <p className="auth-lede" style={{ marginBottom: 22 }}>
         Onboard Business is invite only. Apply to get started.
