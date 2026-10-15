@@ -4,6 +4,36 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-10-15
+
+### Account statements
+- **Statement** on the Transactions header (replacing the stubbed Export CSV) opens a sheet: pick a
+  period, see the summary, take either output. Main USD account only.
+- **PDF** on the shared document frame, so it prints with the letterhead and legal footer the
+  account letter and receipts already use — holder, registered address, period, summary, then the
+  transaction table with a running balance.
+- **CSV** downloads as a file. Opening and closing balance ride in the header rows: a list of
+  movements with no anchor can't be reconciled, and whoever opens it won't have the PDF beside them.
+- Every line is in **USD**. A ₦780,000 payout shows the USD that left the account, with the local
+  amount in the description — a statement has to foot, and it can only foot in the account's
+  currency.
+- **Only settled movements count.** Anything processing hasn't moved the balance, so including it
+  would make the statement disagree with the account; the sheet says how many are excluded.
+- Balances are derived backwards from the current balance, since the prototype holds a current
+  figure and not a historical one. Verified: opening + in − out equals closing, closing equals the
+  account balance, and consecutive months chain.
+- Period presets are the months that actually have activity, plus All time and a custom range.
+  "This month" would be empty, which is a dead end rather than a result.
+- `V0_USD_BALANCE` raised to **$124,231.50**. The feed nets +$107,286.69, so at the old $84,231.50
+  the all-time statement opened at −$23,055.19. The balance has to exceed the net; an earlier
+  deposit would push the opening further negative, not less.
+- Statement table is fixed-layout so a 40-character reference wraps in its own cell instead of
+  pushing the money columns off the page. References wrap rather than truncate — the reference is
+  what the row is being reconciled against.
+- **Files changed**: `v1/statement.jsx` (new), `v1/transactions.jsx`, `v1/app.css`, `v0/data.jsx`, `v1/index.html`
+
+---
+
 ## 2026-10-09
 
 ### Card minimum balance is $5, and the showcase panel is every auth screen's
