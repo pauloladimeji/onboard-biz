@@ -5,9 +5,8 @@
 const { useState, useEffect, useRef } = React;
 const Icon = window.OBIcon;
 const { ApplyShowcase } = window.OBApplyShowcase;
-const { useIsDesktop, QrCode, INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, DEMO_URL } = window.OBPrimitives;
+const { useIsDesktop, QrCode, INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, DEMO_URL, SUPPORT_WA } = window.OBPrimitives;
 
-const SUPPORT_WA = "https://wa.me/14313404484";
 const TOS_URL = "https://www.onboard.xyz/terms";
 const PP_URL = "https://www.onboard.xyz/privacy-policy";
 const LEGAL_TEXT = "Gopay Financial Services Inc. (dba Onboard Pay) is registered with FINTRAC as an MSB (RN: C100000565). Onboard Digital is registered with FinCEN as an MSB (RN: 31000293152346).";

@@ -5,7 +5,6 @@ const Icon = window.OBIcon;
 const Data = window.OBData;
 // One constant, because the card provider (and so the product name) is still moving.
 const CARD_BRAND = "Business Classic";
-const CARD_SUPPORT_WA = "https://wa.me/14313404484";
 const CARD_MIN_BALANCE = 5;
 // Frozen is deliberately not here: the user chose it and can undo it, so hiding it would lose
 // the card they're looking for. Only states that can never become active again.
@@ -15,7 +14,7 @@ const DEAD_STATUSES = ["failed", "terminated"];
 const DECLINE_LIMIT = { domestic: 5, international: 2 };
 const HIDE_DEAD_KEY = "ob_cards_hide_dead";
 
-const { Page, Sheet, Pill, useIsDesktop, DemoCta, can, SIGNED_IN, ROLE_LABEL } = window.OBPrimitives;
+const { Page, Sheet, Pill, useIsDesktop, DemoCta, can, SIGNED_IN, ROLE_LABEL, SUPPORT_WA } = window.OBPrimitives;
 
 const CARD_BG = "../v0/design-system/assets/card-bg.svg";
 // Cardholder = any active team member. The holder's name is what's printed for billing, and the
@@ -1063,7 +1062,7 @@ function CardRejectedPanel({ scope = "card", onRemove }) {
       </p>
       <p>Your account team can tell you what the provider needs, and whether it's worth trying again.</p>
       <div className="card-rejected-actions">
-        <a className="btn btn-lg" href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer">Message your account team</a>
+        <a className="btn btn-lg" href={SUPPORT_WA} target="_blank" rel="noopener noreferrer">Message your account team</a>
         {!business && onRemove && <button className="btn btn-ghost btn-lg" style={{ color: "#DC2626", gap: 6 }} onClick={onRemove}>
           <Icon.trash style={{ width: 14, height: 14 }} /> Remove card
         </button>}
@@ -1085,7 +1084,7 @@ function CardFailedPanel() {
       <p>We couldn't create this card. Nothing else on your account is affected.</p>
       <p>You can create a new card from Cards. If it keeps happening, your account team can look into it.</p>
       <div className="card-rejected-actions">
-        <a className="btn btn-lg" href={CARD_SUPPORT_WA} target="_blank" rel="noopener noreferrer">Message your account team</a>
+        <a className="btn btn-lg" href={SUPPORT_WA} target="_blank" rel="noopener noreferrer">Message your account team</a>
       </div>
     </div>
   );

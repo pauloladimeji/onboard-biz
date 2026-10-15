@@ -23,6 +23,13 @@ const APPLY_URL = "https://business.onboard.xyz/apply";
 const INTAKE_ORIGIN = "https://vetting-checklist.damilolaemmanuel.com";
 const INTAKE_URL = INTAKE_ORIGIN + "/apply/embed";
 const INTAKE_PAGE_URL = INTAKE_ORIGIN + "/apply";
+// Every "message your account manager", support link and sales CTA points here: one number in
+// one place, so changing it is one edit rather than eight. WhatsApp drops UTM parameters, so a
+// link that wants attribution says where it came from in the message itself.
+const SUPPORT_WA_NUMBER = "971521977072";
+const SUPPORT_WA = `https://wa.me/${SUPPORT_WA_NUMBER}`;
+const waLink = (text) => (text ? `${SUPPORT_WA}?text=${encodeURIComponent(text)}` : SUPPORT_WA);
+
 // The reverse direction of APPLY_URL — from the real "Apply for access" screen, a "not ready yet"
 // visitor can try the interactive demo instead of committing to KYB.
 const DEMO_URL = "https://demo.business.onboard.xyz";
@@ -31,7 +38,6 @@ const CONSUMER_APP_LINKS = {
   ios: "https://apps.apple.com/us/app/onboard-global/id1665198778",
 };
 const SIGNED_IN = { id: "m1", name: "Jide Nwosu", initials: "JN" };
-const SALES_CALL_URL = "https://calendar.app.google/u5Nx8oTyomazzE1h7";
 
 // ---------- Demo mode ----------
 // Public lead-gen surface — on when `?demo=1` (local/preview testing) or the deployed demo
@@ -377,7 +383,7 @@ function ErrorPanel({ code, onRetry }) {
     <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />} title={title} desc={desc}>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
         {onRetry && <button className="btn btn-lg" onClick={onRetry}><Icon.refresh /> Try again</button>}
-        <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-soft">Message your account manager</a>
+        <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-soft">Message your account manager</a>
       </div>
     </StatusPanel>
   );
@@ -566,6 +572,6 @@ function Toast({ msg, onDone }) {
 window.OBPrimitives = {
   useIsDesktop, CcyFlag, Flag, Page, QrCode, FlowShell, Sheet, Records, Pill, CopyInline, TimingChip,
   Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, FilterSelect, FilterBar, Toast, shortRef, truncateMiddle, XIcon,
-  INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SALES_CALL_URL, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
+  INTAKE_ORIGIN, INTAKE_URL, INTAKE_PAGE_URL, APPLY_URL, DEMO_URL, CONSUMER_APP_LINKS, SUPPORT_WA, waLink, isDemoMode, withDemoUtm, DemoCta, ErrorPanel,
   ROLES, ROLE_LABEL, can, NoAccess, NoAccessNote, SIGNED_IN,
 };

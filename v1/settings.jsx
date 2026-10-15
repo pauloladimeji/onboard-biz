@@ -2,7 +2,7 @@
 const { useState: useStateS, useEffect: useEffectS } = React;
 const SIcon = window.OBIcon;
 const { BUSINESS_PROFILE } = window.OBData;
-const { Page, Sheet, ROLES, ROLE_LABEL, can } = window.OBPrimitives;
+const { Page, Sheet, ROLES, ROLE_LABEL, can, SUPPORT_WA: ACCOUNT_MANAGER_WA } = window.OBPrimitives;
 const { WaIcon } = window.OBShell;
 
 const SECTIONS = [
@@ -22,7 +22,6 @@ const TEAM_MEMBERS = window.OBData.TEAM_MEMBERS;
 const SUPPORT_EMAIL = "support@onboard.xyz";
 // Live cards (not failed/terminated) the member holds — the ones removal would freeze.
 const heldCards = (memberId) => (window.OBData.CARDS || []).filter(c => c.holderId === memberId && (c.status === "active" || c.status === "frozen")).length;
-const ACCOUNT_MANAGER_WA = "https://wa.me/14313404484";
 
 // Outbound limits don't vary by rail or by who you're paying — one set covers everything.
 // (They are affected by liquidity in practice, which isn't something we surface.)

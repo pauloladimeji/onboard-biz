@@ -1,9 +1,9 @@
 /* global React */
 const Icon = window.OBIcon;
-const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, APPLY_URL, SALES_CALL_URL, can, ROLE_LABEL } = window.OBPrimitives;
+const { useIsDesktop, Sheet, isDemoMode, withDemoUtm, APPLY_URL, SUPPORT_WA, waLink, can, ROLE_LABEL } = window.OBPrimitives;
 const { useState, useEffect } = React;
 
-const AM = { wa: "https://wa.me/14313404484" };
+const AM = { wa: SUPPORT_WA };
 
 const WaIcon = (p) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
@@ -133,8 +133,8 @@ function GuidedNudges({ active, onNavigate }) {
       <a className="nudges-cta" href={withDemoUtm(APPLY_URL, { utm_campaign: "nudges_panel" })} target="_blank" rel="noopener noreferrer">
         Open an account <Icon.arrowRight style={{ width: 12, height: 12 }} />
       </a>
-      <a className="nudges-secondary" href={withDemoUtm(SALES_CALL_URL, { utm_campaign: "nudges_panel_call" })} target="_blank" rel="noopener noreferrer">
-        Prefer to talk? Book a call with sales
+      <a className="nudges-secondary" href={waLink("Hi — I'm trying the Onboard Business demo and would like to talk to sales.")} target="_blank" rel="noopener noreferrer">
+        Prefer to talk? Message sales on WhatsApp
       </a>
       <button className="nudges-dismiss" onClick={() => setDismissed(true)}>Hide for this visit</button>
     </div>

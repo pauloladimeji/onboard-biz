@@ -15,10 +15,9 @@
 
 const { useState: useStateR } = React;
 const RIcon = window.OBIcon;
-const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon, isDemoMode: pIsDemoMode } = window.OBPrimitives;
+const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon, isDemoMode: pIsDemoMode, SUPPORT_WA: PRICING_WA } = window.OBPrimitives;
 const { DocFrame: PDocFrame, openDocument: pOpenDocument } = window.OBLetter;
 
-const PRICING_WA = "https://wa.me/14313404484";
 const PRICING_UPDATED = "23 September 2026";
 
 const PLANS = [

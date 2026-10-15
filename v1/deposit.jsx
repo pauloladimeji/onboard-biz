@@ -3,7 +3,7 @@ const { useState, useEffect } = React;
 const Icon = window.OBIcon;
 const NetworkIcon = window.OBNetworkIcon;
 const { STABLECOIN_CHAINS } = window.OBData;
-const { Page, Sheet, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel, can, NoAccessNote } = window.OBPrimitives;
+const { Page, Sheet, Banner, StatusPanel, FieldGrid, FeeGrid, RailTabs, TimingChip, QrCode, Flag, useIsDesktop, truncateMiddle, ErrorPanel, can, NoAccessNote, SUPPORT_WA } = window.OBPrimitives;
 const Combobox = window.OBCombobox;
 const { AccountLetterPrintable, openAccountLetter } = window.OBLetter;
 
@@ -53,7 +53,7 @@ function DepositLimitsSheet({ onClose, feeNote }) {
         "Limits are held in USD. The bracketed figure is the rough equivalent in the currency you're depositing, and moves with the rate.")}
       <div className="td-banner info" style={{ marginTop: 4 }}>
         <Icon.info />
-        <div><div className="s">Limits are set per business. If you need higher limits, <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer">message your account manager</a>.</div></div>
+        <div><div className="s">Limits are set per business. If you need higher limits, <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer">message your account manager</a>.</div></div>
       </div>
       <div className="set-modal-foot">
         <button className="btn btn-lg" onClick={onClose}>Got it</button>
@@ -317,7 +317,7 @@ function WhitelistRequestPanel({ ccy }) {
     <StatusPanel iconBg="var(--info-100)" iconColor="var(--info-700)" icon={<Icon.shield />}
       title={`${ccy} accounts are invite-only right now`}
       desc={`We're rolling out ${ccy} accounts to select businesses first, and expanding access over time.`}>
-      <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" className="btn btn-lg">Request access from your account manager</a>
+      <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" className="btn btn-lg">Request access from your account manager</a>
     </StatusPanel>
   );
 }
@@ -366,7 +366,7 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits, ro
         title={`${ccy} account under review`} desc={data.reviewDesc}>
         <TimingChip tone="slow" label={data.reviewTiming} />
         <div style={{ marginTop: 28, fontSize: 12.5, color: "var(--gray-600)" }}>
-          Taking longer than expected? <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", textDecoration: "underline", fontWeight: 500 }}>Message your account manager</a>
+          Taking longer than expected? <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" style={{ color: "var(--info-700)", textDecoration: "underline", fontWeight: 500 }}>Message your account manager</a>
         </div>
       </StatusPanel>
     );
@@ -377,7 +377,7 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits, ro
       <StatusPanel iconBg="var(--danger-100)" iconColor="var(--danger-700)" icon={<Icon.alert />}
         title={`${ccy} account request declined`}
         desc={`Unfortunately, our banking partner was unable to approve your ${ccy} account at this time. You can still receive and send in your other supported currencies in the meantime.`}>
-        <a href="https://wa.me/14313404484" target="_blank" rel="noopener noreferrer" className="btn btn-lg">Message your account manager</a>
+        <a href={SUPPORT_WA} target="_blank" rel="noopener noreferrer" className="btn btn-lg">Message your account manager</a>
       </StatusPanel>
     );
   }

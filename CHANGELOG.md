@@ -6,6 +6,17 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ## 2026-10-15
 
+### One WhatsApp number, and sales goes to it
+- The support number was in eight places across seven files behind five different constants. It's
+  now `SUPPORT_WA_NUMBER` in `primitives.jsx` — one edit to change it.
+- Number set to **+971 52 197 7072**, the production line. The demo is linked from the website now,
+  so the CTAs have to reach the people who answer.
+- **"Book a call with sales" in the demo nudges panel is now "Message sales on WhatsApp"**, same
+  number. `SALES_CALL_URL` (a Google Calendar booking link) had one use and is removed.
+- That link carries a prefilled message rather than a UTM parameter — WhatsApp discards query
+  params, so a lead says where it came from in the message itself.
+- **Files changed**: `v1/primitives.jsx`, `v1/auth.jsx`, `v1/cards.jsx`, `v1/deposit.jsx`, `v1/pricing.jsx`, `v1/settings.jsx`, `v1/shell.jsx`, `v1/index.html`
+
 ### Account statements
 - **Statement** on the Transactions header (replacing the stubbed Export CSV) opens a sheet: pick a
   period, see the summary, take either output. Main USD account only.
