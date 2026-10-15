@@ -5,6 +5,7 @@ const TNetworkIcon = window.OBNetworkIcon;
 const { CURRENCIES: TCCY, TXNS_FULL, ACTIVITY_TYPE_LABELS, displayActivityType, displayActivityLabel } = window.OBData;
 const { Page, Pill, Flag: TFlag, FilterBar, useIsDesktop, shortRef, truncateMiddle } = window.OBPrimitives;
 const { txMoney, fmtAmt, feeText, ReceiptPrintable, openReceipt } = window.OBReceipt;
+const { StatementSheet } = window.OBStatement;
 
 const PAGE_SIZE_TX = 12;
 
@@ -106,6 +107,7 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
   const [visible, setVisible] = useStateT(PAGE_SIZE_TX);
   const sentinelRef = useRefT(null);
   const [loading, setLoading] = useStateT(true);
+  const [statement, setStatement] = useStateT(false);
   useEffectT(() => { const t = setTimeout(() => setLoading(false), 700); return () => clearTimeout(t); }, []);
 
   const filtered = useMemoT(() => {
@@ -158,7 +160,7 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
           <h1 className="title">Transactions</h1>
           <p className="subtitle">Every payout and deposit across your accounts.</p>
         </div>
-        <button className="btn btn-soft" onClick={() => onToast && onToast("Export CSV — phase 2")}><TIcon.doc /> Export CSV</button>
+        <button className="btn btn-soft" onClick={() => setStatement(true)}><TIcon.doc /> Statement</button>
       </div>
 
       <div className="tx-stats">
@@ -216,6 +218,7 @@ function TransactionsScreen({ onOpenTx, onToast, dataState = "full", complianceH
           )}
         </div>
       )}
+      {statement && <StatementSheet onClose={() => setStatement(false)} />}
     </Page>
   );
 }

@@ -291,7 +291,7 @@ const CARDS = [
 ];
 
 // v0 mock balances — USD only (all funds held as a single USD balance)
-const V0_USD_BALANCE = 84231.50;
+const V0_USD_BALANCE = 124231.50;
 
 // Tokens supported per crypto network (derived from STABLECOIN_CHAINS)
 const NETWORK_TOKENS = {

@@ -2097,6 +2097,32 @@ table.records-table th.num { text-align: right; }
 .price-fee-row .v { font-size: 13px; font-weight: 600; color: var(--gray-900); white-space: nowrap; }
 .price-fee-row .v.free { color: var(--success-700); }
 
+/* Statement sheet */
+.stmt-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.stmt-range { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stmt-summary { padding: 16px 18px; margin: 18px 0 4px; }
+.stmt-sum-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 7px 0; font-size: 13px; color: var(--gray-600); }
+.stmt-sum-row strong { font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; }
+.stmt-sum-row strong.in { color: var(--success-700); }
+.stmt-sum-row.total { border-top: 1px solid var(--gray-200); margin-top: 6px; padding-top: 12px; font-size: 13.5px; }
+.stmt-sum-note { margin-top: 10px; font-size: 11.5px; color: var(--gray-500); }
+.stmt-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+.stmt-actions .btn { width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; }
+
+/* Statement document: a long table, so it is set tighter than the letter's other sections and
+   its rows are allowed to break across pages. */
+.stmt-table { font-size: 10.5px; table-layout: fixed; }
+.stmt-table th, .stmt-table td { padding: 6px 8px 6px 0; vertical-align: top; overflow-wrap: anywhere; }
+.stmt-table td em { display: block; font-style: normal; font-size: 9.5px; color: #666; margin-top: 1px; }
+.stmt-table .stmt-date { white-space: nowrap; width: 15%; }
+.stmt-table .stmt-ref { font-size: 9.5px; color: #666; width: 22%; }
+.stmt-table thead th:nth-child(2) { width: 29%; }
+.stmt-table .doc-num { width: 11.3%; white-space: nowrap; }
+@media print {
+  .stmt-table thead { display: table-header-group; }
+  .stmt-table tr { break-inside: avoid; }
+}
+
 /* Reference block: deliberately plain and obviously not part of the customer page. */
 .price-internal { margin-top: 36px; padding: 18px 20px; border: 1px dashed var(--gray-300); border-radius: 12px; background: var(--gray-50); }
 .price-internal-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px; }
