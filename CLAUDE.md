@@ -10,7 +10,9 @@ Read in this order:
    activity taxonomy, per-screen behaviour, open questions for backend.
 2. **This file** — orientation, backlog, conventions, standing design decisions.
 3. **`ACL-SPEC.md`** — the four roles and what each can do.
-4. **[`CHANGELOG.md`](CHANGELOG.md)** — what changed and why, newest first.
+4. **[`CHANGELOG.md`](CHANGELOG.md)** — the running log of the prototype: what changed and why,
+   newest first, continuous from May 2026. **Add a dated section for every working session.** The
+   diff records what changed; this is the only place the reasoning survives.
 5. **`chats/chat1.md`, `chats/chat2.md`** — the original Claude Design transcripts. Historical:
    they describe the `project/` bundle and the retired v0/v1/v2 accounts models, but they're still
    where the *why* behind the early visual decisions lives.

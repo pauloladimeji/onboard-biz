@@ -2,6 +2,79 @@
 
 Changes made via Claude Code sessions after the initial Claude Design handoff.
 
+**This is the running log of the prototype.** Newest first. Every working session should add a
+dated section here — what changed and, more importantly, *why*, since the reasoning is the part
+that isn't recoverable from the diff. `v1/HANDOFF.md` holds the current spec; this holds how it
+got there.
+
+Entries before 2026-09-16 were reconstructed from commit history on 2026-10-28, so they record
+what changed but carry less of the reasoning than later ones.
+
+---
+
+## 2026-10-23 → 10-28
+
+### Pricing: what we sell that the page never said
+- From two platform calls — a remittance startup and a creator platform with ~156k users.
+- **"Collect from your customers"** added to the grid, Enterprise only: a pooled USD account in
+  Onboard's name with a unique reference per customer. We offer it and the page was silent, which
+  is what the remittance prospect had actually come for.
+- **Payout addresses** priced: $1.00 / $0.50 / Free / Custom, charged once per address created.
+  A stablecoin address linked to a bank recipient.
+- **"White-labelling"** replaced with what a platform is actually buying — white-label wallets for
+  your users, cards issued through your product, onboard your users with your own KYC. Group
+  renamed "Platform and customisation" and the Enterprise card rewritten around the embed case.
+- **Stablecoin deposits** shown as free on every plan; the deposit screen and the crypto deposit
+  fixtures wrongly charged $1.00 and are corrected.
+- Local payouts and NGN collections now say *"converted at the rate shown before you confirm"* —
+  a fact the customer can check, where "at the live rate" was a claim.
+- Sub-accounts and payout addresses both carry a volume line: at 156k users a flat per-account fee
+  misleads exactly the buyer it's aimed at.
+- Two FAQs on collections and running Onboard inside your own product. **The KYC-reliance wording
+  needs compliance sign-off before this is shown to a prospect.**
+
+### Deposit: show what an inflow converts to
+- From user feedback (Yinka Fasawe, 25 Oct): the panel quoted a rate and left the business to do
+  the arithmetic.
+- A converter at the **top** of the NGN, EUR and GBP panels, above the rate banner and the account
+  details. Tried below them behind a link first — "won't have seen it if it was like this".
+- **Both fields drive each other.** For a returning business the account is already saved, so the
+  amount is the live question, and working out what to send to hit a USD target is the more
+  frequent direction.
+- The fee is applied in both directions: off the local amount before conversion going forward,
+  added to what you need to send going back, which is how a deposit settles.
+- The "Conversion rate" row left the account details — the converter owns it, and it didn't belong
+  in a block whose purpose is details you copy.
+- **Fixed**: EUR and GBP render through the same panel element, so React reused the instance and an
+  amount typed for one reappeared priced at the other's rate. Keyed by currency.
+
+### Pricing FAQs cut back, and the PDF paginates
+- FAQs trimmed to one or two sentences each. Two removed outright — API integration (the four
+  tiers already carry their descriptors in the grid) and collections (the grid row says it).
+  Card terms removed as too much detail for a pricing page.
+- The platform answer was wrong: it implied API access was Enterprise-only when it's on every
+  plan. It now says so, and Enterprise is described as more capability and customisation rather
+  than by naming wallets, which every plan has.
+- Plan fees start **when the contract is signed**, not at production, and can be waived while
+  setting up. The account application fee answer is left verbatim — it carries approved wording.
+- **Fixed: the PDF cut off page 2 and added a near-empty page 3.** The app's print rules take
+  `.letter` out of flow and overlay it at 0,0, which is right when printing from the app page,
+  where everything else is hidden but still occupies height. In the document tab the sheet is the
+  only thing on the page, so the overlay bought nothing and cost pagination — an out-of-flow box
+  doesn't break across pages. The tab now puts it back in flow. Consequence: the legal footer
+  prints once at the end rather than on every page, which is the cost of content that breaks.
+  Affects every document on this frame, statements included.
+- Row descriptions shortened across the grid — they were reading as noise in print — and the print
+  rules give the rows their spacing back now that the sheet fits two pages. Descriptor sub-lines
+  stay small, since those were the clutter rather than the rows.
+
+### Changelog backfilled
+- Six eras reconstructed from commit history: 2026-05-25 → 05-31, 06-10 → 06-29, 07-04 → 07-22
+  (where v1 begins), 07-24 → 08-07, 09-08, and 09-23 → 09-30. The log covered 13 sections against
+  96 commits; roughly two months of mid-2026 was missing entirely.
+- Header added saying what this file is for, and `CLAUDE.md` now instructs every session to add a
+  dated section. The diff records what changed; this is the only place the reasoning survives.
+
 ---
 
 ## 2026-10-15
@@ -203,6 +276,44 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-09-23 → 09-30
+
+### In-app Pricing page
+- A read-only **Pricing** page under Workspace, deliberately not a billing surface: no invoices,
+  no usage meter, no self-serve upgrade. Every plan routes to the account team.
+- Three paid plan cards (Pro, Business, Enterprise), Standard as a full-width line beneath them —
+  as a fourth column it read as the plan you lost, and most customers are on it.
+- An "on every plan" strip, a comparison grid in three groups, an FAQ, and a **shareable PDF** on
+  the same document frame as the account letter and receipts.
+- Pro set at **$350**, framed for teams integrating rather than branded "the API plan" — API access
+  is on every plan, so the pull is the help you get, not the capability.
+- Sub-account rates, USD payouts in your own business name moved down to Pro, and the account
+  application fee given a dagger with its note under its own table, on screen and in print.
+- Local rails carry no fee: NGN collection accounts on every plan, local currency payouts free.
+  Not-included cells are a grey cross, not a dash — a dash was nearly invisible.
+- **Fixed**: issued documents opened unstyled on the deployed site. Vercel rewrites "/" to
+  `/v1/index.html`, so relative stylesheet URLs resolved to the root and 404'd. Now resolved
+  absolutely, which affected the account letter, receipts and the pricing sheet.
+
+### Cards: funding limit stated before funding
+- $10,000 is the most that can be added to a card **per top-up**, and over-limit attempts fail
+  outright rather than partially. Said before funding, not after — from a real user hitting it.
+
+### Sub-accounts
+- Built for real against the Onboard Ledger API: create, rename, freeze, close, internal transfers
+  between main and any sub-account, per-sub NGN and stablecoin funding details, and activity.
+- One screen, no modes, for two audiences — treasury teams and customer wallets via the API.
+  Deliberately **not** added to the global Send flow, to keep that surface from growing.
+- Sub-accounts are USD-only, which the funding panel states rather than letting someone discover.
+
+### Cards on Home, and Invoices
+- Cards get a panel beside the account card on Home — chips and a balance, two states only, after
+  six variants were explored and removed.
+- An internal **Invoices** tool: structured payment methods (USD/NGN/stablecoin with network),
+  discount before tax, and sticky sender/customer defaults. Internal-first, hidden in demo mode.
+
+---
+
 ## 2026-09-22
 
 ### Team card assignment
@@ -271,6 +382,13 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-09-08
+
+### Cards and Send
+- Card screens and parts of the Send flow reworked ahead of the fees and terms work that followed.
+
+---
+
 ## 2026-08-11 → 08-18
 
 ### Access control (ACL)
@@ -289,6 +407,26 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 
 ---
 
+## 2026-07-24 → 08-07
+
+### Account recovery and 2FA
+- Account recovery flow for a lost authenticator: request, manual review, and an emailed link to
+  set up a new one. 2FA reworked around it.
+
+### Fiat account requests
+- USD, GBP and EUR request flows brought onto one provisioning state model — not requested,
+  submitting, under review, ready, or declined — rather than three separate shapes.
+
+### Fees, limits and timelines
+- Per-rail fees, limits and settlement timings surfaced on the deposit panels instead of living
+  only in the handoff.
+- **Sub-accounts** sketched and hidden behind a mock toggle — explored, not scoped for build.
+
+### Fixed
+- Add-recipient flow.
+
+---
+
 ## 2026-07-23
 
 ### Meta & Open Graph tags for the public demo
@@ -297,6 +435,61 @@ Changes made via Claude Code sessions after the initial Claude Design handoff.
 - Renamed the `v1/index.html` browser-tab `<title>` from the internal `"Onboard Business — v1 (Adaptive)"` to the public-facing `"Onboard Business — Live Product Demo"` (this is the Vercel root, so the title shows publicly; matches the "Live Product Demo" eyebrow on the entry page)
 - New `v0/design-system/assets/og-image.png` (2400×1260, 2× of 1200×630): the shared preview image the tags reference — recreates the demo entry hero (photo, floating card, headline, feature list, lime accent)
 - **Files changed**: `v1/index.html`, `v0/index.html`, `v0/design-system/assets/og-image.png` (new)
+
+---
+
+## 2026-07-04 → 07-22
+
+### v1: the adaptive prototype
+- **The v1 folder begins.** One codebase serving desktop and mobile from the same components via
+  `useIsDesktop()` and a set of adaptive primitives, replacing v0's desktop-only build. Everything
+  after this point happens in `v1/`; `v0/` stays as design reference and for the shared data and
+  design-system files v1 still loads.
+- Deployed to Vercel, with a README and `vercel.json`.
+
+### Transactions on the activities endpoint
+- Transaction list and detail reworked to match the backend's activities model rather than a
+  prototype-only shape, so the taxonomy in the app matches the one in the API.
+
+### Cards, first pass
+- The cards prototype: list, detail and the states a card moves through.
+
+### Demo mode
+- `?demo=1` — the public build: entry gate, banner, guided nudges and conversion CTAs, so the
+  prototype can be shared without the mock controls.
+- Support links pointed at the real WhatsApp number.
+- Naira deposit fees corrected; network selector and deposit notice tightened.
+
+---
+
+## 2026-06-10 → 06-29
+
+### Developer settings
+- API keys and webhooks behind 2FA, with Developer in the sidebar.
+
+### Recipients
+- Recipient flows reworked, with recipient type as a dropdown.
+
+### Funding accounts
+- NGN account details moved to Aella, and account generation added as a state rather than details
+  that simply exist.
+- USD account application and details; EUR and GBP request flows.
+
+### Cards
+- First card support in the prototype.
+
+---
+
+## 2026-05-25 → 05-31
+
+### Funding and accounts
+- NGN funding, global accounts, and a balance check.
+- Deposit added to the menu.
+
+### Onboarding
+- Onboarding states and fields extended, including business type for Smile ID.
+- Stepper changed from horizontal to vertical; skeleton loaders added; password moved back to the
+  second page.
 
 ---
 

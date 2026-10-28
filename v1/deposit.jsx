@@ -109,7 +109,6 @@ function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits, role = "admin" }
     { k: "Bank", v: NGN_ACCOUNT.bank },
     { k: "Account name", v: NGN_ACCOUNT.name },
     { k: "Account number", v: NGN_ACCOUNT.number, copy: true },
-    { k: "Conversion rate", v: "1 USD = ₦1,400.50" },
   ];
   return (
     <div className="rail-panel">
@@ -117,6 +116,7 @@ function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits, role = "admin" }
         <div className="panel-intro-desc">Send NGN from any Nigerian bank to the details below. Your deposit is converted to USD at the live rate when it lands.</div>
         <TimingChip tone="fast" label="Minutes" />
       </div>
+      <DepositConverter ccy="NGN" symbol="₦" perUsd={1400.50} />
       <Banner tone="info" icon={<Icon.info />}>
         The exchange rate is locked at the moment your NGN deposit clears — not when you initiate the transfer.
       </Banner>
@@ -124,6 +124,66 @@ function NgnPanel({ issuance = "ready", onCopy, onSeeAllLimits, role = "admin" }
       <PanelActions fields={fields} onCopy={onCopy} showPdf={false} />
       <FeeGrid fees={NGN_FEES} limits={NGN_LIMITS} onAbout={() => setShowLimits(true)} onSeeAll={onSeeAllLimits} />
       {showLimits && <DepositLimitsSheet onClose={() => setShowLimits(false)} />}
+    </div>
+  );
+}
+
+// Businesses hold an amount in the currency they're sending, not in USD, so quoting a rate makes
+// them do the arithmetic (Yinka, 25 Oct). The fee comes off the local amount before conversion,
+// which is how the deposit actually settles — see txMoney in receipt.jsx.
+// For a returning business the account details are already saved; the amount is the live
+// question, so this sits above them and is open (Yinka, 25 Oct). Both fields drive each other —
+// "the local amount I need to send" is the reverse of what an inflow converts to, and a business
+// funding to a target needs that direction more often than the forward one.
+// The fee comes off the local amount before conversion, which is how the deposit settles.
+function DepositConverter({ ccy, symbol, perUsd, fee = 0, feeNote }) {
+  const [local, setLocal] = useState("");
+  const [usd, setUsd] = useState("");
+  const num = (v) => {
+    const n = parseFloat(String(v).replace(/,/g, ""));
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  const money = (n, dp = 2) => n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+
+  const onLocal = (v) => {
+    const clean = v.replace(/[^\d.,]/g, "");
+    setLocal(clean);
+    const n = num(clean);
+    setUsd(n === null || clean === "" ? "" : money(Math.max(0, (n - fee) / perUsd)));
+  };
+  const onUsd = (v) => {
+    const clean = v.replace(/[^\d.,]/g, "");
+    setUsd(clean);
+    const n = num(clean);
+    setLocal(n === null || clean === "" ? "" : money(n * perUsd + fee, 2));
+  };
+
+  return (
+    <div className="dep-conv">
+      <div className="dep-conv-row">
+        <div className="dep-conv-side">
+          <div className="dep-conv-lbl">You send</div>
+          <div className="dep-conv-input">
+            <span className="dep-conv-sym">{symbol}</span>
+            <input className="inp" type="text" inputMode="decimal" placeholder="0.00"
+              value={local} onChange={(e) => onLocal(e.target.value)} aria-label={`Amount in ${ccy}`} />
+          </div>
+        </div>
+        <div className="dep-conv-eq">=</div>
+        <div className="dep-conv-side">
+          <div className="dep-conv-lbl">You&rsquo;ll receive</div>
+          <div className="dep-conv-input">
+            <span className="dep-conv-sym">$</span>
+            <input className="inp" type="text" inputMode="decimal" placeholder="0.00"
+              value={usd} onChange={(e) => onUsd(e.target.value)} aria-label="Amount in USD" />
+          </div>
+        </div>
+      </div>
+      <div className="dep-conv-note">
+        1 USD = {symbol}{money(perUsd)}
+        {fee > 0 ? ` · after the ${symbol}${money(fee)} ${feeNote || "deposit"} fee` : " · no deposit fee"}
+        {" · "}an estimate at today&rsquo;s rate
+      </div>
     </div>
   );
 }
@@ -162,7 +222,7 @@ function StablecoinPanel({ coin, issuance = "ready", onCopy, role = "admin" }) {
   const fields = chain ? [
     { k: "Minimum deposit", v: `${chain.min} ${coin}` },
     { k: "Conversion rate", v: `1 ${coin} = 1 USD` },
-    { k: "Fee", v: "$1.00" },
+    { k: "Fee", v: "Free" },
   ] : [];
 
   const copyAddr = () => {
@@ -249,9 +309,9 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Bank address", v: "1801 Main Street, Kansas City, MO 64108, USA" },
     ],
     fees: [
-      { rail: "ACH", fee: "0.40% + $1.50", timing: "1–3 business days" },
-      { rail: "Wire", fee: "0.40% + $30", timing: "1–2 business days" },
-      { rail: "SWIFT", fee: "0.40% + $30", timing: "1–3 business days" },
+      { rail: "ACH", fee: "0.50% + $1.50", timing: "1–3 business days" },
+      { rail: "Wire", fee: "0.50% + $30", timing: "1–2 business days" },
+      { rail: "SWIFT", fee: "0.50% + $30", timing: "1–3 business days" },
     ],
     limits: { first: { usd: "$250,000" }, third: { usd: "$10,000" } },
     rails: ["ACH", "Domestic Fedwire", "SWIFT"],
@@ -268,7 +328,6 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Account type", v: "Checking", copy: true },
       { k: "Bank name", v: "Clear Junction Limited", copy: true },
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
-      { k: "Conversion rate", v: "$1 = €0.88" },
     ],
     fees: [{ rail: "SEPA", fee: "€0.50", timing: "1 business day" }],
     limits: { first: { usd: "$100,000", local: "€88,000" }, third: { usd: "$10,000", local: "€8,800" } },
@@ -276,6 +335,7 @@ const FIAT_ACCOUNT_DATA = {
     readyTiming: "1–2 business days",
     readyTimingTone: "med",
     readyBanner: "The exchange rate is locked when your EUR deposit is received — not when you initiate the transfer.",
+    converter: { symbol: "€", perUsd: 0.88, fee: 0.50, feeNote: "SEPA" },
     requestTitle: "Request your EUR account",
     requestDesc: "We'll allocate a dedicated EUR IBAN for your business. This is reviewed by our banking partner and typically takes 1–3 business days.",
     reviewDesc: "Your EUR IBAN is being allocated and approved by our banking partner. If we need anything else while reviewing, we'll reach out to your registered business email.",
@@ -290,7 +350,6 @@ const FIAT_ACCOUNT_DATA = {
       { k: "Account type", v: "Checking", copy: true },
       { k: "Bank name", v: "Clear Junction Limited", copy: true },
       { k: "Bank address", v: "85 Great Portland Street, London, United Kingdom, W1W 7LT", copy: true },
-      { k: "Conversion rate", v: "$1 = £0.75" },
     ],
     fees: [
       // Two fees under one rail name: plain domestic FPS is £0.50, cross-scheme inbound is £1.00
@@ -305,6 +364,7 @@ const FIAT_ACCOUNT_DATA = {
     limits: { first: { usd: "$100,000", local: "£75,000" }, third: { usd: "$10,000", local: "£7,500" } },
     readyDesc: "Send GBP via Faster Payments to the details below. Your deposit is converted to USD at the live rate when received.",
     readyBanner: "The exchange rate is locked when your GBP deposit is received — not when you initiate the transfer.",
+    converter: { symbol: "£", perUsd: 0.75, fee: 0.50, feeNote: "Faster Payments" },
     requestTitle: "Request your GBP account",
     requestDesc: "We'll allocate a dedicated GBP account number & sort code for your business. This is reviewed by our banking partner and typically takes 1–3 business days.",
     reviewDesc: "Your GBP account details are being allocated and approved by our banking partner. If we need anything else while reviewing, we'll reach out to your registered business email.",
@@ -390,6 +450,7 @@ function FiatAccountPanel({ ccy, state: initialState, onCopy, onSeeAllLimits, ro
         <div className="panel-intro-desc">{data.readyDesc}</div>
         {data.readyTiming && <TimingChip tone={data.readyTimingTone} label={data.readyTiming} />}
       </div>
+      {data.converter && <DepositConverter ccy={ccy} {...data.converter} />}
       {data.readyBanner && <Banner tone="info" icon={<Icon.info />}>{data.readyBanner}</Banner>}
       <FieldGrid fields={data.fields} onCopy={onCopy} />
       <PanelActions fields={copyableFields} onCopy={onCopy} onLetter={openAccountLetter} />
@@ -461,7 +522,9 @@ function DepositPage({ onBack, onToast, onSeeAllLimits, role = "admin", usdAccou
           {activeTab.type === "ngn" && <NgnPanel issuance={ngnIssuance} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
           {activeTab.type === "stablecoin" && <StablecoinPanel coin={activeTab.coin} issuance={stablecoinIssuance} onCopy={handleCopy} role={role} />}
           {activeTab.type === "usd" && <FiatAccountPanel ccy="USD" state={usdAccountStatus} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
-          {activeTab.type === "fiat-convert" && <FiatAccountPanel ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
+          {/* Keyed by currency: EUR and GBP share this element, so without it React reuses the
+              instance and a EUR amount typed into the converter reappears priced at GBP's rate. */}
+          {activeTab.type === "fiat-convert" && <FiatAccountPanel key={activeTab.ccy} ccy={activeTab.ccy} state={fiatConvert} onCopy={handleCopy} onSeeAllLimits={onSeeAllLimits} role={role} />}
         </div>
       )}
     </Page>

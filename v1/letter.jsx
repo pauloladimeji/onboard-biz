@@ -179,7 +179,19 @@ function openDocument(id, title) {
       '.lt-bar { max-width: 820px; margin: 0 auto 14px; display: flex; justify-content: flex-end; }' +
       '.lt-bar button { font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 8px; padding: 9px 16px; background: #5433FF; color: #fff; }' +
       '.letter { max-width: 820px; margin: 0 auto; box-shadow: 0 10px 30px rgba(15,23,42,.12); }' +
-      '@media print { body { margin: 0; padding: 0; background: #fff; } .lt-bar { display: none; } .letter { max-width: none; box-shadow: none; } }' +
+      // The app's print rules take .letter out of flow (absolute) and overlay it at 0,0, because
+      // printing from the app page leaves every other element hidden but still occupying height.
+      // In this tab the document is the only thing on the page, so that overlay buys nothing and
+      // costs pagination: an out-of-flow box doesn't break across pages, so anything past the
+      // first page is clipped and the overflow lands on a near-empty one. Put it back in flow.
+      // The legal footer stops repeating per page and prints once at the end, which is the cost
+      // of content that actually breaks.
+      '@media print {' +
+        'body { margin: 0; padding: 0; background: #fff; }' +
+        '.lt-bar { display: none; }' +
+        '.letter { max-width: none; box-shadow: none; position: static !important; padding-bottom: 0 !important; }' +
+        '.letter-foot { position: static !important; margin-top: 18px; }' +
+      '}' +
     '</style></head><body>' +
     '<div class="lt-bar"><button onclick="window.print()">Download as PDF</button></div>' +
     clone.outerHTML +

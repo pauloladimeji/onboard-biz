@@ -368,11 +368,11 @@ const CRYPTO_COUNTERPARTY_ADDRESS = {
   "WDR-2026-00102": "TBn7K2mR9vQ1sD4fH6jL8pXc3aZ5yWtNoeQ2dM9k",
 };
 
-// Network fee per crypto row (USD) — withdrawals carry a real on-chain gas cost, deposits a small
-// flat processing fee. Maps to AccountTransaction.feeAmount/feeInclusive in the ledger spec.
+// Network fee per crypto row (USD) — withdrawals carry a real on-chain gas cost. Deposits are
+// free. Maps to AccountTransaction.feeAmount/feeInclusive in the ledger spec.
 const CRYPTO_FEE = {
-  "FND-2026-00319": 1.00,
-  "FND-2026-00320": 1.00,
+  "FND-2026-00319": 0,
+  "FND-2026-00320": 0,
   "WDR-2026-00101": 5.00,
   "WDR-2026-00102": 2.00,
 };

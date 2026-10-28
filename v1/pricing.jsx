@@ -18,7 +18,7 @@ const RIcon = window.OBIcon;
 const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon, isDemoMode: pIsDemoMode, SUPPORT_WA: PRICING_WA } = window.OBPrimitives;
 const { DocFrame: PDocFrame, openDocument: pOpenDocument } = window.OBLetter;
 
-const PRICING_UPDATED = "23 September 2026";
+const PRICING_UPDATED = "23 October 2026";
 
 const PLANS = [
   {
@@ -48,8 +48,8 @@ const PLANS = [
   },
   {
     id: "enterprise", name: "Enterprise", price: "Custom", per: "",
-    bestFor: "For platforms embedding payments, or businesses needing bespoke terms.",
-    benefits: ["Tailored account setup", "White-labelling and custom workflows", "Dedicated implementation"],
+    bestFor: "For platforms running payments for their own users, or businesses needing bespoke terms.",
+    benefits: ["Wallets and cards for your users, under your brand", "Onboard your users with your own KYC", "Collect from your customers in our name", "Dedicated implementation"],
     cta: "Contact sales",
   },
 ];
@@ -63,9 +63,10 @@ const COMPARISON = [
   {
     title: "Transaction fees",
     rows: [
-      { label: "USD deposits and withdrawals", values: ["0.40% + method fee", "0.25% + method fee", "0.15% + method fee", "Custom"] },
+      { label: "USD deposits and withdrawals", values: ["0.50% + method fee", "0.25% + method fee", "0.15% + method fee", "Custom"] },
       // Free on every plan: the margin on these rails is in the conversion rate, not a fee.
-      { label: "Local currency payouts", note: "NGN, GHS, IDR and more", values: ["Free", "Free", "Free", "Free"] },
+      { label: "Local currency payouts", note: "NGN, GHS, IDR and more. Converted at the rate shown", values: ["Free", "Free", "Free", "Free"] },
+      { label: "Stablecoin deposits", note: "USDC and USDT, any network", values: ["Free", "Free", "Free", "Free"] },
       { label: "USDT payouts", values: ["$5 per payout", "$3 per payout", "$1 per payout", "Custom"] },
       { label: "USDC payouts", values: ["0.25% per payout", "0.10% per payout", "0.05% per payout", "Custom"] },
     ],
@@ -75,22 +76,31 @@ const COMPARISON = [
     rows: [
       // A capability, not a fee line: the accounts come with every plan and the deposits into
       // them are free, so it belongs here rather than in the rate card.
-      { label: "NGN collection accounts", note: "Named and one-time. Deposits are converted to USD at the live rate", values: [true, true, true, true] },
+      { label: "NGN collection accounts", note: "Named and one-time", values: [true, true, true, true] },
       { label: "Named USD, EUR and GBP accounts", values: [["$200", "one-time application fee", true], ["$75", "one-time application fee", true], "Free", "Free"] },
       { label: "Additional named USD accounts", values: [false, false, "On request", "Custom"] },
       { label: "USD payouts in your business name", values: [false, true, true, true] },
+      // Charged once when the address is created, not monthly: an address is a thing you make,
+      // and a recurring fee on something a platform creates per end-customer compounds fast.
+      { label: "Payout addresses", note: "Linked to a bank recipient. Once per address. Volume pricing above 1,000", values: ["$1.00", "$0.50", "Free", "Custom"] },
+      // We receive funds from people who are not our customer, so it carries a compliance review
+      // of the business and of how it onboards its own users.
+      { label: "Collect from your customers", note: "Pooled USD account in our name, one reference per customer", values: [false, false, false, true] },
       { label: "Card limits", values: ["Standard", "Higher", "Higher", "Tailored"] },
       // Billed per *active* account, so the definition rides with the row — it's the number
       // people dispute at the end of a month.
-      { label: "Sub-accounts", note: "Separate balances for your customers or teams. Active = held a balance or transacted that month.", values: [["$5.00", "per active account/month"], ["$1.50", "per active account/month"], ["$0.25", "per active account/month"], "Custom"] },
+      { label: "Sub-accounts", note: "Separate balances for customers or teams. Active = held a balance or transacted. Volume pricing above 1,000", values: [["$5.00", "per active account/month"], ["$1.50", "per active account/month"], ["$0.25", "per active account/month"], "Custom"] },
     ],
   },
   {
-    title: "Support and customisation",
+    title: "Platform and customisation",
     rows: [
       { label: "Customer support", values: [["Standard", "Shared queue"], ["Priority", "Ahead of the queue"], ["Account manager", "Named contact"], ["Dedicated team", "Agreed service level"]] },
       { label: "API integration", values: [["Documentation", "Self-serve"], ["Guided onboarding", "Walkthrough with us"], ["Dedicated support", "Engineer on hand"], ["Implementation team", "We plan it with you"]] },
-      { label: "White-labelling", values: [false, false, false, true] },
+      // "White-labelling" could mean a logo swap. These are what a platform is actually asking for.
+      { label: "White-label wallets for your users", values: [false, false, false, true] },
+      { label: "Cards issued through your product", values: [false, false, false, true] },
+      { label: "Onboard your users with your own KYC", values: [false, false, false, true] },
       { label: "Custom workflows", values: [false, false, false, true] },
     ],
   },
@@ -125,11 +135,11 @@ const INTENDED_CARD_RATES = {
 const FAQS = [
   {
     q: "When do plan fees start?",
-    a: "Plan fees begin when your business enters production. Transaction, conversion and payment-method fees are charged separately as you use them.",
+    a: "When your contract is signed, and they can be waived while you're setting up. Everything else is charged as you use it.",
   },
   {
     q: "What is a payment-method fee?",
-    a: "Some rails carry a fee from the bank or network carrying the payment. It's charged in addition to the rates above, and shown before you confirm.",
+    a: "A fee from the bank or network carrying the payment, on top of the rates above. Shown before you confirm.",
   },
   {
     q: "How does the account application fee work?",
@@ -140,7 +150,7 @@ const FAQS = [
     // Channel and who, not response times: a published response time is a commitment, and there
     // is no agreed SLA behind these yet. Add the targets here once there is one.
     q: "What do the support levels mean?",
-    a: "Every plan can reach a person — the difference is who, and how fast you get to them.",
+    a: "Every plan reaches a person. The difference is who, and how quickly.",
     defs: [
       { t: "Standard", b: "Email and in-app chat during business hours, answered from a shared queue." },
       { t: "Priority", b: "The same channels, with your requests handled ahead of the standard queue." },
@@ -149,23 +159,13 @@ const FAQS = [
     ],
   },
   {
-    q: "What does API integration cover?",
-    a: "How much help you get building against the API, on top of the same API access every plan has.",
-    defs: [
-      { t: "Documentation", b: "Public docs, API reference and support through the standard channels." },
-      { t: "Guided onboarding", b: "A walkthrough of your integration and help getting your first calls working." },
-      { t: "Dedicated support", b: "An engineer you can take integration questions to as you build." },
-      { t: "Implementation team", b: "We build the integration plan with you and support you through going live." },
-    ],
-  },
-  {
     q: "What do cards cost?",
     a: "Cards are included on every plan. These fees are charged per card, whatever plan you're on.",
     fees: true,
   },
   {
-    q: "What are the card terms?",
-    a: "You can add up to $10,000 to a card per top-up, though a card can hold more than that. Keep at least $5.00 on a card or it's frozen until you fund it. 5 declined domestic or 2 declined international payments terminates the card, which is final — any balance returns to your USD balance.",
+    q: "Can we run Onboard inside our own product?",
+    a: "Yes. API access is on every plan. Enterprise adds more capability and customisation, on terms agreed with you.",
   },
   {
     q: "Is everything available to every business?",
@@ -173,7 +173,7 @@ const FAQS = [
   },
   {
     q: "How do I change plan?",
-    a: "Plans are set up with your account team. Tell them how you're using Onboard and they'll work out which plan fits your volumes.",
+    a: "Talk to your account team — they'll work out which plan fits your volumes.",
   },
 ];
 

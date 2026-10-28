@@ -1945,14 +1945,16 @@ table.records-table th.num { text-align: right; }
   /* The pricing sheet is tables, not prose. Sections are allowed to break across pages (keeping
      whole sections together strands half-empty pages), rows are not, and the header row repeats
      so a group that spills still reads. Tighter than the letter on purpose. */
-  #pricing-doc .letter-section { break-inside: auto; margin-bottom: 16px; }
-  #pricing-doc .letter-lede { margin-bottom: 14px; }
+  #pricing-doc .letter-section { break-inside: auto; margin-bottom: 15px; }
+  #pricing-doc .letter-lede { margin-bottom: 13px; }
   #pricing-doc .letter-h3 { margin-bottom: 6px; break-after: avoid; }
   #pricing-doc .doc-table thead { display: table-header-group; }
   #pricing-doc .doc-table tr { break-inside: avoid; }
-  #pricing-doc .doc-table th, #pricing-doc .doc-table td { padding: 4px 8px 4px 0; font-size: 10px; line-height: 1.4; }
-  #pricing-doc .doc-notes p { font-size: 9.5px; line-height: 1.5; margin-bottom: 6px; }
-  #pricing-doc .doc-note { font-size: 9.5px; }
+  #pricing-doc .doc-table th, #pricing-doc .doc-table td { padding: 5px 8px 5px 0; font-size: 10px; line-height: 1.4; }
+  /* The descriptor lines are what read as noise, so they stay small while the rows breathe. */
+  #pricing-doc .doc-table tbody th em, #pricing-doc .doc-table td em { font-size: 8.5px; line-height: 1.3; }
+  #pricing-doc .doc-notes p { font-size: 9px; line-height: 1.45; margin-bottom: 5px; }
+  #pricing-doc .doc-note { font-size: 9px; margin-top: 4px; }
 }
 
 /* Failed and terminated cards pile up and can never become active again, so they can be hidden.
@@ -2096,6 +2098,19 @@ table.records-table th.num { text-align: right; }
 .price-fee-row .k em { display: block; font-style: normal; font-size: 11.5px; color: var(--gray-500); margin-top: 1px; }
 .price-fee-row .v { font-size: 13px; font-weight: 600; color: var(--gray-900); white-space: nowrap; }
 .price-fee-row .v.free { color: var(--success-700); }
+
+/* Deposit converter — quoted rate plus arithmetic the sender shouldn't have to do. */
+.dep-conv { border: 1px solid var(--gray-200); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; background: var(--gray-50); }
+.dep-conv-row { display: flex; align-items: flex-end; gap: 14px; }
+.dep-conv-side { flex: 1; min-width: 0; }
+.dep-conv-lbl { font-size: 11.5px; font-weight: 500; color: var(--gray-500); margin-bottom: 6px; }
+.dep-conv-input { position: relative; }
+.dep-conv-sym { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--gray-500); pointer-events: none; }
+.dep-conv-input .inp { padding-left: 30px; background: #fff; }
+.dep-conv-eq { padding-bottom: 12px; font-size: 14px; color: var(--gray-400); flex: none; }
+.dep-conv-note { margin-top: 10px; font-size: 11.5px; color: var(--gray-500); line-height: 1.5; }
+.page-mobile .dep-conv-row { flex-direction: column; align-items: stretch; gap: 8px; }
+.page-mobile .dep-conv-eq { display: none; }
 
 /* Statement sheet */
 .stmt-presets { display: flex; flex-wrap: wrap; gap: 8px; }
