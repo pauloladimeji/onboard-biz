@@ -12,6 +12,21 @@ what changed but carry less of the reasoning than later ones.
 
 ---
 
+## 2026-11-02
+
+### NGN deposits are no longer free
+- **0.5%, capped at ₦250 per deposit, on every plan.** New row in Transaction fees, above
+  stablecoin deposits.
+- The capability row said "NGN collection accounts — Named and one-time" with a tick, which read
+  as free by omission. It now points at the rate.
+- The Deposit screen's NGN fee card said **Free**, which would have contradicted the page the
+  moment anyone compared them; it now carries the rate with the cap as its fee note.
+- Pricing date moved to 2 November 2026. The PDF follows from the same data, so there was no
+  second copy to change.
+- **Files changed**: `v1/pricing.jsx`, `v1/deposit.jsx`, `v1/index.html`
+
+---
+
 ## 2026-10-23 → 10-28
 
 ### Pricing: what we sell that the page never said

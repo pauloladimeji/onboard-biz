@@ -18,7 +18,7 @@ const RIcon = window.OBIcon;
 const { Page, Sheet, useIsDesktop, DemoCta: RDemoCta, XIcon: PXIcon, isDemoMode: pIsDemoMode, SUPPORT_WA: PRICING_WA } = window.OBPrimitives;
 const { DocFrame: PDocFrame, openDocument: pOpenDocument } = window.OBLetter;
 
-const PRICING_UPDATED = "23 October 2026";
+const PRICING_UPDATED = "2 November 2026";
 
 const PLANS = [
   {
@@ -66,6 +66,7 @@ const COMPARISON = [
       { label: "USD deposits and withdrawals", values: ["0.50% + method fee", "0.25% + method fee", "0.15% + method fee", "Custom"] },
       // Free on every plan: the margin on these rails is in the conversion rate, not a fee.
       { label: "Local currency payouts", note: "NGN, GHS, IDR and more. Converted at the rate shown", values: ["Free", "Free", "Free", "Free"] },
+      { label: "NGN deposits", note: "Into your NGN collection accounts", values: ["0.5% (max ₦250)", "0.5% (max ₦250)", "0.5% (max ₦250)", "0.5% (max ₦250)"] },
       { label: "Stablecoin deposits", note: "USDC and USDT, any network", values: ["Free", "Free", "Free", "Free"] },
       { label: "USDT payouts", values: ["$5 per payout", "$3 per payout", "$1 per payout", "Custom"] },
       { label: "USDC payouts", values: ["0.25% per payout", "0.10% per payout", "0.05% per payout", "Custom"] },
@@ -76,7 +77,7 @@ const COMPARISON = [
     rows: [
       // A capability, not a fee line: the accounts come with every plan and the deposits into
       // them are free, so it belongs here rather than in the rate card.
-      { label: "NGN collection accounts", note: "Named and one-time", values: [true, true, true, true] },
+      { label: "NGN collection accounts", note: "Named and one-time. Deposits charged at the rate above", values: [true, true, true, true] },
       { label: "Named USD, EUR and GBP accounts", values: [["$200", "one-time application fee", true], ["$75", "one-time application fee", true], "Free", "Free"] },
       { label: "Additional named USD accounts", values: [false, false, "On request", "Custom"] },
       { label: "USD payouts in your business name", values: [false, true, true, true] },

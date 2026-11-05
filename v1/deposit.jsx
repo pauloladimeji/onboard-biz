@@ -66,7 +66,7 @@ function DepositLimitsSheet({ onClose, feeNote }) {
 const NGN_ACCOUNT = { bank: "Aella Microfinance Bank", name: "GFS / Acme Trading Co", number: "5200 0443 12" };
 // One rail — Nigerian bank transfer. Third-party deposits are supported here; the restriction
 // in the docs applies to cash deposits on OTA, not to this flow.
-const NGN_FEES = [{ rail: "Bank transfer", fee: "Free", timing: "10 minutes" }];
+const NGN_FEES = [{ rail: "Bank transfer", fee: "0.5%", timing: "10 minutes", note: "Capped at ₦250 per deposit" }];
 // NGN is the one currency with no first-party limit at all, and the only one with a daily cap.
 // Every limit is set in USD (confirmed with engineering) — the local figure is display-only,
 // converted at the same rate this panel quotes (1 USD = ₦1,400.50).
