@@ -26,71 +26,35 @@ const firstName = (name) => name.split(" ")[0];
 const initialsOf = (name) => name.split(" ").map((p) => p[0]).slice(0, 2).join("");
 const activeMembers = () => TEAM.filter((m) => m.status === "active");
 const youSuffix = (m) => (m.id === SIGNED_IN.id ? " (you)" : "");
-const DEFAULT_LIMITS = { perTransaction: 5000, daily: 10000, monthly: 25000 };
-// Configured ceilings per limit. Placeholder values until the real ones are confirmed.
-const LIMIT_MAX = { perTransaction: 10000, daily: 25000, monthly: 100000 };
-const LIMIT_STEP = { perTransaction: 50, daily: 100, monthly: 500 };
-const LIMIT_FIELDS = [["perTransaction", "Per transaction"], ["daily", "Daily"], ["monthly", "Monthly"]];
+// Per transaction is the only spend control there is. Miden's corporate cards accept nothing
+// else — `PATCH /cards/set-limit/{id}` takes dailyLimit and monthlyLimit but silently ignores
+// them, and only transactionLimit is honoured (Tayo, Miden, 16 Nov 2026). The daily and monthly
+// caps this screen used to offer were never enforceable, so they're gone rather than shown as
+// controls that do nothing. The card's balance is the real ceiling on total spend.
+const DEFAULT_LIMIT = 5000;
+// Configured ceiling. Placeholder until the real one is confirmed.
+const LIMIT_MAX = 10000;
+const LIMIT_STEP = 50;
 const fmtUsd0 = (n) => "$" + n.toLocaleString();
 
-// Limits must nest (per transaction ≤ daily ≤ monthly). Rather than show an error, moving one
-// limit past its neighbour carries the neighbour with it. The maxes nest too, so this always fits.
-function nestLimits(l, changed) {
-  let { perTransaction: p, daily: d, monthly: m } = l;
-  if (changed === "perTransaction") { d = Math.max(d, p); m = Math.max(m, d); }
-  else if (changed === "daily") { p = Math.min(p, d); m = Math.max(m, d); }
-  else { d = Math.min(d, m); p = Math.min(p, d); }
-  return { perTransaction: p, daily: d, monthly: m };
-}
-
-// Spend counted against the daily and monthly limits. Per transaction has nothing to accumulate.
+// Spend to date. Nothing accumulates against the per-transaction cap, so these are reported as
+// facts about the card rather than metered against a ceiling.
 const spentOf = (card) => card.spent || { today: 0, month: 0 };
-const SPEND_PERIODS = [
-  { key: "daily", spentKey: "today", label: "Today", resets: "Resets daily" },
-  { key: "monthly", spentKey: "month", label: "This month", resets: "Resets on the 1st" },
-];
+const limitOf = (card) => (card.limit || {}).perTransaction || 0;
 
-function SpendMeter({ label, spent, limit, resets }) {
-  const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
-  const reached = spent >= limit;
-  const tone = reached || pct >= 90 ? "danger" : pct >= 75 ? "warn" : "";
-  return (
-    <div className="spend-meter">
-      <div className="spend-meter-head">
-        <span>{label}</span>
-        <span><strong>${fmtBal(spent)}</strong> of {fmtUsd0(limit)}</span>
-      </div>
-      <div className="spend-bar" role="meter" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={spent} aria-label={`${label} spend`}>
-        <div className={tone} style={{ width: `${pct}%` }} />
-      </div>
-      <div className="spend-meter-foot">
-        <span className={tone}>{reached ? "Limit reached — payments declined until it resets" : `$${fmtBal(limit - spent)} left`}</span>
-        <span>{resets}</span>
-      </div>
-    </div>
-  );
-}
-
-// Secondary to the card's own details, so it's one bar: the monthly figure, with today and the
-// per-transaction cap in a line beneath. The limits sheet has the full breakdown.
+// Secondary to the card's own details: the cap that's enforced, then what's actually been spent.
 function CardSpendCard({ card, onViewLimits }) {
   const s = spentOf(card);
-  const pct = Math.min(100, (s.month / card.limit.monthly) * 100);
-  const tone = pct >= 90 ? "danger" : pct >= 75 ? "warn" : "";
-  const dayReached = s.today >= card.limit.daily;
   return (
     <div className="card spend-card">
       <div className="spend-mini-head">
-        <span>Spent this month</span>
-        <span className="fig"><strong>${fmtBal(s.month)}</strong> of {fmtUsd0(card.limit.monthly)}</span>
-      </div>
-      <div className="spend-bar" role="meter" aria-valuemin={0} aria-valuemax={card.limit.monthly} aria-valuenow={s.month} aria-label="Spend this month">
-        <div className={tone} style={{ width: `${pct}%` }} />
+        <span>Spending limit</span>
+        <span className="fig"><strong>{fmtUsd0(limitOf(card))}</strong> per payment</span>
       </div>
       <div className="spend-mini-foot">
         <div className="spend-mini-facts">
-          <span className={dayReached ? "danger" : ""}>Today ${fmtBal(s.today)} of {fmtUsd0(card.limit.daily)}</span>
-          <span>Up to {fmtUsd0(card.limit.perTransaction)} per payment</span>
+          <span>Spent today ${fmtBal(s.today)}</span>
+          <span>This month ${fmtBal(s.month)}</span>
         </div>
         <button className="card-holder-change" onClick={onViewLimits}>Limits</button>
       </div>
@@ -98,26 +62,17 @@ function CardSpendCard({ card, onViewLimits }) {
   );
 }
 
-function LimitSliders({ value, onChange, spent }) {
+function LimitSlider({ value, onChange }) {
   return (
     <div className="lim-sliders">
-      {LIMIT_FIELDS.map(([k, label]) => (
-        <div className="lim-slider" key={k}>
-          <div className="lim-slider-head"><label htmlFor={`lim-${k}`}>{label}</label><strong>{fmtUsd0(value[k])}</strong></div>
-          <input id={`lim-${k}`} type="range" min={LIMIT_STEP[k]} max={LIMIT_MAX[k]} step={LIMIT_STEP[k]} value={value[k]}
-            style={{ "--fill": `${(value[k] / LIMIT_MAX[k]) * 100}%` }}
-            onChange={(e) => onChange(nestLimits({ ...value, [k]: Number(e.target.value) }, k))} />
-          <div className="lim-slider-scale"><span>{fmtUsd0(LIMIT_STEP[k])}</span><span>Max {fmtUsd0(LIMIT_MAX[k])}</span></div>
-          {spent && k !== "perTransaction" && (() => {
-            const used = k === "daily" ? spent.today : spent.month;
-            if (!used) return null;
-            const period = k === "daily" ? "today" : "this month";
-            return value[k] < used
-              ? <div className="lim-slider-note warn">Below the ${fmtBal(used)} already spent {period} — payments will be declined until it resets.</div>
-              : <div className="lim-slider-note">${fmtBal(used)} spent {period}</div>;
-          })()}
-        </div>
-      ))}
+      <div className="lim-slider">
+        <div className="lim-slider-head"><label htmlFor="lim-pertxn">Per transaction</label><strong>{fmtUsd0(value)}</strong></div>
+        <input id="lim-pertxn" type="range" min={LIMIT_STEP} max={LIMIT_MAX} step={LIMIT_STEP} value={value}
+          style={{ "--fill": `${(value / LIMIT_MAX) * 100}%` }}
+          onChange={(e) => onChange(Number(e.target.value))} />
+        <div className="lim-slider-scale"><span>{fmtUsd0(LIMIT_STEP)}</span><span>Max {fmtUsd0(LIMIT_MAX)}</span></div>
+        <div className="lim-slider-note">Applies to each payment. There's no daily or monthly cap — the card's balance is the ceiling on what it can spend in total.</div>
+      </div>
     </div>
   );
 }
@@ -559,7 +514,7 @@ function CreateCardSheet({ onClose, onCreate }) {
   const [name, setName] = useState("");
   const [fundAmount, setFundAmount] = useState("");
   const [holderId, setHolderId] = useState(SIGNED_IN.id);
-  const [limits, setLimits] = useState({ ...DEFAULT_LIMITS });
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [showLimits, setShowLimits] = useState(false);
   const holder = memberById(holderId) || {};
   const MIN_FUND = CARD_CREATION_FEE + CARD_MIN_BALANCE;
@@ -578,7 +533,7 @@ function CreateCardSheet({ onClose, onCreate }) {
       id: "card-" + Date.now(), name: name.trim(), last4, type: "virtual", status: "activating",
       number: `4539 ${String(Math.floor(1000 + Math.random() * 9000))} ${String(Math.floor(1000 + Math.random() * 9000))} ${last4}`,
       expiry: "06/28", cvv: String(Math.floor(100 + Math.random() * 900)),
-      limit: { ...limits }, created: "Jun 28, 2026", balance: cardBalance, holderId,
+      limit: { perTransaction: limit }, created: "Jun 28, 2026", balance: cardBalance, holderId,
     });
     setStep("done");
   };
@@ -603,7 +558,7 @@ function CreateCardSheet({ onClose, onCreate }) {
             <div className="row-item"><div className="k">Card name</div><div className="v">{name}</div></div>
             <div className="row-item"><div className="k">Cardholder</div><div className="v">{holder.name}{youSuffix(holder)}</div></div>
             <div className="row-item"><div className="k">Card type</div><div className="v">Virtual</div></div>
-            <div className="row-item"><div className="k">Spending limits</div><div className="v">{fmtUsd0(limits.perTransaction)} per txn · {fmtUsd0(limits.daily)} daily · {fmtUsd0(limits.monthly)} monthly</div></div>
+            <div className="row-item"><div className="k">Spending limit</div><div className="v">{fmtUsd0(limit)} per transaction</div></div>
             <div className="row-item"><div className="k">Fund amount</div><div className="v">${parsed.toFixed(2)}</div></div>
             <div className="row-item"><div className="k">Creation fee</div><div className="v" style={{ color: "#DC2626" }}>−${CARD_CREATION_FEE.toFixed(2)}</div></div>
             <div className="row-item"><div className="k">Funding fee ({FUNDING_FEE_LABEL})</div><div className="v" style={{ color: "#DC2626" }}>−${fundingFee.toFixed(2)}</div></div>
@@ -634,7 +589,7 @@ function CreateCardSheet({ onClose, onCreate }) {
             <select className="inp" value={holderId} onChange={(e) => setHolderId(e.target.value)}>
               {activeMembers().map((m) => <option key={m.id} value={m.id}>{m.name}{youSuffix(m)}</option>)}
             </select>
-            <div className="help">Their name goes on the card. They can use it and freeze it, but not fund it or change its limits.</div>
+            <div className="help">Their name goes on the card. They can use it and freeze it, but not fund it or change its limit.</div>
           </div>
           <div className="field">
             <div className="lbl">Card type</div>
@@ -662,12 +617,12 @@ function CreateCardSheet({ onClose, onCreate }) {
           </div>
           <div className="field">
             <div className="field-lbl-row">
-              <div className="lbl">Spending limits</div>
+              <div className="lbl">Spending limit</div>
               <button type="button" className="card-holder-change" onClick={() => setShowLimits((v) => !v)}>{showLimits ? "Done" : "Adjust"}</button>
             </div>
             {showLimits
-              ? <LimitSliders value={limits} onChange={setLimits} />
-              : <div className="lim-summary">{fmtUsd0(limits.perTransaction)} per transaction · {fmtUsd0(limits.daily)} daily · {fmtUsd0(limits.monthly)} monthly</div>}
+              ? <LimitSlider value={limit} onChange={setLimit} />
+              : <div className="lim-summary">{fmtUsd0(limit)} per transaction</div>}
           </div>
           <div className="td-banner info" style={{ marginTop: 4 }}>
             <Icon.info />
@@ -756,40 +711,46 @@ function CardFeesSheet({ onClose }) {
   );
 }
 
-// Per card. Managers edit; everyone else reads. Limits must nest (per transaction ≤ daily ≤
-// monthly) — a daily cap below the per-transaction one would silently become the real limit.
+// Per card. Managers edit; everyone else reads. One control — the per-transaction cap — plus
+// spend to date, which is reported rather than metered: there is no period ceiling to meter it
+// against.
 function SpendingLimitsSheet({ card, onClose, canEdit, onSave }) {
-  const fmt = (n) => "$" + n.toLocaleString();
   const [editing, setEditing] = useState(false);
-  const [vals, setVals] = useState({ ...card.limit });
-  const unchanged = LIMIT_FIELDS.every(([k]) => vals[k] === card.limit[k]);
+  const [val, setVal] = useState(limitOf(card));
+  const spent = spentOf(card);
+  const unchanged = val === limitOf(card);
 
   if (editing) {
     return (
-      <Sheet open onClose={onClose} title="Edit spending limits">
+      <Sheet open onClose={onClose} title="Edit spending limit">
         <p className="set-sheet-lede" style={{ marginTop: 0 }}>For <strong>{card.name}</strong>, held by {holderName(card)}. Changes apply to the next payment.</p>
-        <LimitSliders value={vals} onChange={setVals} spent={spentOf(card)} />
+        <LimitSlider value={val} onChange={setVal} />
         <div className="set-modal-foot">
-          <button className="btn btn-ghost" onClick={() => { setVals({ ...card.limit }); setEditing(false); }}>Cancel</button>
-          <button className="btn btn-lg" disabled={unchanged} onClick={() => onSave(vals)}>Save limits</button>
+          <button className="btn btn-ghost" onClick={() => { setVal(limitOf(card)); setEditing(false); }}>Cancel</button>
+          <button className="btn btn-lg" disabled={unchanged} onClick={() => onSave({ perTransaction: val })}>Save limit</button>
         </div>
       </Sheet>
     );
   }
 
   return (
-    <Sheet open onClose={onClose} title="Spending limits">
+    <Sheet open onClose={onClose} title="Spending limit">
       <div>
-        {SPEND_PERIODS.map((p) => <SpendMeter key={p.key} label={p.key === "daily" ? "Daily" : "Monthly"} spent={spentOf(card)[p.spentKey]} limit={card.limit[p.key]} resets={p.resets} />)}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0 0", borderTop: "1px solid var(--gray-100)" }}>
-          <span style={{ fontSize: 13, color: "var(--gray-600)" }}>Per transaction</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--gray-900)", fontVariantNumeric: "tabular-nums" }}>{fmt(card.limit.perTransaction)}</span>
+        <div className="lim-read">
+          <div className="lim-read-k">Per transaction</div>
+          <div className="lim-read-v">{fmtUsd0(limitOf(card))}</div>
         </div>
-        {!canEdit && <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 12 }}>Only admins and operators can change limits.</div>}
+        <p className="lim-read-note">Each payment above this is declined. There's no daily or monthly cap — the card's balance is the ceiling on what it can spend in total.</p>
+        <div className="lim-read-spend">
+          <div className="lim-line"><div className="k">Spent today</div><div className="v">${fmtBal(spent.today)}</div></div>
+          <div className="lim-line"><div className="k">Spent this month</div><div className="v">${fmtBal(spent.month)}</div></div>
+          <div className="lim-line"><div className="k">Card balance</div><div className="v">${fmtBal(card.balance || 0)}</div></div>
+        </div>
+        {!canEdit && <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 12 }}>Only admins and operators can change the limit.</div>}
       </div>
       <div className="set-modal-foot">
         {canEdit
-          ? <><button className="btn btn-ghost" onClick={onClose}>Done</button><button className="btn btn-lg" onClick={() => setEditing(true)}>Edit limits</button></>
+          ? <><button className="btn btn-ghost" onClick={onClose}>Done</button><button className="btn btn-lg" onClick={() => setEditing(true)}>Edit limit</button></>
           : <button className="btn btn-lg" onClick={onClose} style={{ width: "100%", justifyContent: "center" }}>Done</button>}
       </div>
     </Sheet>
@@ -822,7 +783,7 @@ function TerminateCardSheet({ card, onClose, onConfirm }) {
 
 function MoreActionsSheet({ open, onClose, onAction, manage }) {
   const items = [
-    { key: "limits", icon: <Icon.shield />, label: "Spending limits" },
+    { key: "limits", icon: <Icon.shield />, label: "Spending limit" },
     manage && { key: "holder", icon: <Icon.people />, label: "Change cardholder" },
     manage && { key: "withdraw", icon: <Icon.arrowLeft />, label: "Withdraw to wallet" },
     { key: "fees", icon: <Icon.info />, label: "Fees and terms" },
@@ -941,7 +902,7 @@ function CardsNoneAssigned() {
   );
 }
 
-// Moves a card to another active member. Number, balance, limits and history stay with the card.
+// Moves a card to another active member. Number, balance, limit and history stay with the card.
 function ReassignCardSheet({ card, onClose, onConfirm }) {
   const [pick, setPick] = useState(null);
   const options = activeMembers().filter((m) => m.id !== card.holderId);
@@ -949,7 +910,7 @@ function ReassignCardSheet({ card, onClose, onConfirm }) {
   return (
     <Sheet open onClose={onClose} title="Change cardholder">
       <p className="set-sheet-lede" style={{ marginTop: 0 }}>
-        <strong>{card.name}</strong> keeps its number, balance, limits and history.
+        <strong>{card.name}</strong> keeps its number, balance, limit and history.
         {current && current.status === "active" && <> {firstName(current.name)} loses access to it straight away.</>}
       </p>
       {options.map((m) => (
@@ -1135,7 +1096,7 @@ function CardDetailPage({ card, onBack, onToast, onUpdateCard, onDeleteCard, txn
     setShowReassign(false);
     onToast(`Card reassigned to ${memberById(id).name}`);
   };
-  const handleSaveLimits = (limit) => { onUpdateCard({ ...card, limit }); setShowLimits(false); onToast("Spending limits updated"); };
+  const handleSaveLimits = (limit) => { onUpdateCard({ ...card, limit }); setShowLimits(false); onToast("Spending limit updated"); };
   const handleMoreAction = (key) => {
     if (key === "limits") setShowLimits(true);
     else if (key === "holder") setShowReassign(true);
@@ -1276,7 +1237,7 @@ function CardsApplyPage({ onApply }) {
       <div className="cards-apply">
         <div className="cards-apply-eyebrow">{CARD_BRAND} cards</div>
         <h1 className="cards-apply-h1">Spend online, your way</h1>
-        <p className="cards-apply-lede">Issue virtual cards with granular spending limits. Use them for online payments — Apple Pay and Google Pay are coming soon.</p>
+        <p className="cards-apply-lede">Issue virtual cards with a spending limit on each. Use them for online payments — Apple Pay and Google Pay are coming soon.</p>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
           <div className="cards-apply-visual">
             <div style={{ fontSize: 14, fontWeight: 400, letterSpacing: "0.02em" }}>{CARD_BRAND}</div>
@@ -1291,7 +1252,7 @@ function CardsApplyPage({ onApply }) {
         <div className="cards-apply-features">
           {[
             { icon: <Icon.zap />, title: "Instant virtual cards", desc: "Create and use immediately — no waiting for delivery." },
-            { icon: <Icon.shield />, title: "Spending controls", desc: "Set per-transaction, daily, and monthly limits." },
+            { icon: <Icon.shield />, title: "Spending controls", desc: "Set how much each card can spend on a single payment." },
             { icon: <Icon.globe />, title: "Pay online", desc: "Pay merchants in USD or other currencies. Apple Pay and Google Pay coming soon." },
           ].map((f) => (
             <div key={f.title} className="cards-apply-feature">

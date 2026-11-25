@@ -285,9 +285,9 @@ const TEAM_MEMBERS = [
 ];
 
 const CARDS = [
-  { id: "card-1", name: "Marketing spend", last4: "4821", type: "virtual", status: "active", number: "4539 1201 8847 4821", expiry: "09/28", cvv: "314", limit: { perTransaction: 5000, daily: 10000, monthly: 50000 }, created: "Mar 12, 2026", balance: 2450.00, holderId: "m1", spent: { today: 180.00, month: 3240.50 } },
-  { id: "card-2", name: "Operations", last4: "7733", type: "virtual", status: "active", number: "4539 1201 6620 7733", expiry: "09/28", cvv: "528", limit: { perTransaction: 10000, daily: 25000, monthly: 100000 }, created: "Apr 3, 2026", balance: 8120.50, holderId: "m2", spent: { today: 0, month: 18420.00 } },
-  { id: "card-3", name: "Travel & expenses", last4: "0159", type: "virtual", status: "frozen", number: "4539 1201 3390 0159", expiry: "09/28", cvv: "961", limit: { perTransaction: 2000, daily: 5000, monthly: 15000 }, created: "May 18, 2026", balance: 340.00, holderId: "m4", spent: { today: 0, month: 13210.75 } },
+  { id: "card-1", name: "Marketing spend", last4: "4821", type: "virtual", status: "active", number: "4539 1201 8847 4821", expiry: "09/28", cvv: "314", limit: { perTransaction: 5000 }, created: "Mar 12, 2026", balance: 2450.00, holderId: "m1", spent: { today: 180.00, month: 3240.50 } },
+  { id: "card-2", name: "Operations", last4: "7733", type: "virtual", status: "active", number: "4539 1201 6620 7733", expiry: "09/28", cvv: "528", limit: { perTransaction: 10000 }, created: "Apr 3, 2026", balance: 8120.50, holderId: "m2", spent: { today: 0, month: 18420.00 } },
+  { id: "card-3", name: "Travel & expenses", last4: "0159", type: "virtual", status: "frozen", number: "4539 1201 3390 0159", expiry: "09/28", cvv: "961", limit: { perTransaction: 2000 }, created: "May 18, 2026", balance: 340.00, holderId: "m4", spent: { today: 0, month: 13210.75 } },
 ];
 
 // v0 mock balances — USD only (all funds held as a single USD balance)

@@ -431,11 +431,14 @@ All the below are built.
   - **Role gating** — admins and operators see and manage every card. Viewers and developers see
     only the cards they hold: they can use them, read the details and **freeze** (the fast response
     to a leaked number), but not unfreeze, fund or change them.
-  - **Spending limits** — per card, per transaction ≤ daily ≤ monthly. Set at creation and edited
-    by managers on sliders capped at `LIMIT_MAX`; moving one limit past its neighbour carries the
-    neighbour with it, so the invalid combination can't be expressed. Spend against the daily and
-    monthly limits shows on the card detail panel and in full in the limits sheet (amber at 75%,
-    red at 90%).
+  - **Spending limit — per transaction only.** One control per card, set at creation and edited by
+    managers on a slider capped at `LIMIT_MAX`. **There is no daily or monthly cap**: Miden's
+    corporate cards accept only `transactionLimit` on `PATCH /cards/set-limit/{id}` — `dailyLimit`
+    and `monthlyLimit` are ignored (Tayo, Miden, 16 Nov 2026), so offering them would have been a
+    control that does nothing. The card's balance is the ceiling on total spend, and the UI says
+    so in both the slider and the limits sheet. Spend to date (today, this month) is still shown
+    on the card detail panel and in the limits sheet, but as reported figures rather than meters —
+    there is no period ceiling to meter against.
   - **Fees and terms** — one sheet, before anyone creates a card: creation $5, funding 1%, monthly
     free, USD transactions free, cross-border 1.75% + $1 (non-US merchants **or** any non-USD
     currency — it's not an FX fee), chargeback $50, plus the minimum-balance and repeated-decline
@@ -502,10 +505,11 @@ a pre-existing gap the demo surfaced.
 
 **Open questions for backend — design is settled, these are answers we need to build:**
 
-- **Cards / limits** — the real configured maximum per limit (`LIMIT_MAX` in `cards.jsx` is a
-  placeholder: $10k / $25k / $100k), and whether it's per business; where spend-to-date comes from
-  (provider field vs summed transactions) and whether pending authorisations count; the daily
-  reset time zone, and whether monthly resets on the 1st or rolls 30 days.
+- **Cards / limits** — the real configured maximum for the per-transaction limit (`LIMIT_MAX` in
+  `cards.jsx` is a placeholder: $10k), and whether it's per business; where spend-to-date comes
+  from (provider field vs summed transactions) and whether pending authorisations count. The daily
+  and monthly questions are closed — Miden doesn't support those limits, so there is nothing to
+  reset.
 - **Cards / cardholder** — can the cardholder name change on an already-issued card, or does
   reassigning require a new card? Can a card number be reissued so a removed holder's saved
   details stop working? Who do card emails go to — the holder, the creator, or both?

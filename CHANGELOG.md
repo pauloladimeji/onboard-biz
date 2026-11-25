@@ -12,6 +12,64 @@ what changed but carry less of the reasoning than later ones.
 
 ---
 
+## 2026-11-25
+
+### Card spend controls are per-transaction only
+- Miden's corporate cards accept **only** `transactionLimit`. Tom hit a 119 on
+  `PATCH /api/v1/cards/set-limit/{cardId}` in sandbox on 13 Nov sending all three limits; Tayo
+  (Miden) confirmed on 16 Nov that for corporate cards only `transactionLimit` can be updated.
+  Daily and monthly caps were never enforceable, so the UI no longer offers them — a slider that
+  silently does nothing is worse than no slider.
+- **What went**: `nestLimits` (the ≤ nesting rule has nothing left to nest), `SpendMeter`,
+  `SPEND_PERIODS`, the daily/monthly sliders, and the progress bars — with no period ceiling
+  there's no denominator to meter against. The dead `.spend-meter` / `.spend-bar` CSS went too.
+- **What stayed**: spend to date. "Spent today" and "this month" are real numbers Miden reports,
+  and they're still worth seeing — they're now plain figures rather than bars. The limits sheet
+  adds **card balance** beside them, since the balance is the actual ceiling on total spend.
+- Both the slider and the limits sheet say so outright: "There's no daily or monthly cap — the
+  card's balance is the ceiling." Without that line the screen reads as missing a feature rather
+  than reflecting what the rails do.
+- `card.limit` keeps its object shape (`{ perTransaction }`) rather than collapsing to a number,
+  so a second limit can come back if Miden ever supports one.
+- Copy singularised throughout — "Spending limit", and the cards marketing panel no longer
+  advertises daily and monthly limits.
+- **Open for backend**: the real `LIMIT_MAX` ($10k is a placeholder) and where spend-to-date comes
+  from. The daily-reset-timezone and monthly-reset questions in HANDOFF §13 are now closed.
+- **Files changed**: `v1/cards.jsx`, `v0/data.jsx`, `v1/app.css`, `v1/HANDOFF.md`, `v1/index.html`
+
+---
+
+## 2026-11-16
+
+### Account letter as a skill (Paul OS, `skills/account-letter/`)
+- A consumer user asked support for "an official account confirmation letter for my USD account,
+  for submission to my employer for contractor payment setup". Business has had this document
+  since September; the consumer app doesn't, so support writes them by hand.
+- The skill lives in Paul OS (`~/Documents/PO Command Center/skills/account-letter/`), not in this
+  repo — it is support/ops work, not a prototype change. It renders the **same** template the
+  Business app issues: `template.html` is a copy of `v1/app.css` §Account letter plus the
+  `v1/letter.jsx` structure, and the logo and spiral are **copied into the skill** so it runs with
+  no checkout of this repo present. **If the app's letter or those assets change here, update the
+  skill too.**
+- `render.py` takes a JSON spec → self-contained HTML + PDF (headless Chrome). Empty rows and
+  empty sections are dropped, mirroring `letterSections()`: a blank or N/A line on a proof of
+  account reads to a finance team as a missing detail.
+- **Why N/A lost.** The first draft printed `SWIFT / BIC: N/A` and `IBAN: N/A` under an
+  "Instructions For International Transfer" heading. A Lead Bank USD account has no SWIFT, and no
+  US account has an IBAN — so the whole section went, and the limitation moves into support's
+  covering message instead. The second provider that does carry a SWIFT isn't reliable enough to
+  name on an issued document.
+- CTA is audience-aware: `personal` → onboard.xyz/personal, `business` → the apply link. The
+  business CTA on an individual's bank letter was simply the template carried over unexamined.
+- Issued letters carry real account coordinates: output goes to the scratchpad, never the repo,
+  never an artifact.
+- **Open**: the consumer app still has no account letter. Two support requests for proof
+  documents in two days.
+- **Files added** (in Paul OS): `skills/account-letter/{SKILL.md,template.html,render.py,assets/}`.
+  Nothing in this repo changed except this entry.
+
+---
+
 ## 2026-11-02
 
 ### NGN deposits are no longer free
